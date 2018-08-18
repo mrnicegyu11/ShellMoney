@@ -259,7 +259,7 @@ $(document).ready(function() {
     $('#cashingUpBookedButton').off("click");
     $('#cashingUpBookedButton').on("click", function()
     {
-      if($(this).html() != "Booked")
+      if($.trim($(this).html()) != "Booked")
       {
         $(this).html("Booked");
         $(this).removeClass("btn-warning");
@@ -299,7 +299,7 @@ $(document).ready(function() {
           'account': $('#addRedemptionView input#cashingUpInputAccount').val(),
           'bookingType': "Redemption",
           'dateEntered': (new Date()).setFullYear(parseInt(selectedYear),parseInt(selectedMonth),0),
-          'dateBooked': $('#addRedemptionView button#cashingUpBookedButton').html() === "Booked" ? Date.now() : null,
+          'dateBooked': $.trim($('#addRedemptionView button#cashingUpBookedButton').html()) === "Booked" ? Date.now() : null,
           'amount' : [
             {
               "category" : $('#addRedemptionPaymentForm input#cashingUpInputCategory').val(),
@@ -464,7 +464,7 @@ function setButton_toggleTransactionListBookedStatus()
 {
   $('.buttonIsTransactionBooked').on("click", function()
     {
-      var ID = $(this).('rel');
+      var ID = $(this).attr('rel');
       var foundIterator = -1;
 
       // Check if we habe the ID in the database
@@ -492,7 +492,7 @@ function setButton_toggleTransactionListBookedStatus()
         $.ajax({
           type: 'PUT',
           data: { "data" : JSON.stringify(transactionsData[i]) },
-          url: '/db/transactions_modify/' + $(this).('rel'),
+          url: '/db/transactions_modify/' + $(this).attr('rel'),
           dataType: 'json'
         }).done(function( response ) {
         
@@ -530,7 +530,7 @@ function deleteCategory(event)
     // If they did, do our delete
   $.ajax({
     type: 'DELETE',
-    url: '/db/categories_delete/' + $(this).('rel')
+    url: '/db/categories_delete/' + $(this).attr('rel')
   }).done(function( response ) {
   
     // Check for a successful (blank) response
@@ -790,7 +790,7 @@ function populateCashingUpTable()
   {
     event.preventDefault();
 
-    var rel = $(this).('rel');
+    var rel = $(this).attr('rel');
 
     $("#addRedemptionPaymentForm").css("display","block");
 
@@ -1219,7 +1219,7 @@ function populateCategoryTable() {
   {
     event.preventDefault();
 
-    var thisID = $(this).('rel');
+    var thisID = $(this).attr('rel');
 
      // Get our User Object
     var thisUserObject = [];
@@ -1397,281 +1397,114 @@ function populateAccountInformation()
   
 };
 
-function showButtonsAddingTransaction(thisID) {
-  $('#addTransaction').html("");
 
-  var dropdownAccount = $(document.createElement('div'));
-  dropdownAccount.("class","dropdown");
+function prepareButtonsAddingTransaction() {
+  $( "#datepicker" ).datepicker({
+    dateFormat: "yy-mm-dd"
+  });
 
-  var dropdownAccount_b1 = $(document.createElement('button'));
-  dropdownAccount_b1.("class", "btn btn-secondary dropdown-toggle my-3");
-  dropdownAccount_b1.("type","button");
-  dropdownAccount_b1.("data-toggle","dropdown");
-
-  if (thisID === null)
-    dropdownAccount_b1.html("Booking Type"); 
-  else
-    dropdownAccount_b1.html(thisID);
-
-  dropdownAccount.append(dropdownAccount_b1);
-
-  var divDropdown = $(document.createElement('div'));
-  divDropdown.("class","dropdown-menu");
-
-  var dropdownEntry1 = $(document.createElement('a'));
-  dropdownEntry1.("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry1.("href", "#");
-  // Here pick accounts dynamically
-  dropdownEntry1.html("Payment");
-  divDropdown.append(dropdownEntry1);
-
-
-  var dropdownEntry2 = $(document.createElement('a'));
-  dropdownEntry2.("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry2.("href", "#");
-  // Here pick accounts dynamically
-  dropdownEntry2.html("Income");
-  divDropdown.append(dropdownEntry2);
-
-  var dropdownEntry3 = $(document.createElement('a'));
-  dropdownEntry3.("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry3.("href", "#");
-  // Here pick accounts dynamically
-  dropdownEntry3.html("Transfer");
-  divDropdown.append(dropdownEntry3);
-
-  var dropdownEntry4 = $(document.createElement('a'));
-  dropdownEntry4.("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry4.("href", "#");
-  // Here pick accounts dynamically
-  dropdownEntry4.html("Correction");
-  divDropdown.append(dropdownEntry4);
-
-  dropdownAccount.append(divDropdown);
-
-  $('#addTransaction').append(dropdownAccount);
-  //$('#addTransaction').append($(document.createElement('br')));
-
-  $('#addTransactionButton').off("click");
-  if(thisID === "Payment")
+  // Set starting Date 
+  if (lastPickedDateInSession != null)
   {
-    var textfieldDate = $(document.createElement('input'));
-    textfieldDate.("type", "text");
-    textfieldDate.("placeholder", "Date");
-    textfieldDate.("id", "datepickerPayment");
-    textfieldDate.("class", "m-2 p-2 datepicker");
-    $('#addTransaction').append(textfieldDate);
+    $("#datepicker").val($.datepicker.formatDate( "yy-mm-dd", new Date(lastPickedDateInSession)));
+  }
+  else
+  {
+    $("#datepicker").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
+  }
+  
 
-    $( function() {
-      $( "Payment" ).datepicker();
-    } );
 
-    $( "Payment" ).datepicker({
-      dateFormat: "yy-mm-dd"
-    });
-
-    // Set starting Date
-    if (lastPickedDateInSession != null)
+  if ($("#inputCategoryPayment1Button").parent().find(".dropdown-menu").children().length == 0)
+  {
+    // Extra None Entry:
+    var dropdownEntryNone = $(document.createElement('a'));
+    dropdownEntryNone.attr("class", "dropdown-item dropdown-item-categorySelection");
+    dropdownEntryNone.attr("href", "#");
+    dropdownEntryNone.html("None");
+    dropdownEntryNone.appendTo($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"));
+    //
+    for (var i = 0; i < categoryData.length; ++i)
     {
-      $("Payment").val($.datepicker.formatDate( "yy-mm-dd", lastPickedDateInSession));
+      var dropdownEntry = $(document.createElement('a'));
+      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.attr("href", "#");
+      dropdownEntry.html(categoryData[i].name);
+      dropdownEntry.appendTo($("#inputCategoryPayment1Button").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#inputCategoryPayment2Button").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#inputCategoryPayment3Button").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#inputCategoryPayment4Button").parent().find(".dropdown-menu"));
+
+      dropdownEntry.clone().appendTo($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"));
+    }
+  }
+
+
+
+
+
+  $('.insertTransactionButtonToggleBooked').off("click");
+  $('.insertTransactionButtonToggleBooked').on("click", function()
+  {
+    if($.trim($(this).html()) == "Booked")
+    {
+      $(this).html("Not Booked");
+      $(this).removeClass("btn-success");
+      $(this).addClass("btn-warning");
     }
     else
     {
-      $("Payment").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
+      $(this).html("Booked");
+      $(this).removeClass("btn-warning");
+      $(this).addClass("btn-success");
     }
-    
-    $('#addTransaction').append($(document.createElement('br')));
-    
+  });
 
-    var textfieldName = $(document.createElement('input'));
-    textfieldName.("type", "text");
-    textfieldName.("placeholder", "Name");
-    textfieldName.("id", "inputName");
-    textfieldName.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldName);
-    
+  $('#addTransactionButton').off("click");
+  $('#addTransactionButton').on("click",function(event)
+  {
+    event.preventDefault();
 
-    var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.("type", "text");
-    textfieldAccount.("placeholder", "Account");
-    textfieldAccount.("id", "inputAccount");
-    textfieldAccount.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.("type", "number");
-    textfieldTotalamount.("placeholder", "Amount 1");
-    textfieldTotalamount.("id", "inputAmount1");
-    $('#addTransaction').append(textfieldTotalamount);
-    textfieldTotalamount.("class", "m-2 p-2");
-
-    // CATEGORY DROPDOWN
-    var dropdownCategory1 = $(document.createElement('div'));
-    dropdownCategory1.("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.("type","button");
-    dropdownCat_b1.("id","inputCategory1Button");
-    dropdownCat_b1.("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category 1"); 
-    dropdownCategory1.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.("class","dropdown-menu");
-    for (var i = 0; i < categoryData.length; ++i)
+    var currentTransactionKind = null
+    var currentTransactionDivName = null
+    if($('#addTransaction #payment').attr("style") != "display:none")
     {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
+      currentTransactionKind = "Payment";
+      currentTransactionDivName = "#payment";
+    } else if ($('#addTransaction #income').attr("style") != "display:none") 
+    {
+      currentTransactionKind = "Income";
+      currentTransactionDivName = "#income";
+    } else if ($('#addTransaction #transfer').attr("style") != "display:none")
+    {
+      currentTransactionKind = "Transfer";
+      currentTransactionDivName = "#transfer";
+    } else if ($('#addTransaction #correction').attr("style") != "display:none")
+    {
+      currentTransactionKind = "Correction";
+      currentTransactionDivName= "#correction";
     }
-    dropdownCategory1.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory1);
-    //
-   
 
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.("type", "number");
-    textfieldTotalamount.("placeholder", "Amount 2");
-    textfieldTotalamount.("class", "m-2 p-2");
-    textfieldTotalamount.("id", "inputAmount2");
-    $('#addTransaction').append(textfieldTotalamount);
-    
-
-    // CATEGORY DROPDOWN
-    var dropdownCategory2 = $(document.createElement('div'));
-    dropdownCategory2.("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.("type","button");
-    dropdownCat_b1.("id","inputCategory2Button");
-    dropdownCat_b1.("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category 2"); 
-    dropdownCategory2.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.("class","dropdown-menu");
-    for (var i = 0; i < categoryData.length; ++i)
+    // Super basic validation - increase errorCount variable if any fields are blank
+    var errorSubmission = false;
+    if(
+      $('#addTransaction '+ currentTransactionDivName +' .inputName').val() == "" 
+      || $('#addTransaction '+ currentTransactionDivName +' .inputAccount').val() == "" 
+      || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+      || $('#addTransaction '+ currentTransactionDivName +' .incomeCategory1Button').html() == "" 
+    )
     {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
+      errorSubmission = true
     }
-    dropdownCategory2.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory2);
-    //
 
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.("type", "number");
-    textfieldTotalamount.("placeholder", "Amount 3");
-    textfieldTotalamount.("class", "m-2 p-2");
-    textfieldTotalamount.("id", "inputAmount3");
-    $('#addTransaction').append(textfieldTotalamount);
-    
-    // CATEGORY DROPDOWN
-    var dropdownCategory3 = $(document.createElement('div'));
-    dropdownCategory3.("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.("type","button");
-    dropdownCat_b1.("id","inputCategory3Button");
-    dropdownCat_b1.("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category 3"); 
-    dropdownCategory3.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.("class","dropdown-menu");
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory3.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory3);
-    //
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.("type", "number");
-    textfieldTotalamount.("placeholder", "Amount 4");
-    textfieldTotalamount.("class", "m-2 p-2");
-    textfieldTotalamount.("id", "inputAmount4");
-    $('#addTransaction').append(textfieldTotalamount);
-    
-    // CATEGORY DROPDOWN
-    var dropdownCategory4 = $(document.createElement('div'));
-    dropdownCategory4.("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.("type","button");
-    dropdownCat_b1.("id","inputCategory4Button");
-    dropdownCat_b1.("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category 4"); 
-    dropdownCategory4.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.("class","dropdown-menu");
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory4.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory4);
-    //
-
-    var buttonBooked = $(document.createElement('button'));
-    buttonBooked.("type", "text");
-    buttonBooked.("class", "btn btn-success m-2 p-2");
-    buttonBooked.html("Booked");
-    buttonBooked.("id", "insertTransactionPaymentButtonToggleBooked");
-    $('#addTransaction').append(buttonBooked);
-    $('#addTransaction').append($(document.createElement('br'))); 
-
-    $('#insertTransactionPaymentButtonToggleBooked').off("click");
-    $('#insertTransactionPaymentButtonToggleBooked').on("click", function()
-    {
-      if($(this).html() === "Booked")
-      {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
-      }
-      else
-      {
-        $(this).html("Booked");
-        $(this).removeClass("btn-warning");
-        $(this).addClass("btn-success");
-      }
-    });
-
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addTransaction input#inputName').val() == "" 
-        || $('#addTransaction input#inputAccount').val() == "" 
-        || $('#addTransaction input#inputAmount1').val() == "" 
-        || $('#addTransaction #inputCategory1Button').html() == "" 
+    if(currentTransactionKind == "Payment"
+      || (currentTransactionKind == "Income" && $("#inputCategoryIncomeButton").html() != "None" && $("#inputCategoryIncomeButton").html() != "Pick Category (optional)")
       )
-      {
-        errorSubmission = true
-      }
-
+    {
       var foundCategory = false;
       for (var i = 0; i < categoryData.length; ++i)
       {
-        var debug1 = $('#addTransaction #inputCategory1Button');
-        if(categoryData[i].name === $('#addTransaction #inputCategory1Button').html())
+        if(categoryData[i].name === $('#addTransaction '+ currentTransactionDivName +' .incomeCategory1Button').html())
         {
           foundCategory = true;
           break;
@@ -1681,535 +1514,83 @@ function showButtonsAddingTransaction(thisID) {
       {
         errorSubmission = true;
       }
+    }
 
-      // Check and make sure errorCount's still at zero
-      if(! errorSubmission && foundCategory) {
-    
-        // If it is, compile all user info into one object
-        var newTransaction = {
-          'name': $('#addTransaction input#inputName').val(),
-          'account': $('#addTransaction input#inputAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('Payment').val())).getTime(),
-          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? Date.now() : null,
-          'amount' : [
-            {
-              "category" : $('#addTransaction #inputCategory1Button').html(),
-              "amount" : (parseFloat($('#addTransaction input#inputAmount1').val()) * -1.0).toString()
-            }
-          ]
-        }
+    // Check and make sure errorCount's still at zero
+    if(! errorSubmission) {
+  
+      // Set our Object that keeps track of the last entered Date for the current session:
+      lastPickedDateInSession = new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepicker').val())).getTime();
 
+      // If it is, compile all user info into one object
+      var newTransaction = {
+        'name': $('#addTransaction ' + currentTransactionDivName + ' .inputName').val(),
+        'account': $('#addTransaction ' + currentTransactionDivName + ' .inputAccount').val(),
+        'bookingType': currentTransactionKind,
+        'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepicker').val())).getTime(),
+        'dateBooked': $.trim($('#addTransaction ' + currentTransactionDivName + ' .insertTransactionButtonToggleBooked').html()) === "Booked" ? Date.now() : null,
+        'amount' : [
+          {
+            "category" : $('#addTransaction ' + currentTransactionDivName + ' .incomeCategory1Button').html(),
+            "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount1').val()) * -1.0).toString()
+          }
+        ]
+      }
+      if(currentTransactionKind == "Income" && ($("#inputCategoryIncomeButton").html() == "None" || $("#inputCategoryIncomeButton").html() == "Pick Category (optional)"))
+      {
+        newTransaction.amount[0].category = "Income"
+      }
+
+      if (currentTransactionKind == "Payment")
+      {
         for (var i = 0; i < 2; ++i)
         {
-          if($('#addTransaction #inputCategory' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() && $('#addTransaction input#inputAmount'+ (i+2).toString()).val() != "")
+          if($('#addTransaction ' + currentTransactionDivName + ' #inputCategoryPayment' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() && $('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val() != "")
           {
             newTransaction.amount.push(
               {
-                "category": $('#addTransaction #inputCategory'+ (i+2).toString() + "Button").html() ,
-                "amount" : (parseFloat($('#addTransaction input#inputAmount'+ (i+2).toString()).val()) * -1.0).toString()
+                "category": $('#addTransaction ' + currentTransactionDivName + ' #inputCategoryPayment'+ (i+2).toString() + "Button").html() ,
+                "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val()) * -1.0).toString()
               });
           }
         }
-    
-        // Use AJAX to post the object to our adduser service
-        $.ajax({
-          type: 'POST',
-          data: {data : JSON.stringify(newTransaction) },
-          url: '/db/transactions_add',
-          dataType: 'JSON'
-        }).done(function( response ) {
-    
-          // Check for successful (blank) response
-          if (response.msg === '') {
-            //alert('Done');
-            // Clear the form inputs
-            $('#addTransaction input').val('');
-            $('#addTransactionButton').off("click");
-            reloadData();
-            $('#DisplayDB').click();
-           
-    
-          }
-          else {
-    
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-    
-          }
-        });
-
-        
       }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred.');
-      }
-    });
-  }
-  else if (thisID === "Income")
-  {
-    var textfieldDate = $(document.createElement('input'));
-    textfieldDate.("type", "text");
-    textfieldDate.("placeholder", "Date");
-    textfieldDate.("id", "datepickerIncome");
-    textfieldDate.("class", "m-2 p-2 datepicker");
-    $('#addTransaction').append(textfieldDate);
+  
+      // Use AJAX to post the object to our adduser service
+      $.ajax({
+        type: 'POST',
+        data: {data : JSON.stringify(newTransaction) },
+        url: '/db/transactions_add',
+        dataType: 'JSON'
+      }).done(function( response ) {
+  
+        // Check for successful (blank) response
+        if (response.msg === '') {
+          // alert('Done');
+          // Clear the form inputs
+          $('#addTransaction ' + currentTransactionDivName + ' input').val('');
 
-    $( function() {
-      $( "Income" ).datepicker();
-    } );
-
-    $( "Income" ).datepicker({
-      dateFormat: "yy-mm-dd"
-    });
-
-    $("Income").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
-    $('#addTransaction').append($(document.createElement('br')));
-    
-
-    var textfieldName = $(document.createElement('input'));
-    textfieldName.("type", "text");
-    textfieldName.("placeholder", "Name");
-    textfieldName.("id", "inputName");
-    textfieldName.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldName);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.("type", "number");
-    textfieldTotalamount.("placeholder", "Amount");
-    textfieldTotalamount.("id", "inputAmount");
-    textfieldTotalamount.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldTotalamount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.("type", "text");
-    textfieldAccount.("placeholder", "Account");
-    textfieldAccount.("id", "inputAccount");
-    textfieldAccount.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    // CATEGORY DROPDOWN
-    var dropdownCategory = $(document.createElement('div'));
-    dropdownCategory.("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.("type","button");
-    dropdownCat_b1.("id","inputCategoryButton");
-    dropdownCat_b1.("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category (optional)"); 
-    dropdownCategory.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.("class","dropdown-menu");
-    var dropdownEntry = $(document.createElement('a'));
-    dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-    dropdownEntry.("href", "#");
-    dropdownEntry.html("No category");
-    divDropdown.append(dropdownEntry);
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory);
-    //
-
-    var buttonBooked = $(document.createElement('button'));
-    buttonBooked.("type", "text");
-    buttonBooked.("class", "btn btn-success m-2 p-2");
-    buttonBooked.html("Booked");
-    buttonBooked.("id", "insertTransactionPaymentButtonToggleBooked");
-    $('#addTransaction').append(buttonBooked);
-    $('#addTransaction').append($(document.createElement('br'))); 
-
-    $('#insertTransactionPaymentButtonToggleBooked').off("click");
-    $('#insertTransactionPaymentButtonToggleBooked').on("click", function()
-    {
-      // Future Transactions can never be booked. Only past ones can be booked
-      if (new Date($.datepicker.parseDate( "yy-mm-dd",$('Income').val())) > new Date())
-      {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
-      }
-      else
-      {
-        if($(this).html() === "Booked")
-        {
-          $(this).html("Not Booked");
-          $(this).removeClass("btn-success");
-          $(this).addClass("btn-warning");
-        }
-        else
-        {
-          $(this).html("Booked");
-          $(this).removeClass("btn-warning");
-          $(this).addClass("btn-success");
-        }
-      }
-    });
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addTransaction input#inputAccount').val() == "" 
-        || $('#addTransaction input#inputAmount').val() == ""  
-        || $('#addTransaction input#inputName').val() == ""  
-      )
-      {
-        errorSubmission = true
-      }
-
-      if(!errorSubmission ) 
-      {
-        var newTransaction = {
-          'name': $('#addTransaction input#inputName').val(),
-          'account': $('#addTransaction input#inputAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('Income').val())).getTime(),
-          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? new Date($.datepicker.parseDate( "yy-mm-dd",$('Income').val())).getTime() : null,
-          'amount' : [
-            {
-              "category" : ($('#addTransaction #inputCategoryButton').html() === "No category" 
-                || $('#addTransaction #inputCategoryButton').html() === "Pick Category (optional)") ? "Income" : $('#addTransaction #inputCategoryButton').html(),
-              "amount" : $('#addTransaction input#inputAmount').val()
-            }
-          ]
-        }
-    
-        // Use AJAX to post the object to our adduser service
-        $.ajax({
-          type: 'POST',
-          data: {data : JSON.stringify(newTransaction) },
-          url: '/db/transactions_add',
-          dataType: 'JSON'
-        }).done(function( response ) {
-    
-          // Check for successful (blank) response
-          if (response.msg === '') {
-    
-            // Clear the form inputs
-            $('#addTransaction input').val('');
-            $('#addTransactionButton').off("click");
-            reloadData();
-            $('#DisplayDB').click();
-
-    
-          }
-          else {
-    
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-    
-          }
-        });
-
-        
-      }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred. Please fill in the relevant fields.');
-        return false;
-      }
-    });
-  }
-  else if (thisID === "Transfer")
-  {
-    //$('#addTransaction').append($(document.createElement('br')));
-    var textfieldDate = $(document.createElement('input'));
-    textfieldDate.("type", "text");
-    textfieldDate.("placeholder", "Date");
-    textfieldDate.("id", "datepickerTransfer");
-    textfieldDate.("class", "m-2 p-2 datepicker");
-    $('#addTransaction').append(textfieldDate);
-
-    $( function() {
-      $( "Transfer" ).datepicker();
-    } );
-
-    $( "Transfer" ).datepicker({
-      dateFormat: "yy-mm-dd"
-    });
-
-    $("Transfer").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.("type", "number");
-    textfieldTotalamount.("placeholder", "Amount");
-    textfieldTotalamount.("id", "inputAmount");
-    textfieldTotalamount.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldTotalamount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.("type", "text");
-    textfieldAccount.("placeholder", "From Account");
-    textfieldAccount.("id", "inputAccount");
-    textfieldAccount.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount);
-    $('#addTransaction').append($(document.createElement('br')));
-    
-    var textfieldAccount2 = $(document.createElement('input'));
-    textfieldAccount2.("type", "text");
-    textfieldAccount2.("placeholder", "To Account");
-    textfieldAccount2.("id", "targetAccount");
-    textfieldAccount2.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount2);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var buttonBooked = $(document.createElement('button'));
-    buttonBooked.("type", "text");
-    buttonBooked.("class", "btn btn-success m-2 p-2");
-    buttonBooked.html("Booked");
-    buttonBooked.("id", "insertTransactionPaymentButtonToggleBooked");
-    $('#addTransaction').append(buttonBooked);
-    $('#addTransaction').append($(document.createElement('br'))); 
-
-    $('#insertTransactionPaymentButtonToggleBooked').off("click");
-    $('#insertTransactionPaymentButtonToggleBooked').on("click", function()
-    {
-      // Future Transactions can never be booked. Only past ones can be booked
-      if (new Date($.datepicker.parseDate( "yy-mm-dd",$('Transfer').val())) > new Date())
-      {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
-      }
-      else
-      {
-        if($(this).html() === "Booked")
-        {
-          $(this).html("Not Booked");
-          $(this).removeClass("btn-success");
-          $(this).addClass("btn-warning");
-        }
-        else
-        {
-          $(this).html("Booked");
-          $(this).removeClass("btn-warning");
-          $(this).addClass("btn-success");
-        }
-      }
-    });
-
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addTransaction input#targetAccount').val() == "" 
-        || $('#addTransaction input#inputAccount').val() == "" 
-        || $('#addTransaction input#inputAmount').val() == ""  
-      )
-      {
-        errorSubmission = true
-      }
-      // Check and make sure errorCount's still at zero
-      if(! errorSubmission) {
-    
-        // If it is, compile all user info into one object
-        var newTransaction = {
-          'name': "Transfer",
-          'account': $('#addTransaction input#inputAccount').val(),
-          'targetAccount' : $('#addTransaction input#targetAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('Transfer').val())).getTime(),
-          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? new Date($.datepicker.parseDate( "yy-mm-dd",$('Transfer').val())).getTime() : null,
-          'amount' : [
-            {
-              "category" : "Transfer",
-              "amount" : $('#addTransaction input#inputAmount').val()
-            }
-          ]
-        }
-    
-        // Use AJAX to post the object to our adduser service
-        $.ajax({
-          type: 'POST',
-          data: {data : JSON.stringify(newTransaction) },
-          url: '/db/transactions_add',
-          dataType: 'JSON'
-        }).done(function( response ) {
-    
-          // Check for successful (blank) response
-          if (response.msg === '') {
-    
-            // Clear the form inputs
-            $('#addTransaction input').val('');
-            $('#addTransactionButton').off("click");
-            reloadData();
-            $('#DisplayDB').click();
-
-    
-          }
-          else {
-    
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-    
-          }
-        });
-
-        
-      }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred. Please fill in the relevant fields.');
-        return false;
-      }
-    });
-  }
-  else if (thisID === "Correction")
-  {
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.("type", "number");
-    textfieldTotalamount.("placeholder", "Target Balance");
-    textfieldTotalamount.("id", "inputAmount");
-    textfieldTotalamount.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldTotalamount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    // CATEGORY DROPDOWN
-    var dropdownCategory = $(document.createElement('div'));
-    dropdownCategory.("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.("type","button");
-    dropdownCat_b1.("id","inputCategoryButton");
-    dropdownCat_b1.("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category (optional)"); 
-    dropdownCategory.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.("class","dropdown-menu");
-    var dropdownEntry = $(document.createElement('a'));
-    dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-    dropdownEntry.("href", "#");
-    dropdownEntry.html("No category");
-    divDropdown.append(dropdownEntry);
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory);
-    //
-
-    var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.("type", "text");
-    textfieldAccount.("placeholder", "Account");
-    textfieldAccount.("id", "inputAccount");
-    textfieldAccount.("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addTransaction input#inputAccount').val() == "" 
-        || $('#addTransaction input#inputAmount').val() == ""  
-      )
-      {
-        errorSubmission = true
-      }
-
-      if(accountData.length === 0)
-      {
-        populateAccountInformation();
-      }
-      var foundMatchingAccount = -1;
-      for (var i = 0; i < accountData.length; ++i)
-      {
-        if(accountData[i].name === $('#addTransaction input#inputAccount').val())
-        {
-          foundMatchingAccount = i;
-          break;
-        }
-      }
-
-      if(!errorSubmission && foundMatchingAccount != -1) 
-      {
-        var correctionAmount = (parseFloat($('#addTransaction input#inputAmount').val()) - parseFloat(accountData[foundMatchingAccount].totalCurrent))
-        var newTransaction = {
-          'name': "Correction",
-          'account': $('#addTransaction input#inputAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': Date.now(),
-          'dateBooked': Date.now(),
-          'amount' : [
-            {
-              "category" : ($('#addTransaction #inputCategoryButton').html() != "Pick Category (optional)" 
-                && $('#addTransaction #inputCategoryButton').html() != "No category" ) ? $('#addTransaction #inputCategoryButton').html() : "Correction",
-              "amount" : correctionAmount.toString()    
-            }
-          ]
-        }
-    
-        // Use AJAX to post the object to our adduser service
-        if(correctionAmount != 0.0)
-        {
-          $.ajax({
-            type: 'POST',
-            data: {data : JSON.stringify(newTransaction) },
-            url: '/db/transactions_add',
-            dataType: 'JSON'
-          }).done(function( response ) {
-          
-            // Check for successful (blank) response
-            if (response.msg === '') {
-            
-              // Clear the form inputs
-              $('#addTransaction input').val('');
-              $('#addTransactionButton').off("click");
-              reloadData();
-              $('#DisplayDB').click();
-
-            
-            }
-            else {
-            
-              // If something goes wrong, alert the error message that our service returned
-              alert('Error: ' + response.msg);
-            
-            }
-          });
-        }
-        else
-        {
-          $('#addTransaction input').val('');
-          $('#addTransactionButton').off("click");
+          // Here we could optimize by not reloading thw hole database but keeping track ourselves
           reloadData();
           $('#DisplayDB').click();
         }
-      }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred.');
-      }
-    });
-  }
+        else {
+  
+          // If something goes wrong, alert the error message that our service returned
+          alert('Error: ' + response.msg);
+  
+        }
+      });
+
+      
+    }
+    else 
+	  {
+      // If errorCount is more than 0, error out
+      alert('Error occurred.');
+    }
+  });
+
 
   $('.dropdown-item-paymentTypeSelection').off("click");
   $('.dropdown-item-paymentTypeSelection').on('click', function(event)
@@ -2220,212 +1601,37 @@ function showButtonsAddingTransaction(thisID) {
 
     // Retrieve username from link rel ibute
     var thisID = $(this).html();
-
-
-    showButtonsAddingTransaction(thisID);
-
-  })
-  $('.dropdown-item-categorySelection').off("click");
-  $('.dropdown-item-categorySelection').on('click', function(event)
-  {
-    // Prevent Link from Firing
-    event.preventDefault();
-
-    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
-  })
-
-  $('#addTransaction').append($(document.createElement('br'))); 
-
-  categoryNames = []
-  for (catItem in categoryData)
-  {
-    categoryNames.push(catItem.name);
-  }
-  //$('.categoryInputField').autocomplete({source: categoryNames});
-
-};
-
-function prepareButtonsAddingTransaction() {
-
-
-  $('#addTransactionButton').off("click");
-  if(thisID === "Payment")
-  {
-
-    $( function() {
-      $( "Payment" ).datepicker();
-    } );
-
-    $( "Payment" ).datepicker({
-      dateFormat: "yy-mm-dd"
-    });
-
-    // Set starting Date 
-    if (lastPickedDateInSession != null)
-    {
-      $("Payment").val($.datepicker.formatDate( "yy-mm-dd", lastPickedDateInSession));
-    }
-    else
-    {
-      $("Payment").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
-    }
-    
-
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      $("#inputCategoryPayment1Button").parent().find(".dropdown-menu").append(dropdownEntry);
-      $("#inputCategoryPayment2Button").parent().find(".dropdown-menu").append(dropdownEntry);
-      $("#inputCategoryPayment3Button").parent().find(".dropdown-menu").append(dropdownEntry);
-      $("#inputCategoryPayment4Button").parent().find(".dropdown-menu").append(dropdownEntry);
-    }
-
-    $('.insertTransactionButtonToggleBooked').off("click");
-    $('.insertTransactionButtonToggleBooked').on("click", function()
-    {
-      if($(this).html() == "Booked")
+    $("#addTransaction #general").attr("style","display:block");
+	  if (thisID === "Payment")
+	  {
+      if($("#addTransaction #payment").attr("style") == "display:block")
       {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
+        $('#addTransaction ' + "#payment" + ' input').val('');
       }
       else
       {
-        $(this).html("Booked");
-        $(this).removeClass("btn-warning");
-        $(this).addClass("btn-success");
+	      $("#addTransaction #payment").attr("style","display:block");
+	      $("#addTransaction #income").attr("style","display:none");
+	      $("#addTransaction #transfer").attr("style","display:none");
+        $("#addTransaction #correction").attr("style","display:none");
       }
-    });
-
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      var currentTransactionKind = null
-      if($('#addTransaction #payment').attr("style") != "display:none")
+    }
+    else if (thisID === "Income")
+	  {
+      if($("#addTransaction #income").attr("style") == "display:block")
       {
-        currentTransactionKind = "payment";
-      } else if ($('#addTransaction #income').attr("style") != "display:none") 
-      {
-        currentTransactionKind = "income";
-      } else if ($('#addTransaction #transfer').attr("style") != "display:none")
-      {
-        currentTransactionKind = "transfer";
-      } else if ($('#addTransaction #correction').attr("style") != "display:none")
-      {
-        currentTransactionKind = "correction";
+        $('#addTransaction ' + "#income" + ' input').val('');
       }
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addTransaction '+ currentTransactionKind +' .inputName').val() == "" 
-        || $('#addTransaction '+ currentTransactionKind +' #inputAccount').val() == "" 
-        || $('#addTransaction '+ currentTransactionKind +' #inputAmount1').val() == "" 
-        || $('#addTransaction '+ currentTransactionKind +' #inputCategory1Button').html() == "" 
-      )
+      else
       {
-        errorSubmission = true
+	      $("#addTransaction #income").attr("style","display:block");
+	      $("#addTransaction #payment").attr("style","display:none");
+	      $("#addTransaction #transfer").attr("style","display:none");
+        $("#addTransaction #correction").attr("style","display:none");
       }
-
-      var foundCategory = false;
-      for (var i = 0; i < categoryData.length; ++i)
-      {
-        if(categoryData[i].name === $('#addTransaction '+ currentTransactionKind +' #inputCategory1Button').html())
-        {
-          foundCategory = true;
-          break;
-        }
-      }
-      if(!foundCategory)
-      {
-        errorSubmission = true;
-      }
-
-      // Check and make sure errorCount's still at zero
-      if(! errorSubmission && foundCategory) {
-    
-        // If it is, compile all user info into one object
-        var newTransaction = {
-          'name': $('#addTransaction ' + currentTransactionKind + ' .inputName').val(),
-          'account': $('#addTransaction ' + currentTransactionKind + ' #inputAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('Payment').val())).getTime(),
-          'dateBooked': $('#insertTransactionButtonToggleBooked').html() === "Booked" ? Date.now() : null,
-          'amount' : [
-            {
-              "category" : $('#addTransaction ' + currentTransactionKind + ' #inputCategory1Button').html(),
-              "amount" : (parseFloat($('#addTransaction ' + currentTransactionKind + ' #inputAmount1').val()) * -1.0).toString()
-            }
-          ]
-        }
-
-        for (var i = 0; i < 2; ++i)
-        {
-          if($('#addTransaction ' + currentTransactionKind + ' #inputCategory' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() && $('#addTransaction ' + currentTransactionKind + ' #inputAmount'+ (i+2).toString()).val() != "")
-          {
-            newTransaction.amount.push(
-              {
-                "category": $('#addTransaction ' + currentTransactionKind + ' #inputCategory'+ (i+2).toString() + "Button").html() ,
-                "amount" : (parseFloat($('#addTransaction ' + currentTransactionKind + ' #inputAmount'+ (i+2).toString()).val()) * -1.0).toString()
-              });
-          }
-        }
-    
-        // Use AJAX to post the object to our adduser service
-        $.ajax({
-          type: 'POST',
-          data: {data : JSON.stringify(newTransaction) },
-          url: '/db/transactions_add',
-          dataType: 'JSON'
-        }).done(function( response ) {
-    
-          // Check for successful (blank) response
-          if (response.msg === '') {
-            // alert('Done');
-            // Clear the form inputs
-            $('#addTransaction ' + currentTransactionKind + ' input').val('');
-
-            // Here we could optimize by not reloading thw hole database but keeping track ourselves
-            reloadData();
-            $('#DisplayDB').click();
-          }
-          else {
-    
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-    
-          }
-        });
-
-        
-      }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred.');
-      }
-    });
-  }
-
-
-  $('.dropdown-item-paymentTypeSelection').off("click");
-  $('.dropdown-item-paymentTypeSelection').on('click', function(event)
-  {
-
-    // Prevent Link from Firing
-    event.preventDefault();
-
-    // Retrieve username from link rel ibute
-    var thisID = $(this).html();
-
-
-    showButtonsAddingTransaction(thisID);
-
+	  }
   })
+  
   $('.dropdown-item-categorySelection').off("click");
   $('.dropdown-item-categorySelection').on('click', function(event)
   {
@@ -2434,16 +1640,6 @@ function prepareButtonsAddingTransaction() {
 
     $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
   })
-
-  $('#addTransaction').append($(document.createElement('br'))); 
-
-  categoryNames = []
-  for (catItem in categoryData)
-  {
-    categoryNames.push(catItem.name);
-  }
-  //$('.categoryInputField').autocomplete({source: categoryNames});
-
 };
 
 // Show User Info
@@ -2453,7 +1649,7 @@ function showTransactionInfo(event) {
   event.preventDefault();
 
   // Retrieve username from link rel ibute
-  var thisID = $(this).('rel');
+  var thisID = $(this).attr('rel');
   
   // Get our User Object
   var thisUserObject = [];
@@ -2503,12 +1699,12 @@ function showTransactionInfo(event) {
 
 function showCategoryInfo(event) {
 
-  $('#categoriesInfo').("style","display:block");
+  $('#categoriesInfo').attr("style","display:block");
   // Prevent Link from Firing
   event.preventDefault();
 
   // Retrieve username from link rel ibute
-  var thisID = $(this).('rel');
+  var thisID = $(this).attr('rel');
   
   // Get our User Object
   var thisUserObject = [];
@@ -2562,7 +1758,7 @@ function modifyCategory(event)
   $('#addCategoryButton').css("display", "none");
 
   // Retrieve username from link rel ibute
-  var thisID = $(this).('rel');
+  var thisID = $(this).attr('rel');
   $('#tegoryID').val(thisID);
   
   // Get our User Object
@@ -2599,7 +1795,7 @@ function modifyCategory(event)
     
   }
 
-  $('#modifyDatabaseEntryCategory').("style","display:block");
+  $('#modifyDatabaseEntryCategory').attr("style","display:block");
 
   $('#modifyDatabaseEntryCategory #changeCategoryButton').off("click");
   $('#modifyDatabaseEntryCategory #changeCategoryButton').on("click",function(event)
@@ -2728,7 +1924,7 @@ function modifyCategory(event)
 
     // Update the table
     populateCategoryTable();
-    $('#modifyDatabaseEntryCategory').("style","display:none");
+    $('#modifyDatabaseEntryCategory').attr("style","display:none");
     $('#addCategoryButton').css("display", "block");
   });
   $('#modifyDatabaseEntryCategory #cancelChangeCategoryButton').off("click");
@@ -2736,7 +1932,7 @@ function modifyCategory(event)
   {
     $('#addCategoryButton').css("display", "block");
     $('#modifyDatabaseEntryCategory input').val('');
-    $('#modifyDatabaseEntryCategory').("style","display:none");
+    $('#modifyDatabaseEntryCategory').attr("style","display:none");
   });
 };
 
@@ -2754,7 +1950,7 @@ function deleteTransaction(event) {
     // If they did, do our delete
     $.ajax({
       type: 'DELETE',
-      url: '/db/transactions_delete/' + $(this).('rel')
+      url: '/db/transactions_delete/' + $(this).attr('rel')
     }).done(function( response ) {
 
       // Check for a successful (blank) response
@@ -2778,8 +1974,8 @@ function deleteTransaction(event) {
 function onNavigationChange()
 {
   $("#addRedemptionPaymentForm").css("display","none");
-  $('#modifyDatabaseEntryCategory').("style","display:none");
-  $('#categoriesInfo').("style","display:none");
+  $('#modifyDatabaseEntryCategory').attr("style","display:none");
+  $('#categoriesInfo').attr("style","display:none");
 };
 
 
