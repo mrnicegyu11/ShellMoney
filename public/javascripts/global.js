@@ -580,7 +580,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
 
 function populateCategoryTable() {
 
-  var unallocatedAmount = 0.0;
+  var totalIncomeThisMonth = 0.0;
   for (var i = 0; i < transactionsData.length; i++)
   {
     // Da Redemptions immer eine Category haben, werden Sie beim unallozierten Geld nicht einbezogen
@@ -588,28 +588,69 @@ function populateCategoryTable() {
       && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
       && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
     {
+      // Some Income and Corrections have a specific category, those are thus allocated and do not need to be considered.
       if (transactionsData[i].amount[0].category == "Income" || transactionsData[i].amount[0].category == "Correction")
       {
-        unallocatedAmount += parseFloat(transactionsData[i].amount[0].amount);
+        totalIncomeThisMonth += parseFloat(transactionsData[i].amount[0].amount);
       }
     }
   }
   // Das hier sollte die Menge an absolutem Income diesen Monat sein.
-  var toBeAllocatedThisPeriod = unallocatedAmount;
+  $('#categoryToBeAllocatedMoney').html("<strong>Total Income this Month: </strong>"+ totalIncomeThisMonth.toFixed(2));
 
-  // Nun werden alle allozierungen abgezogen und damit errechnet, wie viel aktuell unalloziert sind.
-  for (var i = 0; i < categoryData.length; i++)
+
+  ////
+  ///
+  /// Iterates all previous and current month
+  var unallocatedAmount = 0.0;
+  // 1. Find oldest Date in Transactions
+  var oldestDateFound = new Date();
+  for(var i=0; i < transactionsData.length; i++)
   {
-    var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
-    var allocatedThisMonth = 0.0;
-    if (found != null)
+    var thisDate = new Date(transactionsData[i].dateEntered);
+    if (dates.compare(thisDate,oldestDateFound) === -1)
     {
-      allocatedThisMonth = categoryData[i].allocatedSinceReference[found].amount;
+      oldestDateFound = thisDate;
     }
-    unallocatedAmount -= parseFloat(allocatedThisMonth);
+  }
+  for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
+  {
+    for (var countMonth = oldestDateFound.getMonth() + 1;
+    countMonth < 13 && (countMonth <= selectedMonth || countYear != selectedYear);
+    countMonth++)
+    {
+      for (var i = 0; i < transactionsData.length; i++)
+      {
+        // Da Redemptions immer eine Category haben, werden Sie beim unallozierten Geld nicht einbezogen
+        if ((transactionsData[i].bookingType === "Income" || transactionsData[i].bookingType === "Correction" ) 
+          && new Date(transactionsData[i].dateEntered).getMonth() + 1 == countMonth
+          && new Date(transactionsData[i].dateEntered).getFullYear() == countYear)
+        {
+          // Some Income and Corrections have a specific category, those are thus allocated and do not need to be considered.
+          if (transactionsData[i].amount[0].category == "Income" || transactionsData[i].amount[0].category == "Correction")
+          {
+            unallocatedAmount += parseFloat(transactionsData[i].amount[0].amount);
+          }
+        }
+      }
+
+        // Nun werden alle allozierungen abgezogen und damit errechnet, wie viel aktuell unalloziert sind.
+      for (var i = 0; i < categoryData.length; i++)
+      {
+        var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,countYear,countMonth);
+        var allocatedThisMonth = 0.0;
+        if (found != null)
+        {
+          allocatedThisMonth = categoryData[i].allocatedSinceReference[found].amount;
+        }
+        unallocatedAmount -= parseFloat(allocatedThisMonth);
+      }
+    }
   }
   $('#categoryUnallocatedMoney').html("<strong>Unallocated Amount: </strong>"+ unallocatedAmount.toFixed(2));
-  $('#categoryToBeAllocatedMoney').html("<strong>Total Income this Month: </strong>"+ toBeAllocatedThisPeriod.toFixed(2));
+  ///
+  //
+  
 
 
   // Empty content string
@@ -623,18 +664,6 @@ function populateCategoryTable() {
 
     tableContent += '<td><a href="#" class="linkshowcategory" rel="' + this._id + '">' + this.name + '</a></td>';
     
-    // 1. Find oldest Date in Transactions
-    var oldestDateFound = new Date();
-    for(var i=0; i < transactionsData.length; i++)
-    {
-      var thisDate = new Date(transactionsData[i].dateEntered);
-      if (dates.compare(thisDate,oldestDateFound) === -1)
-      {
-        oldestDateFound = thisDate;
-      }
-    }
-    
-
     // For every category:
       // Summiere transactionen bis selected Month / Year
 
@@ -651,7 +680,6 @@ function populateCategoryTable() {
   
 
     // Hier wird alles AUSSER dem aktuellen Monat durchgezählt
-    // (aktuell nur virtuell) (aktuell nur Debitoren inkludiert, Transactionen werden als Booked angenommen, Redemptions sind drinnen)
     var virtualCurrentMonthTotal = 0.0;
     var actualCurrentMonthTotal = 0.0;
     for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
