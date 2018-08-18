@@ -276,37 +276,25 @@ $(document).ready(function() {
             "allocatedSinceReference" : categoryData[i].allocatedSinceReference
           }
         
-          $.ajax({
-          type: 'POST',
-          data: { "data" : JSON.stringify(category) },
-          url: '/db/categories_add',
-          dataType: 'json'
-          }).done(function( response ) {
-          
-          // Check for successful (blank) response
-          if (response.msg === '') {
-          
-          
-          }
-          else {
-          
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-          
-          }
-          });
-        
-          // Delete old entry
-          $.ajax({
-              type: 'DELETE',
-              url: '/db/categories_delete/' + categoryData[i]._id
-          }).done(function( response ) {
-            // Check for a successful (blank) response
+          $.ajax(
+          {
+            type: 'PUT',
+            data: { "data" : JSON.stringify(category) },
+            url: '/db/categories_modify/' + categoryData[i]._id,
+            dataType: 'json'
+          }).done(function( response ) 
+          {
+            
+            // Check for successful (blank) response
             if (response.msg === '') {
-
+            
+            
             }
             else {
+            
+              // If something goes wrong, alert the error message that our service returned
               alert('Error: ' + response.msg);
+            
             }
           });
         }
@@ -314,6 +302,66 @@ $(document).ready(function() {
       reloadData();
       populateCategoryTable();
     })
+
+    $("#autofillAllocationButton").off("click");
+    $("#autofillAllocationButton").on('click', function() 
+    {
+      for (var i = 0; i < categoryData.length; i++)
+      {
+        var thisUserObject = categoryData[i];
+        var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
+        var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+        if (lastMonthIter != null)
+        {
+          if(curMonthIter != null)
+          {
+            categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
+          }
+          else
+          {
+            categoryData[i].allocatedSinceReference.push(
+            { 
+              "amount":categoryData[i].allocatedSinceReference[lastMonthIter].amount,
+              "year": selectedYear,
+              "month": selectedMonth
+            });
+          }
+
+          var category = {
+            'name': categoryData[i].name,
+            'systems': categoryData[i].systems,
+            "referenceDate" : categoryData[i].referenceDate,
+            "referenceAmount" : categoryData[i].referenceAmount,
+            "associatedTransactions" : categoryData[i].associatedTransactions,
+            "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+          }
+
+          $.ajax(
+          {
+            type: 'PUT',
+            data: { "data" : JSON.stringify(category) },
+            url: '/db/categories_modify/' + categoryData[i]._id,
+            dataType: 'json'
+          }).done(function( response ) 
+          {
+            
+            // Check for successful (blank) response
+            if (response.msg === '') {
+            
+            
+            }
+            else {
+            
+              // If something goes wrong, alert the error message that our service returned
+              alert('Error: ' + response.msg);
+            
+            }
+          });
+        }
+      }
+      reloadData();
+      populateCategoryTable();
+    });
   });
 
   onNavigationChange()
@@ -399,6 +447,20 @@ function getTotalCostsFromTransaction(transaction)
 // Helper Function: getIteratorFromAllocatedSinceReferenceArray
 function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
 {
+  // Catch some easy out-of-bound stuff. 
+  // Deliberatly not properly taking care of this as months should when possible be between 1 and 12
+  if(monthQuery === 0 || monthQuery < 0)
+  {
+    yearQuery -= 1;
+    monthQuery += 12;
+  }
+  else if (monthQuery > 12)
+  {
+    yearQuery += 1;
+    monthQuery -= 12;
+  }
+
+
   var allocatedSinceReferenceArray = array;
 
   var found = -1;
@@ -902,7 +964,7 @@ function populateCategoryTable() {
   });
 
   tableContent += '<tr id="summaryRow" class="table-success">'
-  tableContent += '<td> Rows</td>';
+  tableContent += '<td>Marked Rows</td>';
   for (var i = 0; i < 6; i++)
   {
     tableContent += '<td id="' + i.toString() + '"></td>'
