@@ -14,6 +14,14 @@ var lastPickedDateInSession = null;
 // ".datepicker"
 // ".dropdown-item-paymentTypeSelection"
 
+// Conventions:
+// INCOME has positive numbers
+// PAYMENTS have negative numbers.
+// Therefore amounts of transactions are always simply summed, never subtracted.
+
+// Wechselkurse nur relevant für Zukünftige Transaktionen, 
+// denn es wird über irgendwann aktuell die Zahlung getätigt.
+
 
 
 // DOM Ready =============================================================
@@ -37,7 +45,7 @@ $(document).ready(function() {
       selectedMonth += 1;
     }
     populateCategoryTable();
-    populateCashingUpTable();
+
     populateTransactionTable(selectedMonth,selectedYear);
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
   })
@@ -54,7 +62,7 @@ $(document).ready(function() {
       selectedMonth -= 1;
     }
     populateCategoryTable();
-    populateCashingUpTable();
+
     populateTransactionTable(selectedMonth,selectedYear);
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
   })
@@ -86,7 +94,7 @@ $(document).ready(function() {
     $('#databaseView').css("display", "block");
     $('#addTransactionView').css("display", "none");
     $('#categoriesView').css("display", "none");
-    $('#cashingUpView').css("display", "none");
+
 
     $('#transactionList table tbody').off('click');
     $('#transactionList table tbody').on('click', 'td a.linkshowtransaction', showTransactionInfo);
@@ -105,7 +113,7 @@ $(document).ready(function() {
     $('#databaseView').css("display", "none");
     $('#addTransactionView').css("display", "block");
     $('#categoriesView').css("display", "none");
-    $('#cashingUpView').css("display", "none");
+
   });
 
   // CATEGORIES
@@ -121,7 +129,6 @@ $(document).ready(function() {
     $('#databaseView').css("display", "none");
     $('#addTransactionView').css("display", "none");
     $('#categoriesView').css("display", "block");
-    $('#cashingUpView').css("display", "none");
 
     $('#addCategoryButton').on('click', function()
     {
@@ -242,112 +249,6 @@ $(document).ready(function() {
 
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfo);
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
-  });
-
-  // CASHING-UP
-  $('#navigation').on('click', 'div.btn-class > button ,#DisplayCashing-Up', function()
-  {
-    onNavigationChange()
-    populateCashingUpTable();
-
-    
-    $('#cashingUpBookedButton').off("click");
-    $('#cashingUpBookedButton').on("click", function()
-    {
-      if($.trim($(this).html()) != "Booked")
-      {
-        $(this).html("Booked");
-        $(this).removeClass("btn-warning");
-        $(this).addClass("btn-success");
-      }
-      else
-      {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
-      }
-    });
-
-
-    $('#cashingUpButtonAdd').off("click");
-    $('#cashingUpButtonAdd').on('click', function()
-    {
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addRedemptionView input#cashingUpInputDebitor').val() == "" 
-        || $('#addRedemptionView input#cashingUpInputCategory').val() == "" 
-        || $('#addRedemptionView input#cashingUpInputAmount').val() == "" 
-        || $('#addRedemptionView input#cashingUpBookedButton').val() == "" 
-      )
-      {
-        errorSubmission = true
-      }
-
-  
-      // Check and make sure errorCount's still at zero
-      if(! errorSubmission) 
-      {
-        // If it is, compile all user info into one object
-        var newTransaction = {
-          'name': $('#addRedemptionView input#cashingUpInputDebitor').val(),
-          'account': $('#addRedemptionView input#cashingUpInputAccount').val(),
-          'bookingType': "Redemption",
-          'dateEntered': (new Date()).setFullYear(parseInt(selectedYear),parseInt(selectedMonth),0),
-          'dateBooked': $.trim($('#addRedemptionView button#cashingUpBookedButton').html()) === "Booked" ? Date.now() : null,
-          'amount' : [
-            {
-              "category" : $('#addRedemptionPaymentForm input#cashingUpInputCategory').val(),
-              "amount" : (parseFloat($('#addRedemptionView input#cashingUpInputAmount').val())).toString(),
-              "originalDebitorAmount" : (parseFloat($('#addRedemptionView input#cashingUpInputOriginalDebitorAmount').val())).toString(),
-            }
-          ]
-        };
-              // Use AJAX to post the object to our adduser service
-        $.ajax({
-            type: 'POST',
-            data: {data : JSON.stringify(newTransaction) },
-            url: '/db/transactions_add',
-            dataType: 'JSON'
-        }).done(function( response ) {
-      
-            // Check for successful (blank) response
-            if (response.msg === '') {
-              //alert('Done');
-              // Clear the form inputs
-              $('#addRedemptionView input').val('');
-              $("#addRedemptionPaymentForm").css("display","none");
-              reloadData();
-              $('#DisplayDB').click();
-            }
-            else {
-              // If something goes wrong, alert the error message that our service returned
-              alert('Error: ' + response.msg);
-            }
-        });
-      }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred.');
-      }    
-    });
-
-
-    $('#cashingUpButtonCancel').off('click');
-    $('#cashingUpButtonCancel').on('click', function()
-    {
-      $('#addRedemptionView input').val('');
-      $("#addRedemptionPaymentForm").css("display","none");
-    });
-
-
-
-
-    onNavigationChange()
-    $('#databaseView').css("display", "none");
-    $('#addTransactionView').css("display", "none");
-    $('#categoriesView').css("display", "none");
-    $('#cashingUpView').css("display", "block");
   });
 
   onNavigationChange()
@@ -671,142 +572,6 @@ function populateTransactionTable(selectedMonth,selectedYear) {
   setButton_toggleTransactionListBookedStatus()
 };
 
-function populateCashingUpTable() 
-{
-  if(categoryData.length === 0)
-  {
-    reloadData();
-  }
-  if(transactionsData.length === 0)
-  {
-    reloadData();
-  }
-
-  foundDebitorsPlusCategories = []
-
-  $.each(categoryData, function(){
-    // Find unqiue debitors
-    var found = -1;
-    if (this.systems != null)
-    {
-      for (var j = 0; j < this.systems.length; j++)
-      {
-        for (var i = 0; i < foundDebitorsPlusCategories.length; i++)
-        {
-          if(foundDebitorsPlusCategories[i].debitor === this.systems[j].debitor
-          && foundDebitorsPlusCategories[i].category === this.name)
-          {
-            found = i;
-            break;
-          }
-        }
-        if (found === -1)
-        {
-          foundDebitorsPlusCategories.push({"debitor":this.systems[j].debitor,"amount":0,"category": this.name,"isReconciled":null});
-        }
-      }
-    }
-  })
-
-  // Currently only scans selected month, it would be better if this checks for months which have not been redemped and adds this amount
-  for (var countDebitors = 0; countDebitors < foundDebitorsPlusCategories.length; countDebitors++)
-  {
-    var summedAmountIndivCategory = 0.0;
-    var isReconciled = null;
-    for (var i = 0; i < transactionsData.length; i++)
-    {
-      if(transactionsData[i].bookingType === "Redemption" 
-        && new Date(transactionsData[i].dateEntered).getMonth() + 1 === selectedMonth
-        && new Date(transactionsData[i].dateEntered).getFullYear() === selectedYear)
-      {
-        if(transactionsData[i].name === foundDebitorsPlusCategories[countDebitors].debitor 
-          && transactionsData[i].amount[0].category === foundDebitorsPlusCategories[countDebitors].category)
-        {
-          isReconciled = "yes";
-          //summedAmountIndivCategory += parseFloat(transactionsData[i].amount[0].originalDebitorAmount);
-        }
-      }
-      else if( transactionsData[i].bookingType === "Payment"
-        && new Date(transactionsData[i].dateEntered).getMonth() + 1 === selectedMonth
-        && new Date(transactionsData[i].dateEntered).getFullYear() === selectedYear)
-      {
-        for (var countPaymentSubCategories = 0; countPaymentSubCategories < transactionsData[i].amount.length; countPaymentSubCategories++)
-        {
-          for (var j = 0; j < categoryData.length; j++)
-          {
-            if (transactionsData[i].amount[countPaymentSubCategories].category === categoryData[j].name
-            && categoryData[j].systems != null)
-            {
-              for (var k = 0; k < categoryData[j].systems.length; k++)
-              {
-                if (categoryData[j].systems[k].debitor === foundDebitorsPlusCategories[countDebitors].debitor
-                  && foundDebitorsPlusCategories[countDebitors].category === categoryData[j].name)
-                {
-                  summedAmountIndivCategory += transactionsData[i].amount[countPaymentSubCategories].amount * parseFloat(categoryData[j].systems[k].percentage) / 100.0;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    foundDebitorsPlusCategories[countDebitors] = {
-      "debitor":foundDebitorsPlusCategories[countDebitors].debitor,
-      "amount":summedAmountIndivCategory,
-      "category":foundDebitorsPlusCategories[countDebitors].category,
-      "isReconciled":isReconciled
-    };
-  }
-
-  var tableContent = '';
-  for (var i = 0; i < foundDebitorsPlusCategories.length; i++)
-  {
-    if (parseFloat(parseFloat(foundDebitorsPlusCategories[i].amount).toFixed(2)) < 0.0)
-    {
-      tableContent += '<tr>';
-      tableContent += '<td><a href="#" class="cashingUpTableDebitor" rel="' + foundDebitorsPlusCategories[i].debitor.split(' ').join('-') + '_' + foundDebitorsPlusCategories[i].category.split(' ').join('-') + '">';
-      tableContent += foundDebitorsPlusCategories[i].debitor + " - " + foundDebitorsPlusCategories[i].category + '</a></td>';
-
-
-      tableContent += '<td id="cashingUpTableDebtAmount_' +foundDebitorsPlusCategories[i].debitor.split(' ').join('-') + '_' + foundDebitorsPlusCategories[i].category.split(' ').join('-') + '">' + (-1.0*parseFloat(foundDebitorsPlusCategories[i].amount)).toFixed(2) + '</td>';
-
-      tableContent += '<td>';
-      tableContent += foundDebitorsPlusCategories[i].isReconciled === null ? "No" : "Yes";
-      tableContent += '</td>';
-
-      tableContent += '</tr>';
-    }
-  }
-
-  $('#cashingUpDatabaseView table tbody').html(tableContent);
-  
-  $('.cashingUpTableDebitor').off("click");
-  $('.cashingUpTableDebitor').on("click", function(event)
-  {
-    event.preventDefault();
-
-    var rel = $(this).attr('rel');
-
-    $("#addRedemptionPaymentForm").css("display","block");
-
-    var debitor = rel.substr(0, rel.indexOf('_')); 
-    $("#addRedemptionPaymentForm input#cashingUpInputDebitor").val(debitor.split('-').join(" "));
-
-    var category = rel.split('_')[1];; 
-    $("#addRedemptionPaymentForm input#cashingUpInputCategory").val(category.split('-').join(" "));
-
-    var amount = $("#cashingUpTableDebtAmount_" + rel).html();
-    amount = parseFloat(amount);
-    $("#addRedemptionPaymentForm p input#cashingUpInputAmount").val(amount)
-
-    var originalDebitorAmount = $("#cashingUpTableDebtAmount_" + rel).html();
-    originalDebitorAmount = parseFloat(originalDebitorAmount);
-    $("#addRedemptionPaymentForm p input#cashingUpInputOriginalDebitorAmount").val(originalDebitorAmount);
-
-  });
-
-};
-
 function populateCategoryTable() {
 
   var unallocatedAmount = 0.0;
@@ -905,81 +670,29 @@ function populateCategoryTable() {
               // If category and selectedDate matches 
               if(transactionsData[i].amount[j].category === this.name)
               {
-                if (transactionsData[i].bookingType === "Redemption")
-                {
-                  if (transactionsData[i].dateBooked != null)
-                  {
-                    actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-                  }
-  
-                  if (parseFloat(transactionsData[i].amount[j].amount) != parseFloat(transactionsData[i].amount[j].originalDebitorAmount))
-                  {
-                    var difference = parseFloat(transactionsData[i].amount[j].amount) - parseFloat(transactionsData[i].amount[j].originalDebitorAmount);
-                    virtualSpendingThisMonth += difference;
-                  }
-                }
-                else if(transactionsData[i].bookingType === "Payment")
+                if(transactionsData[i].bookingType === "Payment")
                 {
                   if (transactionsData[i].dateBooked != null)
                   {
                     actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
                   }
 
-                  // If no systems, just add the amount.
-                  if(this.systems == null || this.systems == [])
-                  {
-                    virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-                  }
-                  // If systems are present, calculate virtual amount
-                  else if (this.systems.length > 0)
-                  {
-                    var iHaveToPay = transactionsData[i].amount[j].amount;
-                    for (var k=0; k < this.systems.length; k++)
-                    {
-                      iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-                    }
-                    virtualSpendingThisMonth += iHaveToPay;
-                  }
+                  // just add the amount.
+                  virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
                 }
                 else if(transactionsData[i].bookingType === "Correction")
                 {
                   actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
 
-                  // If no systems, just add the amount.
-                  if(this.systems == null || this.systems == [])
-                  {
-                    virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-                  }
-                  // If systems are present, calculate virtual amount
-                  else if (this.systems.length > 0)
-                  {
-                    var iHaveToPay = transactionsData[i].amount[j].amount;
-                    for (var k=0; k < this.systems.length; k++)
-                    {
-                      iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-                    }
-                    virtualSpendingThisMonth += iHaveToPay;
-                  }
-                  else if(transactionsData[i].bookingType === "Income")
-                  {
-                    actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+                  // If just add the amount.
+                  virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+                }
+                else if(transactionsData[i].bookingType === "Income")
+                {
+                  actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
   
-                    // If no systems, just add the amount.
-                    if(this.systems == null || this.systems == [])
-                    {
-                      virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-                    }
-                    // If systems are present, calculate virtual amount
-                    else if (this.systems.length > 0)
-                    {
-                      var iHaveToPay = transactionsData[i].amount[j].amount;
-                      for (var k=0; k < this.systems.length; k++)
-                      {
-                        iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-                      }
-                      virtualSpendingThisMonth += iHaveToPay;
-                    }
-                  }
+                  // If no systems, just add the amount.
+                  virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
                 }
               }
             }
@@ -1018,7 +731,7 @@ function populateCategoryTable() {
 
 
 
-    // Hier wird der aktuelle Monat durchgezählt (aktuell nur virtuell) (aktuell nur Debitoren inkludiert, Transactionen werden als Booked angenommen, Redemptions sind drinnen)
+    // Hier wird der aktuelle Monat durchgezählt
     var virtualSpendingThisMonth = 0.0;   
     var actualSpendingThisMonth = 0.0;
     for(var i=0; i < transactionsData.length; i++)
@@ -1036,67 +749,24 @@ function populateCategoryTable() {
               actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
             }
 
-            if(this.systems == null || this.systems == [])
-            {
-              virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-            }
-            else if (this.systems.length > 0)
-            {
-              var iHaveToPay = transactionsData[i].amount[j].amount;
-              for (var k=0; k < this.systems.length; k++)
-              {
-                iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-              }
-              virtualSpendingThisMonth += iHaveToPay;
-            }
-          }
-          else if (transactionsData[i].bookingType === "Redemption")
-          {
-            if (transactionsData[i].dateBooked != null)
-            {
-              actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-            }
-            if (parseFloat(transactionsData[i].amount[j].amount) != parseFloat(transactionsData[i].amount[j].originalDebitorAmount))
-            {
-              var difference = parseFloat(transactionsData[i].amount[j].amount) - parseFloat(transactionsData[i].amount[j].originalDebitorAmount);
-              virtualSpendingThisMonth += difference;
-            }
+            virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
           }
           else if (transactionsData[i].bookingType === "Correction")
           {
+            // Corrections are always applied immedeatly, they thus have no date by convention
             actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
 
-            if(this.systems == null || this.systems == [])
-            {
-              virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-            }
-            else if (this.systems.length > 0)
-            {
-              var iHaveToPay = transactionsData[i].amount[j].amount;
-              for (var k=0; k < this.systems.length; k++)
-              {
-                iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-              }
-              virtualSpendingThisMonth += iHaveToPay;
-            }
+            virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
           }
           else if (transactionsData[i].bookingType === "Income")
           {
-            actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-
-            if(this.systems == null || this.systems == [])
+            // We exclude income that is unbooked and transactions that take place in the future
+            // For the calculation of the actual money
+            if (transactionsData[i].dateBooked != null )
             {
-              virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+              actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
             }
-            else if (this.systems.length > 0)
-            {
-              var iHaveToPay = transactionsData[i].amount[j].amount;
-              for (var k=0; k < this.systems.length; k++)
-              {
-                iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-              }
-              virtualSpendingThisMonth += iHaveToPay;
-            }
+            virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
           }
         }
       }
@@ -1139,7 +809,7 @@ function populateCategoryTable() {
   });
 
   tableContent += '<tr id="summaryRow" class="table-success">'
-  tableContent += '<td>Marked Rows</td>';
+  tableContent += '<td> Rows</td>';
   for (var i = 0; i < 6; i++)
   {
     tableContent += '<td id="' + i.toString() + '"></td>'
@@ -1826,8 +1496,6 @@ function showCategoryInfo(event) {
     }
   }
 
-  //perform error checking here.
-
   if(thisUserObject != [])
   {
     //Populate Info Box
@@ -1844,18 +1512,35 @@ function showCategoryInfo(event) {
     {
       $('#categoriesInfo #categoryInfoAllocatedSinceReference').html("<strong>AllocatedSinceReference: </strong>0");
     }
-    var htmlString = "";
-    if(thisUserObject.systems != null)
+    var htmlContent = "";
+    for (var i=0; i < transactionsData.length; ++i)
     {
-      htmlString += "<strong>Debitors</strong><br>";
-
-      for (var i=0; i < thisUserObject.systems.length; ++i)
+      for(var j = 0; j < transactionsData[i].amount.length;j++)
       {
-        htmlString += " - " + thisUserObject.systems[i].debitor + " pays " + thisUserObject.systems[i].percentage + "%.<br>";
+        if(transactionsData[i].amount[j].category === thisUserObject.name
+          && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
+          && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
+        {
+          var tableContent = '<tr>';
+          tableContent += '<td>'+ transactionsData[i].name +'</td>';
+          tableContent += '<td>'+ $.datepicker.formatDate( "yy-mm-dd", new Date(transactionsData[i].dateEntered)) +'</td>';
+          if(transactionsData[i].dateBooked != null)
+          {
+            tableContent += '<td>'+ "Booked" +'</td>';
+          }
+          else
+          {
+            tableContent += '<td>'+ "Not Booked" +'</td>';
+          }
+          tableContent += '<td>'+ transactionsData[i].account +'</td>';
+          tableContent += '<td>'+ parseFloat(transactionsData[i].amount[j].amount).toFixed(2) +'</td>';
+          tableContent +='</tr>';
+          htmlContent += tableContent;
+        }
       }
     }
-    htmlString += "<br><br>";
-    $('#categoryInfoDebitorList').html(htmlString);
+    $("#categoryInfoTransactions table tbody").html(htmlContent);
+
   }
 };
 
@@ -1868,7 +1553,7 @@ function modifyCategory(event)
 
   // Retrieve username from link rel ibute
   var thisID = $(this).attr('rel');
-  $('#tegoryID').val(thisID);
+  $('#modifyCategoryID').val(thisID);
   
   // Get our User Object
   var thisUserObject = null;
@@ -1887,30 +1572,18 @@ function modifyCategory(event)
   {
     //Populate Info Box
     $('#modifyDatabaseEntryCategory #changeCategoryName').val(thisUserObject.name);
-    $('#modifyDatabaseEntryCategory #changeCategoryAllocation').val(thisUserObject.allocatedSinceReference);
-    if(thisUserObject.systems != null)
-    {
-      for (var i=0; i < thisUserObject.systems.length && i < 3; ++i)
-      {
-        $('#modifyDatabaseEntryCategory #changeCategoryDebitor' + (i+1).toString()).val(thisUserObject.systems[i].debitor);
-        $('#modifyDatabaseEntryCategory #changeCategoryPercentage' + (i+1).toString()).val(thisUserObject.systems[i].percentage);
-      }
-      for (var i=thisUserObject.systems.length; i < 3; ++i)
-      {
-        $('#modifyDatabaseEntryCategory #changeCategoryDebitor' + (i+1).toString()).val("");
-        $('#modifyDatabaseEntryCategory #changeCategoryPercentage' + (i+1).toString()).val("");
-      }
-    }
-    
   }
-
+  else
+  {
+    alert("Something went deeply wrong.")
+  }
   $('#modifyDatabaseEntryCategory').attr("style","display:block");
 
   $('#modifyDatabaseEntryCategory #changeCategoryButton').off("click");
   $('#modifyDatabaseEntryCategory #changeCategoryButton').on("click",function(event)
   {
     // Retrieve username from link rel ibute
-    var thisID = $('#tegoryID').val();
+    var thisID = $('#modifyCategoryID').val();
     
     // Get our User Object
     var thisUserObject = null;
@@ -1929,17 +1602,6 @@ function modifyCategory(event)
     {
       event.preventDefault();
 
-      var allocatedSinceReferenceArray = thisUserObject.allocatedSinceReference;
-
-      var found = getIteratorFromAllocatedSinceReferenceArray(allocatedSinceReferenceArray,selectedYear,selectedMonth);
-      if (found != null)
-      {
-        allocatedSinceReferenceArray[i].amount = $('#modifyDatabaseEntryCategory #changeCategoryAllocation').val();
-      }
-      else
-      {
-        allocatedSinceReferenceArray.push({"amount":$('#modifyDatabaseEntryCategory #changeCategoryAllocation').val(),"year":selectedYear,"month":selectedMonth});
-      }
 
       // If it is, compile all user info into one object
       var newTransaction = {
@@ -1948,48 +1610,7 @@ function modifyCategory(event)
         "referenceDate" : thisUserObject.referenceDate,
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
-        "allocatedSinceReference" : allocatedSinceReferenceArray
-      }
-
-      if($('#modifyDatabaseEntryCategory input#changeCategoryDebitor1').val() != "")
-      {
-        if (newTransaction.systems === null)
-        {
-          newTransaction.systems = [];
-        }
-
-        var debitor1Val = $('#modifyDatabaseEntryCategory input#changeCategoryDebitor1').val();
-        newTransaction.systems.push(
-          {
-            "debitor": $('#modifyDatabaseEntryCategory input#changeCategoryDebitor1').val(),
-            "percentage" : $('#modifyDatabaseEntryCategory input#changeCategoryPercentage1').val()
-          });
-      }
-      if($('#modifyDatabaseEntryCategory input#changeCategoryDebitor2').val() != "")
-      {
-        if (newTransaction.systems === null)
-        {
-          newTransaction.systems = [];
-        }
-        var debitor1Val = $('#modifyDatabaseEntryCategory input#changeCategoryDebitor2').val();
-        newTransaction.systems.push(
-          {
-            "debitor": $('#modifyDatabaseEntryCategory input#changeCategoryDebitor2').val(),
-            "percentage" : $('#modifyDatabaseEntryCategory input#changeCategoryPercentage2').val()
-          });
-      }
-      if($('#modifyDatabaseEntryCategory input#changeCategoryDebitor3').val() != "")
-      {
-        if (newTransaction.systems === null)
-        {
-          newTransaction.systems = [];
-        }
-        var debitor1Val = $('#modifyDatabaseEntryCategory input#changeCategoryDebitor3').val();
-        newTransaction.systems.push(
-          {
-            "debitor": $('#modifyDatabaseEntryCategory input#changeCategoryDebitor3').val(),
-            "percentage" : $('#modifyDatabaseEntryCategory input#changeCategoryPercentage3').val()
-          });
+        "allocatedSinceReference" : thisUserObject.allocatedSinceReference
       }
 
       // Use AJAX to post the object to our adduser service
@@ -2032,6 +1653,7 @@ function modifyCategory(event)
     }
 
     // Update the table
+    reloadData();
     populateCategoryTable();
     $('#modifyDatabaseEntryCategory').attr("style","display:none");
     $('#addCategoryButton').css("display", "block");
