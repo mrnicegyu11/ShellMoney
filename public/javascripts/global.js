@@ -5,11 +5,21 @@ var accountData = [];
 
 var selectedMonth = new Date().getMonth() + 1;
 var selectedYear = new Date().getFullYear();
+var lastPickedDateInSession = null;
+
+// Stuff we use:
+// ".buttonIsTransactionBooked"
+// -> Has element "rel" which is ID
+// -> Should ID always be rel?
+// ".datepicker"
+// ".dropdown-item-paymentTypeSelection"
 
 
-$( function() {
-  $( "#datepicker" ).datepicker();
-} );
+
+// This is most likely obsolete:
+//$( function() {
+//  $( "" ).datepicker(); 
+//} );
 
 // DOM Ready =============================================================
 $(document).ready(function() {
@@ -95,7 +105,8 @@ $(document).ready(function() {
   {
     onNavigationChange()
 
-    showButtonsAddingTransaction(null);
+    prepareButtonsAddingTransaction();
+    //showButtonsAddingTransaction(null);
     $('#databaseView').css("display", "none");
     $('#addTransactionView').css("display", "block");
     $('#categoriesView').css("display", "none");
@@ -346,7 +357,7 @@ $(document).ready(function() {
 
   onNavigationChange()
 
-  $( "#datepicker" ).datepicker();
+  $( "" ).datepicker();
 });
 
 
@@ -369,7 +380,7 @@ var dates = {
       //   a string     : Any format supported by the javascript engine, like
       //                  "YYYY/MM/DD", "MM/DD/YYYY", "Jan 31 2009" etc.
       //  an object     : Interpreted as an object with year, month and date
-      //                  attributes.  **NOTE** month is 0-11.
+      //                  ibutes.  **NOTE** month is 0-11.
       return (
           d.constructor === Date ? d :
           d.constructor === Array ? new Date(d[0],d[1],d[2]) :
@@ -413,7 +424,7 @@ var dates = {
 
 
 // Functions =============================================================
-// Fill table with data
+// Helper Function: getTotalCostsFromTransaction
 function getTotalCostsFromTransaction(transaction)
 {
   var totalAmount = 0.0;
@@ -424,6 +435,7 @@ function getTotalCostsFromTransaction(transaction)
   return totalAmount;
 }
 
+// Helper Function: getIteratorFromAllocatedSinceReferenceArray
 function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
 {
   var allocatedSinceReferenceArray = array;
@@ -447,12 +459,15 @@ function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
   }
 }
 
+// Called once toggleBookedStatusButton are rendern to set the button action
 function setButton_toggleTransactionListBookedStatus()
 {
   $('.buttonIsTransactionBooked').on("click", function()
     {
-      var ID = $(this).attr('rel');
+      var ID = $(this).('rel');
       var foundIterator = -1;
+
+      // Check if we habe the ID in the database
       for(var i = 0; i < transactionsData.length; i++)
       {
         if(transactionsData[i]._id === ID)
@@ -461,6 +476,8 @@ function setButton_toggleTransactionListBookedStatus()
           break;
         }
       }
+
+      // If we have found the ID
       if(i != -1)
       {
         if(transactionsData[i].dateBooked != null)
@@ -475,7 +492,7 @@ function setButton_toggleTransactionListBookedStatus()
         $.ajax({
           type: 'PUT',
           data: { "data" : JSON.stringify(transactionsData[i]) },
-          url: '/db/transactions_modify/' + $(this).attr('rel'),
+          url: '/db/transactions_modify/' + $(this).('rel'),
           dataType: 'json'
         }).done(function( response ) {
         
@@ -498,38 +515,43 @@ function setButton_toggleTransactionListBookedStatus()
 
         $('#DisplayDB').click();
       }
+      else
+      {
+        alert('Error: In function setButton_toggleTransactionListBookedStatus: ' + 'Did not find ID of button element in Database of Transactions.');
+      }
     });
 }
 
+// Deletes a category, event musst have ibute "rel" with ID in it.
 function deleteCategory(event)
 {
   event.preventDefault();
     
     // If they did, do our delete
-    $.ajax({
-      type: 'DELETE',
-      url: '/db/categories_delete/' + $(this).attr('rel')
-    }).done(function( response ) {
-    
-      // Check for a successful (blank) response
-      if (response.msg === '') {
-        //alert('Successfully deleted. ');
-      }
-      else {
-        alert('Error: ' + response.msg);
-      }
-    
-      // Update the table
-      reloadData();
-    
-    });  
+  $.ajax({
+    type: 'DELETE',
+    url: '/db/categories_delete/' + $(this).('rel')
+  }).done(function( response ) {
+  
+    // Check for a successful (blank) response
+    if (response.msg === '') {
+      //alert('Successfully deleted. ');
+    }
+    else {
+      alert('Error: ' + response.msg);
+    }
+  
+    // Update the table
+    reloadData();
+  
+  });  
 }
 
+// Reloads data from mongoDB and populates tables accordingly.
 function reloadData()
 {
   $.getJSON('db/transactions_list').always(function( data ) 
   {
-    // Stick our user data array into a userlist variable in the global object
     transactionsData = data;
 
     // Sort by descending date
@@ -548,8 +570,9 @@ function reloadData()
   });
   $.getJSON('db/categories_list').always(function( data ) 
   {
-    // Stick our user data array into a userlist variable in the global object
     categoryData = data;
+
+    // Sort by Name
     categoryData.sort(function(a, b) {
       var nameA=a.name.toLowerCase()
       var nameB=b.name.toLowerCase();
@@ -560,7 +583,6 @@ function reloadData()
       return 0; //default return value (no sorting)
     });
 
-    var some = 7+9;
     populateCategoryTable()
   });
   
@@ -768,7 +790,7 @@ function populateCashingUpTable()
   {
     event.preventDefault();
 
-    var rel = $(this).attr('rel');
+    var rel = $(this).('rel');
 
     $("#addRedemptionPaymentForm").css("display","block");
 
@@ -1197,7 +1219,7 @@ function populateCategoryTable() {
   {
     event.preventDefault();
 
-    var thisID = $(this).attr('rel');
+    var thisID = $(this).('rel');
 
      // Get our User Object
     var thisUserObject = [];
@@ -1379,12 +1401,12 @@ function showButtonsAddingTransaction(thisID) {
   $('#addTransaction').html("");
 
   var dropdownAccount = $(document.createElement('div'));
-  dropdownAccount.attr("class","dropdown");
+  dropdownAccount.("class","dropdown");
 
   var dropdownAccount_b1 = $(document.createElement('button'));
-  dropdownAccount_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-  dropdownAccount_b1.attr("type","button");
-  dropdownAccount_b1.attr("data-toggle","dropdown");
+  dropdownAccount_b1.("class", "btn btn-secondary dropdown-toggle my-3");
+  dropdownAccount_b1.("type","button");
+  dropdownAccount_b1.("data-toggle","dropdown");
 
   if (thisID === null)
     dropdownAccount_b1.html("Booking Type"); 
@@ -1394,33 +1416,33 @@ function showButtonsAddingTransaction(thisID) {
   dropdownAccount.append(dropdownAccount_b1);
 
   var divDropdown = $(document.createElement('div'));
-  divDropdown.attr("class","dropdown-menu");
+  divDropdown.("class","dropdown-menu");
 
   var dropdownEntry1 = $(document.createElement('a'));
-  dropdownEntry1.attr("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry1.attr("href", "#");
+  dropdownEntry1.("class", "dropdown-item dropdown-item-paymentTypeSelection");
+  dropdownEntry1.("href", "#");
   // Here pick accounts dynamically
   dropdownEntry1.html("Payment");
   divDropdown.append(dropdownEntry1);
 
 
   var dropdownEntry2 = $(document.createElement('a'));
-  dropdownEntry2.attr("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry2.attr("href", "#");
+  dropdownEntry2.("class", "dropdown-item dropdown-item-paymentTypeSelection");
+  dropdownEntry2.("href", "#");
   // Here pick accounts dynamically
   dropdownEntry2.html("Income");
   divDropdown.append(dropdownEntry2);
 
   var dropdownEntry3 = $(document.createElement('a'));
-  dropdownEntry3.attr("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry3.attr("href", "#");
+  dropdownEntry3.("class", "dropdown-item dropdown-item-paymentTypeSelection");
+  dropdownEntry3.("href", "#");
   // Here pick accounts dynamically
   dropdownEntry3.html("Transfer");
   divDropdown.append(dropdownEntry3);
 
   var dropdownEntry4 = $(document.createElement('a'));
-  dropdownEntry4.attr("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry4.attr("href", "#");
+  dropdownEntry4.("class", "dropdown-item dropdown-item-paymentTypeSelection");
+  dropdownEntry4.("href", "#");
   // Here pick accounts dynamically
   dropdownEntry4.html("Correction");
   divDropdown.append(dropdownEntry4);
@@ -1434,64 +1456,73 @@ function showButtonsAddingTransaction(thisID) {
   if(thisID === "Payment")
   {
     var textfieldDate = $(document.createElement('input'));
-    textfieldDate.attr("type", "text");
-    textfieldDate.attr("placeholder", "Date");
-    textfieldDate.attr("id", "datepickerPayment");
-    textfieldDate.attr("class", "m-2 p-2 datepicker");
+    textfieldDate.("type", "text");
+    textfieldDate.("placeholder", "Date");
+    textfieldDate.("id", "datepickerPayment");
+    textfieldDate.("class", "m-2 p-2 datepicker");
     $('#addTransaction').append(textfieldDate);
 
     $( function() {
-      $( "#datepickerPayment" ).datepicker();
+      $( "Payment" ).datepicker();
     } );
 
-    $( "#datepickerPayment" ).datepicker({
+    $( "Payment" ).datepicker({
       dateFormat: "yy-mm-dd"
     });
 
-    $("#datepickerPayment").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
+    // Set starting Date
+    if (lastPickedDateInSession != null)
+    {
+      $("Payment").val($.datepicker.formatDate( "yy-mm-dd", lastPickedDateInSession));
+    }
+    else
+    {
+      $("Payment").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
+    }
+    
     $('#addTransaction').append($(document.createElement('br')));
     
 
     var textfieldName = $(document.createElement('input'));
-    textfieldName.attr("type", "text");
-    textfieldName.attr("placeholder", "Name");
-    textfieldName.attr("id", "inputName");
-    textfieldName.attr("class", "m-2 p-2");
+    textfieldName.("type", "text");
+    textfieldName.("placeholder", "Name");
+    textfieldName.("id", "inputName");
+    textfieldName.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldName);
     
 
     var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.attr("type", "text");
-    textfieldAccount.attr("placeholder", "Account");
-    textfieldAccount.attr("id", "inputAccount");
-    textfieldAccount.attr("class", "m-2 p-2");
+    textfieldAccount.("type", "text");
+    textfieldAccount.("placeholder", "Account");
+    textfieldAccount.("id", "inputAccount");
+    textfieldAccount.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldAccount);
     $('#addTransaction').append($(document.createElement('br')));
 
     var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount 1");
-    textfieldTotalamount.attr("id", "inputAmount1");
+    textfieldTotalamount.("type", "number");
+    textfieldTotalamount.("placeholder", "Amount 1");
+    textfieldTotalamount.("id", "inputAmount1");
     $('#addTransaction').append(textfieldTotalamount);
-    textfieldTotalamount.attr("class", "m-2 p-2");
+    textfieldTotalamount.("class", "m-2 p-2");
 
     // CATEGORY DROPDOWN
     var dropdownCategory1 = $(document.createElement('div'));
-    dropdownCategory1.attr("class","dropdown");
+    dropdownCategory1.("class","dropdown");
     var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategory1Button");
-    dropdownCat_b1.attr("data-toggle","dropdown");
+    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
+    dropdownCat_b1.("type","button");
+    dropdownCat_b1.("id","inputCategory1Button");
+    dropdownCat_b1.("data-toggle","dropdown");
     dropdownCat_b1.html("Pick Category 1"); 
     dropdownCategory1.append(dropdownCat_b1);
     var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
+    divDropdown.("class","dropdown-menu");
     for (var i = 0; i < categoryData.length; ++i)
     {
       var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
+      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.("href", "#");
       dropdownEntry.html(categoryData[i].name);
       divDropdown.append(dropdownEntry);
     }
@@ -1501,30 +1532,30 @@ function showButtonsAddingTransaction(thisID) {
    
 
     var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount 2");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    textfieldTotalamount.attr("id", "inputAmount2");
+    textfieldTotalamount.("type", "number");
+    textfieldTotalamount.("placeholder", "Amount 2");
+    textfieldTotalamount.("class", "m-2 p-2");
+    textfieldTotalamount.("id", "inputAmount2");
     $('#addTransaction').append(textfieldTotalamount);
     
 
     // CATEGORY DROPDOWN
     var dropdownCategory2 = $(document.createElement('div'));
-    dropdownCategory2.attr("class","dropdown");
+    dropdownCategory2.("class","dropdown");
     var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategory2Button");
-    dropdownCat_b1.attr("data-toggle","dropdown");
+    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
+    dropdownCat_b1.("type","button");
+    dropdownCat_b1.("id","inputCategory2Button");
+    dropdownCat_b1.("data-toggle","dropdown");
     dropdownCat_b1.html("Pick Category 2"); 
     dropdownCategory2.append(dropdownCat_b1);
     var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
+    divDropdown.("class","dropdown-menu");
     for (var i = 0; i < categoryData.length; ++i)
     {
       var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
+      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.("href", "#");
       dropdownEntry.html(categoryData[i].name);
       divDropdown.append(dropdownEntry);
     }
@@ -1533,29 +1564,29 @@ function showButtonsAddingTransaction(thisID) {
     //
 
     var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount 3");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    textfieldTotalamount.attr("id", "inputAmount3");
+    textfieldTotalamount.("type", "number");
+    textfieldTotalamount.("placeholder", "Amount 3");
+    textfieldTotalamount.("class", "m-2 p-2");
+    textfieldTotalamount.("id", "inputAmount3");
     $('#addTransaction').append(textfieldTotalamount);
     
     // CATEGORY DROPDOWN
     var dropdownCategory3 = $(document.createElement('div'));
-    dropdownCategory3.attr("class","dropdown");
+    dropdownCategory3.("class","dropdown");
     var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategory3Button");
-    dropdownCat_b1.attr("data-toggle","dropdown");
+    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
+    dropdownCat_b1.("type","button");
+    dropdownCat_b1.("id","inputCategory3Button");
+    dropdownCat_b1.("data-toggle","dropdown");
     dropdownCat_b1.html("Pick Category 3"); 
     dropdownCategory3.append(dropdownCat_b1);
     var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
+    divDropdown.("class","dropdown-menu");
     for (var i = 0; i < categoryData.length; ++i)
     {
       var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
+      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.("href", "#");
       dropdownEntry.html(categoryData[i].name);
       divDropdown.append(dropdownEntry);
     }
@@ -1564,29 +1595,29 @@ function showButtonsAddingTransaction(thisID) {
     //
 
     var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount 4");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    textfieldTotalamount.attr("id", "inputAmount4");
+    textfieldTotalamount.("type", "number");
+    textfieldTotalamount.("placeholder", "Amount 4");
+    textfieldTotalamount.("class", "m-2 p-2");
+    textfieldTotalamount.("id", "inputAmount4");
     $('#addTransaction').append(textfieldTotalamount);
     
     // CATEGORY DROPDOWN
     var dropdownCategory4 = $(document.createElement('div'));
-    dropdownCategory4.attr("class","dropdown");
+    dropdownCategory4.("class","dropdown");
     var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategory4Button");
-    dropdownCat_b1.attr("data-toggle","dropdown");
+    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
+    dropdownCat_b1.("type","button");
+    dropdownCat_b1.("id","inputCategory4Button");
+    dropdownCat_b1.("data-toggle","dropdown");
     dropdownCat_b1.html("Pick Category 4"); 
     dropdownCategory4.append(dropdownCat_b1);
     var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
+    divDropdown.("class","dropdown-menu");
     for (var i = 0; i < categoryData.length; ++i)
     {
       var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
+      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.("href", "#");
       dropdownEntry.html(categoryData[i].name);
       divDropdown.append(dropdownEntry);
     }
@@ -1595,10 +1626,10 @@ function showButtonsAddingTransaction(thisID) {
     //
 
     var buttonBooked = $(document.createElement('button'));
-    buttonBooked.attr("type", "text");
-    buttonBooked.attr("class", "btn btn-success m-2 p-2");
+    buttonBooked.("type", "text");
+    buttonBooked.("class", "btn btn-success m-2 p-2");
     buttonBooked.html("Booked");
-    buttonBooked.attr("id", "insertTransactionPaymentButtonToggleBooked");
+    buttonBooked.("id", "insertTransactionPaymentButtonToggleBooked");
     $('#addTransaction').append(buttonBooked);
     $('#addTransaction').append($(document.createElement('br'))); 
 
@@ -1659,7 +1690,7 @@ function showButtonsAddingTransaction(thisID) {
           'name': $('#addTransaction input#inputName').val(),
           'account': $('#addTransaction input#inputAccount').val(),
           'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerPayment').val())).getTime(),
+          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('Payment').val())).getTime(),
           'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? Date.now() : null,
           'amount' : [
             {
@@ -1719,70 +1750,70 @@ function showButtonsAddingTransaction(thisID) {
   else if (thisID === "Income")
   {
     var textfieldDate = $(document.createElement('input'));
-    textfieldDate.attr("type", "text");
-    textfieldDate.attr("placeholder", "Date");
-    textfieldDate.attr("id", "datepickerIncome");
-    textfieldDate.attr("class", "m-2 p-2 datepicker");
+    textfieldDate.("type", "text");
+    textfieldDate.("placeholder", "Date");
+    textfieldDate.("id", "datepickerIncome");
+    textfieldDate.("class", "m-2 p-2 datepicker");
     $('#addTransaction').append(textfieldDate);
 
     $( function() {
-      $( "#datepickerIncome" ).datepicker();
+      $( "Income" ).datepicker();
     } );
 
-    $( "#datepickerIncome" ).datepicker({
+    $( "Income" ).datepicker({
       dateFormat: "yy-mm-dd"
     });
 
-    $("#datepickerIncome").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
+    $("Income").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
     $('#addTransaction').append($(document.createElement('br')));
     
 
     var textfieldName = $(document.createElement('input'));
-    textfieldName.attr("type", "text");
-    textfieldName.attr("placeholder", "Name");
-    textfieldName.attr("id", "inputName");
-    textfieldName.attr("class", "m-2 p-2");
+    textfieldName.("type", "text");
+    textfieldName.("placeholder", "Name");
+    textfieldName.("id", "inputName");
+    textfieldName.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldName);
     $('#addTransaction').append($(document.createElement('br')));
 
     var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount");
-    textfieldTotalamount.attr("id", "inputAmount");
-    textfieldTotalamount.attr("class", "m-2 p-2");
+    textfieldTotalamount.("type", "number");
+    textfieldTotalamount.("placeholder", "Amount");
+    textfieldTotalamount.("id", "inputAmount");
+    textfieldTotalamount.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldTotalamount);
     $('#addTransaction').append($(document.createElement('br')));
 
     var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.attr("type", "text");
-    textfieldAccount.attr("placeholder", "Account");
-    textfieldAccount.attr("id", "inputAccount");
-    textfieldAccount.attr("class", "m-2 p-2");
+    textfieldAccount.("type", "text");
+    textfieldAccount.("placeholder", "Account");
+    textfieldAccount.("id", "inputAccount");
+    textfieldAccount.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldAccount);
     $('#addTransaction').append($(document.createElement('br')));
 
     // CATEGORY DROPDOWN
     var dropdownCategory = $(document.createElement('div'));
-    dropdownCategory.attr("class","dropdown");
+    dropdownCategory.("class","dropdown");
     var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategoryButton");
-    dropdownCat_b1.attr("data-toggle","dropdown");
+    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
+    dropdownCat_b1.("type","button");
+    dropdownCat_b1.("id","inputCategoryButton");
+    dropdownCat_b1.("data-toggle","dropdown");
     dropdownCat_b1.html("Pick Category (optional)"); 
     dropdownCategory.append(dropdownCat_b1);
     var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
+    divDropdown.("class","dropdown-menu");
     var dropdownEntry = $(document.createElement('a'));
-    dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-    dropdownEntry.attr("href", "#");
+    dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+    dropdownEntry.("href", "#");
     dropdownEntry.html("No category");
     divDropdown.append(dropdownEntry);
     for (var i = 0; i < categoryData.length; ++i)
     {
       var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
+      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.("href", "#");
       dropdownEntry.html(categoryData[i].name);
       divDropdown.append(dropdownEntry);
     }
@@ -1791,10 +1822,10 @@ function showButtonsAddingTransaction(thisID) {
     //
 
     var buttonBooked = $(document.createElement('button'));
-    buttonBooked.attr("type", "text");
-    buttonBooked.attr("class", "btn btn-success m-2 p-2");
+    buttonBooked.("type", "text");
+    buttonBooked.("class", "btn btn-success m-2 p-2");
     buttonBooked.html("Booked");
-    buttonBooked.attr("id", "insertTransactionPaymentButtonToggleBooked");
+    buttonBooked.("id", "insertTransactionPaymentButtonToggleBooked");
     $('#addTransaction').append(buttonBooked);
     $('#addTransaction').append($(document.createElement('br'))); 
 
@@ -1802,7 +1833,7 @@ function showButtonsAddingTransaction(thisID) {
     $('#insertTransactionPaymentButtonToggleBooked').on("click", function()
     {
       // Future Transactions can never be booked. Only past ones can be booked
-      if (new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerIncome').val())) > new Date())
+      if (new Date($.datepicker.parseDate( "yy-mm-dd",$('Income').val())) > new Date())
       {
         $(this).html("Not Booked");
         $(this).removeClass("btn-success");
@@ -1846,8 +1877,8 @@ function showButtonsAddingTransaction(thisID) {
           'name': $('#addTransaction input#inputName').val(),
           'account': $('#addTransaction input#inputAccount').val(),
           'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerIncome').val())).getTime(),
-          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerIncome').val())).getTime() : null,
+          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('Income').val())).getTime(),
+          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? new Date($.datepicker.parseDate( "yy-mm-dd",$('Income').val())).getTime() : null,
           'amount' : [
             {
               "category" : ($('#addTransaction #inputCategoryButton').html() === "No category" 
@@ -1897,52 +1928,52 @@ function showButtonsAddingTransaction(thisID) {
   {
     //$('#addTransaction').append($(document.createElement('br')));
     var textfieldDate = $(document.createElement('input'));
-    textfieldDate.attr("type", "text");
-    textfieldDate.attr("placeholder", "Date");
-    textfieldDate.attr("id", "datepickerTransfer");
-    textfieldDate.attr("class", "m-2 p-2 datepicker");
+    textfieldDate.("type", "text");
+    textfieldDate.("placeholder", "Date");
+    textfieldDate.("id", "datepickerTransfer");
+    textfieldDate.("class", "m-2 p-2 datepicker");
     $('#addTransaction').append(textfieldDate);
 
     $( function() {
-      $( "#datepickerTransfer" ).datepicker();
+      $( "Transfer" ).datepicker();
     } );
 
-    $( "#datepickerTransfer" ).datepicker({
+    $( "Transfer" ).datepicker({
       dateFormat: "yy-mm-dd"
     });
 
-    $("#datepickerTransfer").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
+    $("Transfer").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
     $('#addTransaction').append($(document.createElement('br')));
 
     var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount");
-    textfieldTotalamount.attr("id", "inputAmount");
-    textfieldTotalamount.attr("class", "m-2 p-2");
+    textfieldTotalamount.("type", "number");
+    textfieldTotalamount.("placeholder", "Amount");
+    textfieldTotalamount.("id", "inputAmount");
+    textfieldTotalamount.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldTotalamount);
     $('#addTransaction').append($(document.createElement('br')));
 
     var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.attr("type", "text");
-    textfieldAccount.attr("placeholder", "From Account");
-    textfieldAccount.attr("id", "inputAccount");
-    textfieldAccount.attr("class", "m-2 p-2");
+    textfieldAccount.("type", "text");
+    textfieldAccount.("placeholder", "From Account");
+    textfieldAccount.("id", "inputAccount");
+    textfieldAccount.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldAccount);
     $('#addTransaction').append($(document.createElement('br')));
     
     var textfieldAccount2 = $(document.createElement('input'));
-    textfieldAccount2.attr("type", "text");
-    textfieldAccount2.attr("placeholder", "To Account");
-    textfieldAccount2.attr("id", "targetAccount");
-    textfieldAccount2.attr("class", "m-2 p-2");
+    textfieldAccount2.("type", "text");
+    textfieldAccount2.("placeholder", "To Account");
+    textfieldAccount2.("id", "targetAccount");
+    textfieldAccount2.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldAccount2);
     $('#addTransaction').append($(document.createElement('br')));
 
     var buttonBooked = $(document.createElement('button'));
-    buttonBooked.attr("type", "text");
-    buttonBooked.attr("class", "btn btn-success m-2 p-2");
+    buttonBooked.("type", "text");
+    buttonBooked.("class", "btn btn-success m-2 p-2");
     buttonBooked.html("Booked");
-    buttonBooked.attr("id", "insertTransactionPaymentButtonToggleBooked");
+    buttonBooked.("id", "insertTransactionPaymentButtonToggleBooked");
     $('#addTransaction').append(buttonBooked);
     $('#addTransaction').append($(document.createElement('br'))); 
 
@@ -1950,7 +1981,7 @@ function showButtonsAddingTransaction(thisID) {
     $('#insertTransactionPaymentButtonToggleBooked').on("click", function()
     {
       // Future Transactions can never be booked. Only past ones can be booked
-      if (new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerTransfer').val())) > new Date())
+      if (new Date($.datepicker.parseDate( "yy-mm-dd",$('Transfer').val())) > new Date())
       {
         $(this).html("Not Booked");
         $(this).removeClass("btn-success");
@@ -1997,8 +2028,8 @@ function showButtonsAddingTransaction(thisID) {
           'account': $('#addTransaction input#inputAccount').val(),
           'targetAccount' : $('#addTransaction input#targetAccount').val(),
           'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerTransfer').val())).getTime(),
-          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerTransfer').val())).getTime() : null,
+          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('Transfer').val())).getTime(),
+          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? new Date($.datepicker.parseDate( "yy-mm-dd",$('Transfer').val())).getTime() : null,
           'amount' : [
             {
               "category" : "Transfer",
@@ -2046,35 +2077,35 @@ function showButtonsAddingTransaction(thisID) {
   else if (thisID === "Correction")
   {
     var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Target Balance");
-    textfieldTotalamount.attr("id", "inputAmount");
-    textfieldTotalamount.attr("class", "m-2 p-2");
+    textfieldTotalamount.("type", "number");
+    textfieldTotalamount.("placeholder", "Target Balance");
+    textfieldTotalamount.("id", "inputAmount");
+    textfieldTotalamount.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldTotalamount);
     $('#addTransaction').append($(document.createElement('br')));
 
     // CATEGORY DROPDOWN
     var dropdownCategory = $(document.createElement('div'));
-    dropdownCategory.attr("class","dropdown");
+    dropdownCategory.("class","dropdown");
     var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategoryButton");
-    dropdownCat_b1.attr("data-toggle","dropdown");
+    dropdownCat_b1.("class", "btn btn-secondary dropdown-toggle my-3");
+    dropdownCat_b1.("type","button");
+    dropdownCat_b1.("id","inputCategoryButton");
+    dropdownCat_b1.("data-toggle","dropdown");
     dropdownCat_b1.html("Pick Category (optional)"); 
     dropdownCategory.append(dropdownCat_b1);
     var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
+    divDropdown.("class","dropdown-menu");
     var dropdownEntry = $(document.createElement('a'));
-    dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-    dropdownEntry.attr("href", "#");
+    dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+    dropdownEntry.("href", "#");
     dropdownEntry.html("No category");
     divDropdown.append(dropdownEntry);
     for (var i = 0; i < categoryData.length; ++i)
     {
       var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
+      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.("href", "#");
       dropdownEntry.html(categoryData[i].name);
       divDropdown.append(dropdownEntry);
     }
@@ -2083,10 +2114,10 @@ function showButtonsAddingTransaction(thisID) {
     //
 
     var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.attr("type", "text");
-    textfieldAccount.attr("placeholder", "Account");
-    textfieldAccount.attr("id", "inputAccount");
-    textfieldAccount.attr("class", "m-2 p-2");
+    textfieldAccount.("type", "text");
+    textfieldAccount.("placeholder", "Account");
+    textfieldAccount.("id", "inputAccount");
+    textfieldAccount.("class", "m-2 p-2");
     $('#addTransaction').append(textfieldAccount);
     $('#addTransaction').append($(document.createElement('br')));
 
@@ -2187,7 +2218,208 @@ function showButtonsAddingTransaction(thisID) {
     // Prevent Link from Firing
     event.preventDefault();
 
-    // Retrieve username from link rel attribute
+    // Retrieve username from link rel ibute
+    var thisID = $(this).html();
+
+
+    showButtonsAddingTransaction(thisID);
+
+  })
+  $('.dropdown-item-categorySelection').off("click");
+  $('.dropdown-item-categorySelection').on('click', function(event)
+  {
+    // Prevent Link from Firing
+    event.preventDefault();
+
+    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
+  })
+
+  $('#addTransaction').append($(document.createElement('br'))); 
+
+  categoryNames = []
+  for (catItem in categoryData)
+  {
+    categoryNames.push(catItem.name);
+  }
+  //$('.categoryInputField').autocomplete({source: categoryNames});
+
+};
+
+function prepareButtonsAddingTransaction() {
+
+
+  $('#addTransactionButton').off("click");
+  if(thisID === "Payment")
+  {
+
+    $( function() {
+      $( "Payment" ).datepicker();
+    } );
+
+    $( "Payment" ).datepicker({
+      dateFormat: "yy-mm-dd"
+    });
+
+    // Set starting Date 
+    if (lastPickedDateInSession != null)
+    {
+      $("Payment").val($.datepicker.formatDate( "yy-mm-dd", lastPickedDateInSession));
+    }
+    else
+    {
+      $("Payment").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
+    }
+    
+
+    for (var i = 0; i < categoryData.length; ++i)
+    {
+      var dropdownEntry = $(document.createElement('a'));
+      dropdownEntry.("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.("href", "#");
+      dropdownEntry.html(categoryData[i].name);
+      $("#inputCategoryPayment1Button").parent().find(".dropdown-menu").append(dropdownEntry);
+      $("#inputCategoryPayment2Button").parent().find(".dropdown-menu").append(dropdownEntry);
+      $("#inputCategoryPayment3Button").parent().find(".dropdown-menu").append(dropdownEntry);
+      $("#inputCategoryPayment4Button").parent().find(".dropdown-menu").append(dropdownEntry);
+    }
+
+    $('.insertTransactionButtonToggleBooked').off("click");
+    $('.insertTransactionButtonToggleBooked').on("click", function()
+    {
+      if($(this).html() == "Booked")
+      {
+        $(this).html("Not Booked");
+        $(this).removeClass("btn-success");
+        $(this).addClass("btn-warning");
+      }
+      else
+      {
+        $(this).html("Booked");
+        $(this).removeClass("btn-warning");
+        $(this).addClass("btn-success");
+      }
+    });
+
+
+    $('#addTransactionButton').on("click",function(event)
+    {
+      event.preventDefault();
+
+      var currentTransactionKind = null
+      if($('#addTransaction #payment').attr("style") != "display:none")
+      {
+        currentTransactionKind = "payment";
+      } else if ($('#addTransaction #income').attr("style") != "display:none") 
+      {
+        currentTransactionKind = "income";
+      } else if ($('#addTransaction #transfer').attr("style") != "display:none")
+      {
+        currentTransactionKind = "transfer";
+      } else if ($('#addTransaction #correction').attr("style") != "display:none")
+      {
+        currentTransactionKind = "correction";
+      }
+
+      // Super basic validation - increase errorCount variable if any fields are blank
+      var errorSubmission = false;
+      if(
+        $('#addTransaction '+ currentTransactionKind +' .inputName').val() == "" 
+        || $('#addTransaction '+ currentTransactionKind +' #inputAccount').val() == "" 
+        || $('#addTransaction '+ currentTransactionKind +' #inputAmount1').val() == "" 
+        || $('#addTransaction '+ currentTransactionKind +' #inputCategory1Button').html() == "" 
+      )
+      {
+        errorSubmission = true
+      }
+
+      var foundCategory = false;
+      for (var i = 0; i < categoryData.length; ++i)
+      {
+        if(categoryData[i].name === $('#addTransaction '+ currentTransactionKind +' #inputCategory1Button').html())
+        {
+          foundCategory = true;
+          break;
+        }
+      }
+      if(!foundCategory)
+      {
+        errorSubmission = true;
+      }
+
+      // Check and make sure errorCount's still at zero
+      if(! errorSubmission && foundCategory) {
+    
+        // If it is, compile all user info into one object
+        var newTransaction = {
+          'name': $('#addTransaction ' + currentTransactionKind + ' .inputName').val(),
+          'account': $('#addTransaction ' + currentTransactionKind + ' #inputAccount').val(),
+          'bookingType': thisID,
+          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('Payment').val())).getTime(),
+          'dateBooked': $('#insertTransactionButtonToggleBooked').html() === "Booked" ? Date.now() : null,
+          'amount' : [
+            {
+              "category" : $('#addTransaction ' + currentTransactionKind + ' #inputCategory1Button').html(),
+              "amount" : (parseFloat($('#addTransaction ' + currentTransactionKind + ' #inputAmount1').val()) * -1.0).toString()
+            }
+          ]
+        }
+
+        for (var i = 0; i < 2; ++i)
+        {
+          if($('#addTransaction ' + currentTransactionKind + ' #inputCategory' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() && $('#addTransaction ' + currentTransactionKind + ' #inputAmount'+ (i+2).toString()).val() != "")
+          {
+            newTransaction.amount.push(
+              {
+                "category": $('#addTransaction ' + currentTransactionKind + ' #inputCategory'+ (i+2).toString() + "Button").html() ,
+                "amount" : (parseFloat($('#addTransaction ' + currentTransactionKind + ' #inputAmount'+ (i+2).toString()).val()) * -1.0).toString()
+              });
+          }
+        }
+    
+        // Use AJAX to post the object to our adduser service
+        $.ajax({
+          type: 'POST',
+          data: {data : JSON.stringify(newTransaction) },
+          url: '/db/transactions_add',
+          dataType: 'JSON'
+        }).done(function( response ) {
+    
+          // Check for successful (blank) response
+          if (response.msg === '') {
+            // alert('Done');
+            // Clear the form inputs
+            $('#addTransaction ' + currentTransactionKind + ' input').val('');
+
+            // Here we could optimize by not reloading thw hole database but keeping track ourselves
+            reloadData();
+            $('#DisplayDB').click();
+          }
+          else {
+    
+            // If something goes wrong, alert the error message that our service returned
+            alert('Error: ' + response.msg);
+    
+          }
+        });
+
+        
+      }
+      else {
+        // If errorCount is more than 0, error out
+        alert('Error occurred.');
+      }
+    });
+  }
+
+
+  $('.dropdown-item-paymentTypeSelection').off("click");
+  $('.dropdown-item-paymentTypeSelection').on('click', function(event)
+  {
+
+    // Prevent Link from Firing
+    event.preventDefault();
+
+    // Retrieve username from link rel ibute
     var thisID = $(this).html();
 
 
@@ -2220,8 +2452,8 @@ function showTransactionInfo(event) {
   // Prevent Link from Firing
   event.preventDefault();
 
-  // Retrieve username from link rel attribute
-  var thisID = $(this).attr('rel');
+  // Retrieve username from link rel ibute
+  var thisID = $(this).('rel');
   
   // Get our User Object
   var thisUserObject = [];
@@ -2271,12 +2503,12 @@ function showTransactionInfo(event) {
 
 function showCategoryInfo(event) {
 
-  $('#categoriesInfo').attr("style","display:block");
+  $('#categoriesInfo').("style","display:block");
   // Prevent Link from Firing
   event.preventDefault();
 
-  // Retrieve username from link rel attribute
-  var thisID = $(this).attr('rel');
+  // Retrieve username from link rel ibute
+  var thisID = $(this).('rel');
   
   // Get our User Object
   var thisUserObject = [];
@@ -2329,8 +2561,8 @@ function modifyCategory(event)
 
   $('#addCategoryButton').css("display", "none");
 
-  // Retrieve username from link rel attribute
-  var thisID = $(this).attr('rel');
+  // Retrieve username from link rel ibute
+  var thisID = $(this).('rel');
   $('#tegoryID').val(thisID);
   
   // Get our User Object
@@ -2367,12 +2599,12 @@ function modifyCategory(event)
     
   }
 
-  $('#modifyDatabaseEntryCategory').attr("style","display:block");
+  $('#modifyDatabaseEntryCategory').("style","display:block");
 
   $('#modifyDatabaseEntryCategory #changeCategoryButton').off("click");
   $('#modifyDatabaseEntryCategory #changeCategoryButton').on("click",function(event)
   {
-    // Retrieve username from link rel attribute
+    // Retrieve username from link rel ibute
     var thisID = $('#tegoryID').val();
     
     // Get our User Object
@@ -2496,7 +2728,7 @@ function modifyCategory(event)
 
     // Update the table
     populateCategoryTable();
-    $('#modifyDatabaseEntryCategory').attr("style","display:none");
+    $('#modifyDatabaseEntryCategory').("style","display:none");
     $('#addCategoryButton').css("display", "block");
   });
   $('#modifyDatabaseEntryCategory #cancelChangeCategoryButton').off("click");
@@ -2504,7 +2736,7 @@ function modifyCategory(event)
   {
     $('#addCategoryButton').css("display", "block");
     $('#modifyDatabaseEntryCategory input').val('');
-    $('#modifyDatabaseEntryCategory').attr("style","display:none");
+    $('#modifyDatabaseEntryCategory').("style","display:none");
   });
 };
 
@@ -2522,7 +2754,7 @@ function deleteTransaction(event) {
     // If they did, do our delete
     $.ajax({
       type: 'DELETE',
-      url: '/db/transactions_delete/' + $(this).attr('rel')
+      url: '/db/transactions_delete/' + $(this).('rel')
     }).done(function( response ) {
 
       // Check for a successful (blank) response
@@ -2546,8 +2778,8 @@ function deleteTransaction(event) {
 function onNavigationChange()
 {
   $("#addRedemptionPaymentForm").css("display","none");
-  $('#modifyDatabaseEntryCategory').attr("style","display:none");
-  $('#categoriesInfo').attr("style","display:none");
+  $('#modifyDatabaseEntryCategory').("style","display:none");
+  $('#categoriesInfo').("style","display:none");
 };
 
 

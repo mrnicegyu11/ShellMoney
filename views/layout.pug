@@ -91,6 +91,47 @@ html
           h2.my-2
            | Add Transaction
           #addTransaction
+            .dropdown
+              button.btn.btn-secondary.dropdown-toggle.my-3(data-toggle="dropdown",type="button")
+               | Booking Type
+              .dropdown-menu
+                a.dropdown-item.dropdown-item-paymentTypeSelection(href="#")
+                 | Payment
+                a.dropdown-item.dropdown-item-paymentTypeSelection(href="#")
+                 | Income
+                a.dropdown-item.dropdown-item-paymentTypeSelection(href="#")
+                 | Transfer
+                a.dropdown-item.dropdown-item-paymentTypeSelection(href="#")
+                 | Correction
+            #payment(style="display:none")
+              input(type="text",placeholder="Date",id="datepickerPayment").m-2.p-2.datepicker
+              input(type="text",placeholder="Name",id="inputNamePayment").m-2.p-2.inputName
+              input(type="number",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2 ")
+              
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.my-3(data-toggle="dropdown",type="button",id="inputCategoryPayment1Button")
+                 | Pick Category 1
+                .dropdown-menu
+              input(type="number",placeholder="Amount 2",id="inputAmount2").m-2.p-2
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.my-3(data-toggle="dropdown",type="button",id="inputCategoryPayment2Button")
+                 | Pick Category 2
+                .dropdown-menu
+              input(type="number",placeholder="Amount 3",id="inputAmount3").m-2.p-2 
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.my-3(data-toggle="dropdown",type="button",id="inputCategoryPayment3Button")
+                 | Pick Category 3
+                .dropdown-menu
+              input(type="number",placeholder="Amount 4",id="inputAmount4").m-2.p-2 
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.my-3(data-toggle="dropdown",type="button",id="inputCategoryPayment4Button")
+                 | Pick Category 4
+                .dropdown-menu
+              button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
+               | Booked
+            #income(style="display:none")
+            #transfer(style="display:none")
+            #correction(style="display:none")
           button(type="button",class="btn btn-dark",id="addTransactionButton")
            | Add Transaction
         #categoriesView.my-4(style="display:none")
