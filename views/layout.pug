@@ -109,27 +109,28 @@ html
             #payment(style="display:none")
               input(type="text",placeholder="Name",id="inputNamePayment").m-2.p-2.inputName
               div
-              input(type="number",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2")
+              input(type="number",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2").inputAmount
               
               .dropdown
                 button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment1Button").category1Button
                  | Pick Category 1
                 .dropdown-menu
-              input(type="number",placeholder="Amount 2",id="inputAmount2").m-2.p-2
+              input(type="number",placeholder="Amount 2",id="inputAmount2").m-2.p-2.inputAmount
               .dropdown
                 button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment2Button")
                  | Pick Category 2
                 .dropdown-menu
-              input(type="number",placeholder="Amount 3",id="inputAmount3").m-2.p-2 
+              input(type="number",placeholder="Amount 3",id="inputAmount3").m-2.p-2.inputAmount
               .dropdown
                 button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment3Button")
                  | Pick Category 3
                 .dropdown-menu
-              input(type="number",placeholder="Amount 4",id="inputAmount4").m-2.p-2 
+              input(type="number",placeholder="Amount 4",id="inputAmount4").m-2.p-2.inputAmount
               .dropdown
                 button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment4Button")
                  | Pick Category 4
                 .dropdown-menu
+              #summedAmounts.m-2.p-2
               button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
                | Booked
             #income(style="display:none")

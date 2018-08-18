@@ -16,11 +16,6 @@ var lastPickedDateInSession = null;
 
 
 
-// This is most likely obsolete:
-//$( function() {
-//  $( "" ).datepicker(); 
-//} );
-
 // DOM Ready =============================================================
 $(document).ready(function() {
   // Populate the user table on initial page load
@@ -1531,6 +1526,10 @@ function prepareButtonsAddingTransaction() {
         errorSubmission = true
       }
     }
+    else
+    {
+      errorSubmission = true
+    }
 
     if(currentTransactionKind == "Payment"
       || (currentTransactionKind == "Income" && $("#inputCategoryIncomeButton").html() != "None" && $("#inputCategoryIncomeButton").html() != "Pick Category (optional)")
@@ -1650,6 +1649,19 @@ function prepareButtonsAddingTransaction() {
       // If errorCount is more than 0, error out
       alert('Error occurred. Data is incomplete.');
     }
+  });
+
+  $('#addTransaction #payment .inputAmount').keyup(function () {
+    var summedVal = 0.0;
+    $('#addTransaction #payment .inputAmount').each(function(i,obj)
+    {
+      if(parseFloat(obj.value) != NaN && obj.value != "")
+      {
+        summedVal = summedVal + parseFloat(obj.value);
+      }
+    });
+    $('#addTransaction #payment #summedAmounts').html("Summed Amount: " + summedVal.toFixed(2));
+
   });
 
 
