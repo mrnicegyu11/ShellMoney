@@ -367,6 +367,8 @@ $(document).ready(function() {
   onNavigationChange()
 
   $( "" ).datepicker();
+
+  
 });
 
 
@@ -628,7 +630,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
         && selectedYear === new Date(parseInt(this.dateEntered)).getFullYear() )
     {
       tableContent += '<tr>';
-      tableContent += '<td><a href="#" class="linkshowtransaction" data-toggle="modal" data-target="#categoryModal" rel="' + this._id + '">';
+      tableContent += '<td><a href="#" class="linkshowtransaction" rel="' + this._id + '">';
       
       var totalAmount = 0.
       for (var i = 0; i < this.amount.length; i++)
@@ -636,6 +638,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
         totalAmount += parseFloat(this.amount[i].amount);
       }
       tableContent += totalAmount.toFixed(2) + '</a></td>';
+      tableContent += '<td class="transactionTableDateEntered">' + $.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(this.dateEntered))) + '</td>';
 
       // Insert here booked? button code
       if(this.name != "Income" && this.name != "Correction" && this.bookingType != "Redemption")
@@ -1039,6 +1042,11 @@ function populateCategoryTable() {
   {
     event.preventDefault();
 
+    var newVal = $(this).val();
+    if(newVal === "")
+    {
+      newVal = "0";
+    }
     var thisID = $(this).attr('rel');
 
      // Get our User Object
@@ -1057,22 +1065,22 @@ function populateCategoryTable() {
     var found = getIteratorFromAllocatedSinceReferenceArray(allocatedSinceReferenceArray,selectedYear,selectedMonth);
     if (found != null)
     {
-      allocatedSinceReferenceArray[found].amount = $(this).val();
+      allocatedSinceReferenceArray[found].amount = newVal;
     }
     else
     {
       if(Array.isArray(allocatedSinceReferenceArray))
       {
-        allocatedSinceReferenceArray.push({"amount":$(this).val(),"year":selectedYear,"month":selectedMonth});
+        allocatedSinceReferenceArray.push({"amount":newVal,"year":selectedYear,"month":selectedMonth});
       }
       else
       {
         allocatedSinceReferenceArray = [];
-        allocatedSinceReferenceArray.push({"amount":$(this).val(),"year":selectedYear,"month":selectedMonth});
+        allocatedSinceReferenceArray.push({"amount":newVal,"year":selectedYear,"month":selectedMonth});
       }
     }
 
-    if(thisUserObject != [] && $(this).val() != thisUserObject.val)
+    if(thisUserObject != [] && newVal != thisUserObject.val)
     {
       var category = {
         'name': thisUserObject.name,
@@ -1084,9 +1092,9 @@ function populateCategoryTable() {
       }
 
       $.ajax({
-        type: 'POST',
+        type: 'PUT',
         data: { "data" : JSON.stringify(category) },
-        url: '/db/categories_add',
+        url: '/db/categories_modify/' + thisID,
         dataType: 'json'
       }).done(function( response ) {
 
@@ -1101,22 +1109,10 @@ function populateCategoryTable() {
           alert('Error: ' + response.msg);
 
         }
+        
       });
+      reloadData();
 
-      // Delete old entry
-      $.ajax({
-        type: 'DELETE',
-        url: '/db/categories_delete/' + thisID
-      }).done(function( response ) {
-        // Check for a successful (blank) response
-        if (response.msg === '') {
-          reloadData();
-          populateCategoryTable();
-        }
-        else {
-          alert('Error: ' + response.msg);
-        }
-      });
     }
   
   
@@ -1216,7 +1212,6 @@ function populateAccountInformation()
   $('#accountOverview table tbody').html(tableContent);
   
 };
-
 
 function prepareButtonsAddingTransaction() {
   $( "#datepicker" ).datepicker({
@@ -1602,7 +1597,6 @@ function showTransactionInfo(event) {
   {
     if(thisID === $(obj).find("td")[0].childNodes[0].rel)
     {
-      var thisUserObject = transactionsData[i];
       var newHTML = '<br><div id="transactionDetails" style="display:block">'
       newHTML += "<strong>Name: </strong>";
       newHTML += thisUserObject.name;
@@ -1653,74 +1647,6 @@ function showTransactionInfo(event) {
       }
     }
   })
-};
-
-function showCategoryInfo(event) {
-
-  $('#categoriesInfo').attr("style","display:block");
-  // Prevent Link from Firing
-  event.preventDefault();
-
-  // Retrieve username from link rel ibute
-  var thisID = $(this).attr('rel');
-  
-  // Get our User Object
-  var thisUserObject = [];
-  for (var i=0; i < categoryData.length; ++i)
-  {
-    if(categoryData[i]._id == thisID)
-    {
-      thisUserObject = categoryData[i];
-      break;
-    }
-  }
-
-  if(thisUserObject != [])
-  {
-    //Populate Info Box
-    $('#categoriesInfo #categoryInfoName').html("<strong>Name: </strong>" + thisUserObject.name);
-    $('#categoriesInfo #categoryInfoReferenceDate').html("<strong>Reference Date: </strong>" + new Date(parseInt(thisUserObject.referenceDate)).toISOString().substring(0, 10));
-    $('#categoriesInfo #categoryInfoReferenceAmount').html("<strong>Reference Amount: </strong>" + thisUserObject.referenceAmount);
-
-    if (getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,selectedYear,selectedMonth) != null)
-    {
-      $('#categoriesInfo #categoryInfoAllocatedSinceReference').html("<strong>AllocatedSinceReference: </strong>" +
-        thisUserObject.allocatedSinceReference[getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,selectedYear,selectedMonth)].amount);
-    }
-    else
-    {
-      $('#categoriesInfo #categoryInfoAllocatedSinceReference').html("<strong>AllocatedSinceReference: </strong>0");
-    }
-    var htmlContent = "";
-    for (var i=0; i < transactionsData.length; ++i)
-    {
-      for(var j = 0; j < transactionsData[i].amount.length;j++)
-      {
-        if(transactionsData[i].amount[j].category === thisUserObject.name
-          && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
-          && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
-        {
-          var tableContent = '<tr>';
-          tableContent += '<td>'+ transactionsData[i].name +'</td>';
-          tableContent += '<td>'+ $.datepicker.formatDate( "yy-mm-dd", new Date(transactionsData[i].dateEntered)) +'</td>';
-          if(transactionsData[i].dateBooked != null)
-          {
-            tableContent += '<td>'+ "Booked" +'</td>';
-          }
-          else
-          {
-            tableContent += '<td>'+ "Not Booked" +'</td>';
-          }
-          tableContent += '<td>'+ transactionsData[i].account +'</td>';
-          tableContent += '<td>'+ parseFloat(transactionsData[i].amount[j].amount).toFixed(2) +'</td>';
-          tableContent +='</tr>';
-          htmlContent += tableContent;
-        }
-      }
-    }
-    $("#categoryInfoTransactions table tbody").html(htmlContent);
-
-  }
 };
 
 function showCategoryInfoModal(event) {
@@ -1812,6 +1738,30 @@ function showCategoryInfoModal(event) {
   
 };
 
+function updateDatabaseTransaction(item)
+{
+  $.ajax({
+    type: 'PUT',
+    data: { "data" : JSON.stringify(item) },
+    url: '/db/transactions_modify/' + item._id,
+    dataType: 'json'
+  }).done(function( response ) {
+  
+    // Check for successful (blank) response
+    if (response.msg === '') {
+    
+      reloadData();
+
+    }
+    else {
+    
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+    
+    }
+  });
+}
+
 function modifyCategory(event)
 {
   // Prevent Link from Firing
@@ -1864,17 +1814,14 @@ function modifyCategory(event)
       }
     }
   
-    //perform error checking here.
-  
     if(thisUserObject != null)
     {
       event.preventDefault();
 
 
       // If it is, compile all user info into one object
-      var newTransaction = {
+      var newCategory = {
         'name': $('#modifyDatabaseEntryCategory input#changeCategoryName').val(),
-        'systems': null,
         "referenceDate" : thisUserObject.referenceDate,
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
@@ -1883,9 +1830,9 @@ function modifyCategory(event)
 
       // Use AJAX to post the object to our adduser service
       $.ajax({
-        type: 'POST',
-        data: { "data" : JSON.stringify(newTransaction) },
-        url: '/db/categories_add',
+        type: 'PUT',
+        data: { "data" : JSON.stringify(newCategory) },
+        url: '/db/categories_modify/' + thisUserObject._id,
         dataType: 'json'
       }).done(function( response ) {
     
@@ -1905,23 +1852,23 @@ function modifyCategory(event)
         }
       });
 
-      // Delete old entry
-      $.ajax({
-        type: 'DELETE',
-        url: '/db/categories_delete/' + thisID
-      }).done(function( response ) {
-        // Check for a successful (blank) response
-        if (response.msg === '') {
-          reloadData();
+      reloadData();
+
+      for (var i=0; i < transactionsData.length; ++i)
+      {
+        for(var j = 0; j < transactionsData[i].amount.length; j++)
+        {
+          if(transactionsData[i].amount[j].category === thisUserObject.name)
+          {
+            transactionsData[i].amount[j].category = $('#modifyDatabaseEntryCategory input#changeCategoryName').val();
+            updateDatabaseTransaction(transactionsData[i]);
+          }
         }
-        else {
-          alert('Error: ' + response.msg);
-        }
-      });
+      }
     }
 
     // Update the table
-    reloadData();
+    
     populateCategoryTable();
     $('#modifyDatabaseEntryCategory').attr("style","display:none");
     $('#addCategoryButton').css("display", "block");
