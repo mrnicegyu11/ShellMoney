@@ -7,6 +7,12 @@ var selectedMonth = new Date().getMonth() + 1;
 var selectedYear = new Date().getFullYear();
 var lastPickedDateInSession = null;
 
+// Extend jQuery:
+$.fn.exists = function () {
+  return this.length !== 0;
+  // see: https://stackoverflow.com/questions/920236/how-can-i-detect-if-a-selector-returns-null
+}
+
 // Stuff we use:
 // ".buttonIsTransactionBooked"
 // -> Has element "rel" which is ID
@@ -97,7 +103,7 @@ $(document).ready(function() {
 
 
     $('#transactionList table tbody').off('click');
-    $('#transactionList table tbody').on('click', 'td a.linkshowtransaction', showTransactionInfo);
+    $('#transactionList table tbody').unbind().on('click', 'td a.linkshowtransaction', showTransactionInfo);
     $('#transactionList table tbody').on('click', 'td a.linkdeletetransaction', deleteTransaction);
     $('.buttonIsTransactionBooked').off();
     $('.buttonIsTransactionBooked').on("click", setButton_toggleTransactionListBookedStatus);
@@ -247,7 +253,7 @@ $(document).ready(function() {
      
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkdeletecategory', deleteCategory);
 
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfo);
+    $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
   });
 
@@ -501,7 +507,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
         && selectedYear === new Date(parseInt(this.dateEntered)).getFullYear() )
     {
       tableContent += '<tr>';
-      tableContent += '<td><a href="#" class="linkshowtransaction" rel="' + this._id + '">';
+      tableContent += '<td><a href="#" class="linkshowtransaction" data-toggle="modal" data-target="#categoryModal" rel="' + this._id + '">';
       
       var totalAmount = 0.
       for (var i = 0; i < this.amount.length; i++)
@@ -513,7 +519,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
       // Insert here booked? button code
       if(this.name != "Income" && this.name != "Correction" && this.bookingType != "Redemption")
       {
-        tableContent += '<td>' + this.name + '</td>';
+        tableContent += '<td class="transactionTableName">' + this.name + '</td>';
         tableContent += '<td>'
         if(this.dateBooked == null)
         {
@@ -1443,37 +1449,61 @@ function showTransactionInfo(event) {
 
   //perform error checking here.
 
-  if(thisUserObject != [])
+  $("#transactionList table tbody tr").each(function(i,obj)
   {
-    //Populate Info Box
-    $('#transactionInfoDateEntered').text(new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10));
-    $('#transactionInfoDateBooked').text(/**/thisUserObject.dateBooked === null ? null : ( new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10) )/**/);
-    $('#transactionInfoName').text(thisUserObject.name);
-    $('#transactionInfoID').text(thisUserObject._id);
-    $('#transactionInfoAccount').text(thisUserObject.account);
-    $('#transactionInfoBookingType').text(thisUserObject.bookingType);
-
-    if(thisUserObject.bookingType == "Transfer")
+    if(thisID === $(obj).find("td")[0].childNodes[0].rel)
     {
-      $('#transactionInfoTargetAccount').text(thisUserObject.targetAccount);
+      var thisUserObject = transactionsData[i];
+      var newHTML = '<br><div id="transactionDetails" style="display:block">'
+      newHTML += "<strong>Name: </strong>";
+      newHTML += thisUserObject.name;
+      newHTML += "<br>"
+      newHTML += "<strong>Date Entered: </strong>";
+      newHTML += new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10);
+      newHTML += "<br>"
+      newHTML += "<strong>Date Booked: </strong>";
+      newHTML += /**/thisUserObject.dateBooked === null ? "Not booked" : ( new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10) )/**/;
+      newHTML += "<br>";
+      newHTML += "<strong>Account: </strong>";
+      newHTML += thisUserObject.account;
+      newHTML += "<br>"
+      newHTML += "<strong>Booking Type: </strong>";
+      newHTML += thisUserObject.bookingType;
+      newHTML += "<br>"
+      if(thisUserObject.bookingType == "Transfer")
+      {
+        newHTML += "<strong>Target Account: </strong>";
+        newHTML += thisUserObject.targetAccount;
+        newHTML += "<br>"
+      }
+      var totalAmount = 0.0;
+      var categoriesString = "";
+      for (var i=0; i < thisUserObject.amount.length; ++i)
+      {
+        totalAmount = totalAmount + parseFloat(thisUserObject.amount[i].amount);
+        categoriesString += '<div style="padding-left:5em">' + thisUserObject.amount[i].category.toString() + ": " + parseFloat(thisUserObject.amount[i].amount).toFixed(2) + "</div>";
+      }
+      newHTML += categoriesString;
+      newHTML += "<strong>Total Amount: </strong>";
+      newHTML += totalAmount.toFixed(2);
+      newHTML += "<br></div>";
+      if($(obj).find(".transactionTableName #transactionDetails").exists())
+      {
+        if($(obj).find(".transactionTableName #transactionDetails").attr("style") === "display:none")
+        {
+          $(obj).find(".transactionTableName #transactionDetails").attr("style","display:block")
+        }
+        else
+        {
+          $(obj).find(".transactionTableName #transactionDetails").attr("style","display:none");
+        }
+      }
+      else
+      {
+        $(obj).find(".transactionTableName").html($(obj).find(".transactionTableName").html() + newHTML);
+      }
     }
-    else
-    {
-      $('#transactionInfoTargetAccount').text("");
-    }
-    
-    var totalAmount = 0.0;
-    var categoriesString = "";
-    for (var i=0; i < thisUserObject.amount.length; ++i)
-    {
-      totalAmount = totalAmount + parseFloat(thisUserObject.amount[i].amount);
-      categoriesString += thisUserObject.amount[i].category.toString() + " - " + parseFloat(thisUserObject.amount[i].amount).toFixed(2) + "<br>";
-    }
-    $('#transactionInfoTotalAmount').text(totalAmount.toFixed(2));
-
-
-    $('#transactionInfoCategories').html(categoriesString);
-  }
+  })
 };
 
 function showCategoryInfo(event) {
@@ -1542,6 +1572,95 @@ function showCategoryInfo(event) {
     $("#categoryInfoTransactions table tbody").html(htmlContent);
 
   }
+};
+
+function showCategoryInfoModal(event) {
+
+  // Prevent Link from Firing
+  //event.preventDefault();
+
+  // Retrieve username from link rel ibute
+  var thisID = $(this).attr('rel');
+  
+  // Get our User Object
+  var thisUserObject = [];
+  for (var i=0; i < categoryData.length; ++i)
+  {
+    if(categoryData[i]._id == thisID)
+    {
+      thisUserObject = categoryData[i];
+      break;
+    }
+  }
+
+  if(thisUserObject != [])
+  {
+    $(".modal-body #categoryInfoTransactions").parent().find("table").attr("style","display:block");
+
+    $("#categoryModalTitle").html(thisUserObject.name);
+
+    //Populate Info Box
+    var htmlString = "";
+    htmlString += "<div><strong>Name: </strong>" + thisUserObject.name;
+
+    htmlString += "</div><div><strong>Reference Date: </strong>" + new Date(parseInt(thisUserObject.referenceDate)).toISOString().substring(0, 10);
+    htmlString += "</div><div><strong>Reference Amount: </strong>" + thisUserObject.referenceAmount;
+
+    if (getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,selectedYear,selectedMonth) != null)
+    {
+      htmlString += "</div><div><strong>AllocatedSinceReference: </strong>" +
+        thisUserObject.allocatedSinceReference[getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,selectedYear,selectedMonth)].amount;
+    }
+    else
+    {
+      htmlString += "</div><div><strong>AllocatedSinceReference: </strong>0";
+    }
+    var whereToInsert = $(".modal-body #categoryInfoTransactions");
+    
+    // Debug Display disabled
+    //whereToInsert.html(htmlString);
+
+    var htmlContent = "";
+    var countEntries = 0;
+    for (var i=0; i < transactionsData.length; ++i)
+    {
+      for(var j = 0; j < transactionsData[i].amount.length;j++)
+      {
+        if(transactionsData[i].amount[j].category === thisUserObject.name
+          && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
+          && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
+        {
+          var tableContent = '<tr>';
+          tableContent += '<td>'+ transactionsData[i].name +'</td>';
+          tableContent += '<td>'+ $.datepicker.formatDate( "yy-mm-dd", new Date(transactionsData[i].dateEntered)) +'</td>';
+          if(transactionsData[i].dateBooked != null)
+          {
+            tableContent += '<td>'+ "Booked" +'</td>';
+          }
+          else
+          {
+            tableContent += '<td>'+ "Not Booked" +'</td>';
+          }
+          tableContent += '<td>'+ transactionsData[i].account +'</td>';
+          tableContent += '<td>'+ parseFloat(transactionsData[i].amount[j].amount).toFixed(2) +'</td>';
+          tableContent +='</tr>';
+          htmlContent += tableContent;
+
+          countEntries++;
+        }
+      }
+    }
+    whereToInsert = $(".modal-body #categoryInfoTransactions").parent().find("table tbody");
+    whereToInsert.html(htmlContent);
+
+    if(countEntries === 0)
+    {
+      $(".modal-body #categoryInfoTransactions").html("No transactions this month.")
+      $(".modal-body #categoryInfoTransactions").parent().find("table").attr("style","display:none")
+    }
+    $('#categoryModal').modal();
+  }
+  
 };
 
 function modifyCategory(event)

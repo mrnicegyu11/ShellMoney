@@ -41,39 +41,6 @@ html
               | Categories
       block content
         #databaseView(style="display:none")
-          #TransactionInfo
-            h2 Transaction Info
-            p
-              strong dateEntered:
-              |  <span id='transactionInfoDateEntered'></span>
-              br
-              strong dateBooked:
-              |  <span id='transactionInfoDateBooked'></span>
-              br
-              strong name:
-              |  <span id='transactionInfoName'></span>
-              br
-              strong id:
-              |  <span id='transactionInfoID'></span>
-              br
-              strong Account:
-              |  <span id='transactionInfoAccount'></span>
-              br
-              strong Target Account:
-              |  <span id='transactionInfoTargetAccount'></span>
-              br
-              strong bookingType:
-              |  <span id='transactionInfoBookingType'></span>
-              br
-              strong totalAmount:
-              |  <span id='transactionInfoTotalAmount'></span>
-              br
-              strong Categories:
-              br
-              |  <span id='transactionInfoCategories'></span>
-              br
-            // /USER INFO
-            // TRANSACTION LIST
           #transactionList
             h2 Transaction List
             table.table.my-2.flex.table-striped.table-bordered.mx-auto.p-auto(width="100%",cellspacing="0",cellpadding="0")
@@ -165,6 +132,24 @@ html
                 th Modify?
                 th Delete?
               tbody
+          #categoryModal.modal(tabindex="-1",role="dialog",aria-labelledby="exampleModalCenterTitle",aria-hidden="true")
+            .modal-dialog.modal-dialog-centered(role="document")
+              .modal-content
+                .modal-header
+                  h5.modal-title#categoryModalTitle
+                  button.close(type="button",data-dismiss="modal",aria-label="Close")
+                    span(aria-hiden="true")
+                     | &times;
+                .modal-body
+                  #categoryInfoTransactions
+                  table.table.my-2.flex.table-bordered.mx-auto.p-auto(style="display:none")
+                    thead
+                      th Name
+                      th Date
+                      th Booked
+                      th Account
+                      th Amount
+                    tbody
           #categoryUnallocatedMoney.m-2
           #categoryToBeAllocatedMoney.m-2
           #modifyDatabaseEntryCategory.my-4(style="display:none")
