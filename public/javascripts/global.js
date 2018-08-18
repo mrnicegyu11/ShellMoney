@@ -1423,6 +1423,7 @@ function prepareButtonsAddingTransaction() {
     dropdownEntryNone.attr("href", "#");
     dropdownEntryNone.html("None");
     dropdownEntryNone.appendTo($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"));
+    dropdownEntryNone.clone().appendTo($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"));
     //
     for (var i = 0; i < categoryData.length; ++i)
     {
@@ -1436,12 +1437,9 @@ function prepareButtonsAddingTransaction() {
       dropdownEntry.clone().appendTo($("#inputCategoryPayment4Button").parent().find(".dropdown-menu"));
 
       dropdownEntry.clone().appendTo($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"));
     }
   }
-
-
-
-
 
   $('.insertTransactionButtonToggleBooked').off("click");
   $('.insertTransactionButtonToggleBooked').on("click", function()
@@ -1487,24 +1485,62 @@ function prepareButtonsAddingTransaction() {
 
     // Super basic validation - increase errorCount variable if any fields are blank
     var errorSubmission = false;
-    if(
-      $('#addTransaction '+ currentTransactionDivName +' .inputName').val() == "" 
-      || $('#addTransaction '+ currentTransactionDivName +' .inputAccount').val() == "" 
-      || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
-      || $('#addTransaction '+ currentTransactionDivName +' .incomeCategory1Button').html() == "" 
-    )
+    if (currentTransactionKind == "Payment" || currentTransactionKind == "Income")
     {
-      errorSubmission = true
+      if(
+        $('#addTransaction '+ currentTransactionDivName +' .inputName').val() == "" 
+        || $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' .category1Button').html() == "" 
+      )
+      {
+        errorSubmission = true
+      }
+    }
+    else if (currentTransactionKind == "Transfer")
+    {
+      if(
+          $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' .targetAccount').val() == "" 
+      )
+      {
+        errorSubmission = true
+      }
+    }
+    else if (currentTransactionKind == "Correction")
+    {
+      if(
+          $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+      )
+      {
+        errorSubmission = true
+      }
+      var foundMatchingAccount = -1;
+      for (var i = 0; i < accountData.length; ++i)
+      {
+        if(accountData[i].name === $('#addTransaction #general .inputAccount').val())
+        {
+          foundMatchingAccount = i;
+          break;
+        }
+      }
+      if (foundMatchingAccount == -1)
+      {
+        errorSubmission = true
+      }
     }
 
     if(currentTransactionKind == "Payment"
       || (currentTransactionKind == "Income" && $("#inputCategoryIncomeButton").html() != "None" && $("#inputCategoryIncomeButton").html() != "Pick Category (optional)")
+      || (currentTransactionKind == "Correction" && $("#inputCategoryCorrectionButton").html() != "None" && $("#inputCategoryCorrectionButton").html() != "Pick Category (optional)")
       )
     {
       var foundCategory = false;
       for (var i = 0; i < categoryData.length; ++i)
       {
-        if(categoryData[i].name === $('#addTransaction '+ currentTransactionDivName +' .incomeCategory1Button').html())
+        if(categoryData[i].name === $('#addTransaction '+ currentTransactionDivName +' .category1Button').html())
         {
           foundCategory = true;
           break;
@@ -1525,13 +1561,13 @@ function prepareButtonsAddingTransaction() {
       // If it is, compile all user info into one object
       var newTransaction = {
         'name': $('#addTransaction ' + currentTransactionDivName + ' .inputName').val(),
-        'account': $('#addTransaction ' + currentTransactionDivName + ' .inputAccount').val(),
+        'account': $('#addTransaction ' + "#general" + ' .inputAccount').val(),
         'bookingType': currentTransactionKind,
-        'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepicker').val())).getTime(),
+        'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getTime(),
         'dateBooked': $.trim($('#addTransaction ' + currentTransactionDivName + ' .insertTransactionButtonToggleBooked').html()) === "Booked" ? Date.now() : null,
         'amount' : [
           {
-            "category" : $('#addTransaction ' + currentTransactionDivName + ' .incomeCategory1Button').html(),
+            "category" : $('#addTransaction ' + currentTransactionDivName + ' .category1Button').html(),
             "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount1').val()) * -1.0).toString()
           }
         ]
@@ -1540,8 +1576,33 @@ function prepareButtonsAddingTransaction() {
       {
         newTransaction.amount[0].category = "Income"
       }
-
-      if (currentTransactionKind == "Payment")
+      else if (currentTransactionKind == "Transfer")
+      {
+        newTransaction.name = "Transfer"
+        newTransaction.amount[0].category = "Transfer"
+      }
+      else if (currentTransactionKind == "Correction")
+      {
+        var foundMatchingAccount = -1;
+        for (var i = 0; i < accountData.length; ++i)
+        {
+          if(accountData[i].name === $('#addTransaction #general .inputAccount').val())
+          {
+            foundMatchingAccount = i;
+            break;
+          }
+        }
+        var debug = parseFloat($('#addTransaction #correction .inputAmount').val());
+        var correctionAmount = (parseFloat($('#addTransaction #correction .inputAmount').val()) - parseFloat(accountData[foundMatchingAccount].totalCurrent))
+        newTransaction.dateBooked = new Date().getTime();
+        newTransaction.name = "Correction";
+        if (($("#inputCategoryCorrectionButton").html() == "None" || $("#inputCategoryCorrectionButton").html() == "Pick Category (optional)"))
+        {
+          newTransaction.amount[0].category = "Correction"
+        }
+        newTransaction.amount[0].amount = correctionAmount;
+      }
+      else if (currentTransactionKind == "Payment")
       {
         for (var i = 0; i < 2; ++i)
         {
@@ -1587,7 +1648,7 @@ function prepareButtonsAddingTransaction() {
     else 
 	  {
       // If errorCount is more than 0, error out
-      alert('Error occurred.');
+      alert('Error occurred. Data is incomplete.');
     }
   });
 
@@ -1595,7 +1656,7 @@ function prepareButtonsAddingTransaction() {
   $('.dropdown-item-paymentTypeSelection').off("click");
   $('.dropdown-item-paymentTypeSelection').on('click', function(event)
   {
-
+    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
     // Prevent Link from Firing
     event.preventDefault();
 
@@ -1610,10 +1671,12 @@ function prepareButtonsAddingTransaction() {
       }
       else
       {
+        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount 1");
 	      $("#addTransaction #payment").attr("style","display:block");
 	      $("#addTransaction #income").attr("style","display:none");
 	      $("#addTransaction #transfer").attr("style","display:none");
         $("#addTransaction #correction").attr("style","display:none");
+        $("#addTransaction #general #inputAccount").attr("placeholder","Account");
       }
     }
     else if (thisID === "Income")
@@ -1624,10 +1687,44 @@ function prepareButtonsAddingTransaction() {
       }
       else
       {
+        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount");
 	      $("#addTransaction #income").attr("style","display:block");
 	      $("#addTransaction #payment").attr("style","display:none");
 	      $("#addTransaction #transfer").attr("style","display:none");
         $("#addTransaction #correction").attr("style","display:none");
+        $("#addTransaction #general #inputAccount").attr("placeholder","Account");
+      }
+    }
+    else if (thisID === "Transfer")
+	  {
+      if($("#addTransaction #transfer").attr("style") == "display:block")
+      {
+        $('#addTransaction ' + "#transfer" + ' input').val('');
+      }
+      else
+      {
+        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount");
+        $("#addTransaction #general #inputAccount").attr("placeholder","From Account");
+	      $("#addTransaction #transfer").attr("style","display:block");
+	      $("#addTransaction #payment").attr("style","display:none");
+	      $("#addTransaction #income").attr("style","display:none");
+        $("#addTransaction #correction").attr("style","display:none");
+      }
+    }
+    else if (thisID === "Correction")
+	  {
+      if($("#addTransaction #correction").attr("style") == "display:block")
+      {
+        $('#addTransaction ' + "#correction" + ' input').val('');
+      }
+      else
+      {
+        $("#addTransaction #general #inputAmount1").attr("placeholder","Target Amount");
+        $("#addTransaction #general #inputAccount").attr("placeholder","Account");
+	      $("#addTransaction #correction").attr("style","display:block");
+	      $("#addTransaction #payment").attr("style","display:none");
+	      $("#addTransaction #income").attr("style","display:none");
+        $("#addTransaction #transfer").attr("style","display:none");
       }
 	  }
   })
@@ -1936,13 +2033,13 @@ function modifyCategory(event)
   });
 };
 
-// Delete User
+// Delete transaction
 function deleteTransaction(event) {
 
   event.preventDefault();
 
   // Pop up a confirmation dialog
-  var confirmation = confirm('Are you sure you want to delete this entry?');
+  var confirmation = confirm('Are you sure you want to delete this transaction?');
 
   // Check and make sure the user confirmed
   if (confirmation === true) {

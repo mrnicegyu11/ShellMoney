@@ -105,14 +105,14 @@ html
                  | Correction
             #general(style="display:none")
               input(type="text",placeholder="Date",id="datepicker").m-2.p-2.datepicker
+              input(type="text",placeholder="Account",id="inputAccount").m-2.p-2.inputAccount
             #payment(style="display:none")
               input(type="text",placeholder="Name",id="inputNamePayment").m-2.p-2.inputName
-              input(type="text",placeholder="Account",id="inputAccountPayment").m-2.p-2.inputAccount
               div
-              input(type="number",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2 ")
+              input(type="number",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2")
               
               .dropdown
-                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment1Button").incomeCategory1Button
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment1Button").category1Button
                  | Pick Category 1
                 .dropdown-menu
               input(type="number",placeholder="Amount 2",id="inputAmount2").m-2.p-2
@@ -134,16 +134,24 @@ html
                | Booked
             #income(style="display:none")
               input(type="text",placeholder="Name",id="inputNameIncome").m-2.p-2.inputName
-              input(type="text",placeholder="Account",id="inputAccountIncome").m-2.p-2.inputAccount
               input(type="number",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2").inputAmount
               .dropdown
-                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryIncomeButton").incomeCategory1Button
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryIncomeButton").category1Button
                  | Pick Category (optional)
                 .dropdown-menu
               button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
                | Booked
             #transfer(style="display:none")
+              input(type="text",placeholder="To Account",id="targetAccount").m-2.p-2.targetAccount
+              input(type="number",placeholder="Amount",id="inputAmount1",class="m-2 p-2").inputAmount
+              button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
+               | Booked
             #correction(style="display:none")
+              input(type="number",placeholder="Target Amount",id="inputAmount1",class="m-2 p-2").inputAmount
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryCorrectionButton").category1Button
+                 | Pick Category (optional)
+                .dropdown-menu
           button(type="button",class="btn btn-dark m-2 p-2",id="addTransactionButton")
            | Add Transaction
         #categoriesView.my-4(style="display:none")
