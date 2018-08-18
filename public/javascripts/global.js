@@ -255,6 +255,65 @@ $(document).ready(function() {
 
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
+
+    $("#categoryTableResetAllocations").off("click");
+    $("#categoryTableResetAllocations").on('click', function()
+    {
+      for (var i = 0; i < categoryData.length; i++)
+      {
+        var thisUserObject = categoryData[i];
+        var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+        if (found != null)
+        {
+          categoryData[i].allocatedSinceReference.splice(found, 1);
+
+          var category = {
+            'name': thisUserObject.name,
+            'systems': thisUserObject.systems,
+            "referenceDate" : thisUserObject.referenceDate,
+            "referenceAmount" : thisUserObject.referenceAmount,
+            "associatedTransactions" : thisUserObject.associatedTransactions,
+            "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+          }
+        
+          $.ajax({
+          type: 'POST',
+          data: { "data" : JSON.stringify(category) },
+          url: '/db/categories_add',
+          dataType: 'json'
+          }).done(function( response ) {
+          
+          // Check for successful (blank) response
+          if (response.msg === '') {
+          
+          
+          }
+          else {
+          
+            // If something goes wrong, alert the error message that our service returned
+            alert('Error: ' + response.msg);
+          
+          }
+          });
+        
+          // Delete old entry
+          $.ajax({
+              type: 'DELETE',
+              url: '/db/categories_delete/' + categoryData[i]._id
+          }).done(function( response ) {
+            // Check for a successful (blank) response
+            if (response.msg === '') {
+
+            }
+            else {
+              alert('Error: ' + response.msg);
+            }
+          });
+        }
+      }
+      reloadData();
+      populateCategoryTable();
+    })
   });
 
   onNavigationChange()
