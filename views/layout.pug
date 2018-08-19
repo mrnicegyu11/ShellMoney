@@ -137,16 +137,16 @@ html
                 th Delete?
               tbody
           #categoryModal.modal(tabindex="-1",role="dialog",aria-labelledby="exampleModalCenterTitle",aria-hidden="true")
-            .modal-dialog.modal-dialog-centered(role="document")
+            .modal-dialog.modal-dialog-centered.modal-lg(role="document")
               .modal-content
                 .modal-header
                   h5.modal-title#categoryModalTitle
                   button.close(type="button",data-dismiss="modal",aria-label="Close")
                     span(aria-hiden="true")
                      | &times;
-                .modal-body
+                .modal-body.m-2.p-2
                   #categoryInfoTransactions
-                  table.table.my-2.flex.table-bordered.mx-auto.p-auto(style="display:none")
+                  table.table.table-striped.table-responsive.m-2.p-2
                     thead
                       th Name
                       th Date
@@ -154,6 +154,9 @@ html
                       th Account
                       th Amount
                     tbody
+                #categoryInfoBottomText
+                  #noTransactions.m-2.p-2
+                   | No transactions found.
           #categoryUnallocatedMoney.m-2
           #categoryToBeAllocatedMoney.m-2
           #modifyDatabaseEntryCategory.my-4(style="display:none")
@@ -179,24 +182,6 @@ html
                | Add
               button(type="button",class="btn btn-dark",id="addCategoryButtonCancel").mx-2
                | Cancel
-          #categoriesInfo.my-4(style="display:none")
-            h4 Category Info
-            p
-              #categoryInfoName
-              #categoryInfoReferenceDate(style="display:none")
-              #categoryInfoReferenceAmount(style="display:none")
-              #categoryInfoAllocatedSinceReference(style="display:none")
-              strong
-               | Transactions this month:
-              #categoryInfoTransactions
-                table.table.my-2.flex.table-bordered.mx-auto.p-auto
-                  thead
-                    th Name
-                    th Date
-                    th Booked
-                    th Account
-                    th Amount
-                  tbody
 
 
     script(src='https://code.jquery.com/jquery-3.3.1.min.js') 
