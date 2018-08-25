@@ -939,12 +939,14 @@ function populateCategoryTable() {
 
 
     var amountSpentDisplayText = "";
-    if (parseFloat(allocatedThisMonth) + parseFloat(virtualSpendingThisMonth) < 0.0)
+    if (parseFloat((virtualSpendingThisMonth).toFixed(2)) < 0.0
+       && (virtualSpendingThisMonth).toFixed(2) != "0.00")
     {
       amountSpentDisplayText += '<font color="red">'
     }
     amountSpentDisplayText += parseFloat(virtualSpendingThisMonth).toFixed(2);
-    if (parseFloat(allocatedThisMonth) + parseFloat(virtualSpendingThisMonth) < 0.0)
+    if (parseFloat((virtualSpendingThisMonth).toFixed(2))  < 0.0
+       && (virtualSpendingThisMonth).toFixed(2) != "0.00")
     {
       amountSpentDisplayText += '</font>'
     }
@@ -961,7 +963,8 @@ function populateCategoryTable() {
     var virtualTotalFloat =  (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth);
     tableContent += '<td id="categoryTotalAmount" val="' + virtualTotalFloat.toFixed(2);
     tableContent += '" valCurrentBalance="' + (parseFloat(actualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth).toFixed(2) + '">';
-    if (virtualTotalFloat < 0.0)
+    if (parseFloat((virtualTotalFloat).toFixed(2)) < 0.0
+      &&(virtualTotalFloat).toFixed(2) != "0.00")
     {
       tableContent += '<font color="red">'; 
       tableContent += (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
@@ -1733,6 +1736,10 @@ function showTransactionInfo(event) {
           //var debug3 = $.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val());
           transactionsData[foundIter].dateEntered = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val())).getTime();
           transactionsData[foundIter].account = $(this).parent().find("#modifyTransactionInputAccount" + transactionsData[foundIter]._id).val();
+          if(transactionsData[foundIter].bookingType == "Transfer")
+          {
+            transactionsData[foundIter].targetAccount = $(this).parent().find("#modifyTransactionInputTargetAccount" + transactionsData[foundIter]._id).val();
+          }
           for (var j = 0; j < transactionsData[foundIter].amount.length; j++)
           {
             transactionsData[foundIter].amount[j].amount = $(this).parent().find('#modifyTransactionCategory' + j.toString() + '_' + transactionsData[foundIter]._id).val();
