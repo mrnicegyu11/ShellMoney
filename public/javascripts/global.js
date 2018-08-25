@@ -11,6 +11,7 @@ var lastPickedDateInSession = null;
 $.fn.exists = function () {
   return this.length !== 0;
   // see: https://stackoverflow.com/questions/920236/how-can-i-detect-if-a-selector-returns-null
+  // and: https://stackoverflow.com/questions/4186906/check-if-object-exists-in-javascript
 }
 
 // Stuff we use:
@@ -32,13 +33,19 @@ $.fn.exists = function () {
 
 // DOM Ready =============================================================
 $(document).ready(function() {
-  // Populate the user table on initial page load
-  reloadData();
+  // Set initial month for display as current month
   selectedMonth = new Date().getMonth() + 1;
   selectedYear = new Date().getFullYear();
 
+  // Write Month/Date to div
+
+
+  // Reload Data from Server
+  reloadData();
   $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
-  
+
+
+  // Add functionality for month selection Buttons
   $('#monthUp').on("click",function()
   {
     if(selectedMonth === 12)
@@ -55,7 +62,6 @@ $(document).ready(function() {
     populateTransactionTable(selectedMonth,selectedYear);
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
   })
-
   $('#monthDown').on("click",function()
   {
     if(selectedMonth === 1)
@@ -73,13 +79,16 @@ $(document).ready(function() {
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
   })
 
-  // ACCOUNTS BUTTON
+  // ACCOUNTS BUTTON Functionality
+  $('#accountsButton').off();
   $('#accountsButton').on('click', "button", function()
   {
     if($('#accountOverview').css("display") === "none")
     {
+      // Check for shitty siutation, this should never happen.
       if(transactionsData.length === 0)
       {
+        alert("This should not have happened, performing unnecessary reload.");
         reloadData();
       }
 
@@ -91,25 +100,25 @@ $(document).ready(function() {
     }
   });
 
-  // SHOW DB (LANDING PAGE)
+  // DB Navigation Button (LANDING PAGE) functionality
+  $('#navigation').off();
   $('#navigation').on('click', 'div.btn-class > button, #DisplayDB', function()
   {
-    onNavigationChange()
+    onNavigationChange();
     populateTransactionTable(selectedMonth,selectedYear);
 
     $('#databaseView').css("display", "block");
     $('#addTransactionView').css("display", "none");
     $('#categoriesView').css("display", "none");
 
-
-    $('#transactionList table tbody').off('click');
-    $('#transactionList table tbody').unbind().on('click', 'td a.linkshowtransaction', showTransactionInfo);
+    $('#transactionList table tbody').off();
+    $('#transactionList table tbody').on('click', 'td a.linkshowtransaction', showTransactionInfo);
     $('#transactionList table tbody').on('click', 'td a.linkdeletetransaction', deleteTransaction);
     $('.buttonIsTransactionBooked').off();
     $('.buttonIsTransactionBooked').on("click", setButton_toggleTransactionListBookedStatus);
   });
 
-  // ADD TRANSACTION
+  // ADD TRANSACTION button functionality
   $('#navigation').on('click', 'div.btn-class > button ,#DisplayAdd', function()
   {
     onNavigationChange()
@@ -136,7 +145,7 @@ $(document).ready(function() {
     $('#addTransactionView').css("display", "none");
     $('#categoriesView').css("display", "block");
 
-    $('#addCategoryButton').on('click', function()
+    $('#addCategoryButton').unbind().on('click', function()
     {
       $('#addCategory').css("display", "block");
       $('#addCategoryButton').css("display", "none");
@@ -146,11 +155,10 @@ $(document).ready(function() {
         event.preventDefault();
 
       
-        // Check and make sure errorCount's still at zero
+        // Check for empty submission
         if($('#addCategory input#inputCategoryName').val() != '') {
         
-          // If it is, compile all user info into one object
-          var newTransaction = {
+          var newCategory = {
             'name': $('#addCategory input#inputCategoryName').val(),
             'systems': null,
             "referenceDate" : Date.now(),
@@ -159,74 +167,25 @@ $(document).ready(function() {
             "allocatedSinceReference" : 0.0
           }
 
-          if($('#addCategory input#inputCategoryDebitor1').val() != "")
-          {
-            if (newTransaction.systems === null)
-            {
-              newTransaction.systems = [];
-            }
-
-            var debitor1Val = $('#addCategory input#inputCategoryDebitor1').val();
-            newTransaction.systems.push(
-              {
-                "debitor": $('#addCategory input#inputCategoryDebitor1').val(),
-                "percentage" : $('#addCategory input#inputCategoryPercentage1').val()
-              });
-          }
-          if($('#addCategory input#inputCategoryDebitor2').val() != "")
-          {
-            if (newTransaction.systems === null)
-            {
-              newTransaction.systems = [];
-            }
-            var debitor1Val = $('#addCategory input#inputCategoryDebitor2').val();
-            newTransaction.systems.push(
-              {
-                "debitor": $('#addCategory input#inputCategoryDebitor2').val(),
-                "percentage" : $('#addCategory input#inputCategoryPercentage2').val()
-              });
-          }
-          if($('#addCategory input#inputCategoryDebitor3').val() != "")
-          {
-            if (newTransaction.systems === null)
-            {
-              newTransaction.systems = [];
-            }
-            var debitor1Val = $('#addCategory input#inputCategoryDebitor3').val();
-            newTransaction.systems.push(
-              {
-                "debitor": $('#addCategory input#inputCategoryDebitor2').val(),
-                "percentage" : $('#addCategory input#inputCategoryPercentage2').val()
-              });
-          }
-
           // Use AJAX to post the object to our adduser service
-          $.ajax({
-            type: 'POST',
-            data: { "data" : JSON.stringify(newTransaction) },
-            url: '/db/categories_add',
-            dataType: 'json'
-          }).done(function( response ) {
-          
-            // Check for successful (blank) response
-            if (response.msg === '') {
-            
+          ajaxPOST_Category(newCategory).then(function() {
+        
               // Clear the form inputs
               $('#addCategory input').val('');
               $('#addCategory').css("display", "none");
               $('#addCategoryButton').css("display", "block");
 
-              reloadData();
+              reloadDataAndRefreshDisplay();
 
 
-            }
-            else {
+            },function()
+            {
             
               // If something goes wrong, alert the error message that our service returned
               alert('Error: ' + response.msg);
             
             }
-          });
+          );
 
           
         }
@@ -262,54 +221,40 @@ $(document).ready(function() {
       var confirmationResult = confirm("Are you sure you want to reset all allocations for this month?");
       if (confirmationResult == true)
       {
+        promisesArray = [];
         for (var i = 0; i < categoryData.length; i++)
-      {
-        var thisUserObject = categoryData[i];
-        var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
-        if (found != null)
         {
-          categoryData[i].allocatedSinceReference.splice(found, 1);
+          var thisUserObject = categoryData[i];
+          var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+          if (found != null)
+          {
+            categoryData[i].allocatedSinceReference.splice(found, 1);
 
-          var category = {
-            'name': thisUserObject.name,
-            'systems': thisUserObject.systems,
-            "referenceDate" : thisUserObject.referenceDate,
-            "referenceAmount" : thisUserObject.referenceAmount,
-            "associatedTransactions" : thisUserObject.associatedTransactions,
-            "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+            var category = {
+              'name': thisUserObject.name,
+              'systems': thisUserObject.systems,
+              "referenceDate" : thisUserObject.referenceDate,
+              "referenceAmount" : thisUserObject.referenceAmount,
+              "associatedTransactions" : thisUserObject.associatedTransactions,
+              "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+            }
+          
+            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+            promisesArray.push(curPromise);
           }
-        
-          $.ajax(
-          {
-            type: 'PUT',
-            data: { "data" : JSON.stringify(category) },
-            url: '/db/categories_modify/' + categoryData[i]._id,
-            dataType: 'json'
-          }).done(function( response ) 
-          {
-            
-            // Check for successful (blank) response
-            if (response.msg === '') {
-            
-            
-            }
-            else {
-            
-              // If something goes wrong, alert the error message that our service returned
-              alert('Error: ' + response.msg);
-            
-            }
-          });
         }
-        }
-        reloadData();
-        populateCategoryTable();
+        Promise.all(promisesArray).done(function()
+        {
+          reloadDataAndRefreshDisplay();
+          populateCategoryTable();
+        })
       }
     })
 
     $("#autofillAllocationButton").off("click");
     $("#autofillAllocationButton").on('click', function() 
     {
+      var promisesArray = [];
       for (var i = 0; i < categoryData.length; i++)
       {
         var thisUserObject = categoryData[i];
@@ -340,36 +285,20 @@ $(document).ready(function() {
             "allocatedSinceReference" : categoryData[i].allocatedSinceReference
           }
 
-          $.ajax(
-          {
-            type: 'PUT',
-            data: { "data" : JSON.stringify(category) },
-            url: '/db/categories_modify/' + categoryData[i]._id,
-            dataType: 'json'
-          }).done(function( response ) 
-          {
-            
-            // Check for successful (blank) response
-            if (response.msg === '') {
-            
-            
-            }
-            else {
-            
-              // If something goes wrong, alert the error message that our service returned
-              alert('Error: ' + response.msg);
-            
-            }
-          });
+          var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+          promisesArray.push(curPromise);
         }
       }
-      reloadData();
-      populateCategoryTable();
+      Promise.all(promisesArray).done(function()
+      {
+        reloadDataAndRefreshDisplay();
+      })
     });
   });
 
   onNavigationChange()
 
+  // initialize Datepicker
   $( "" ).datepicker();
 
   
@@ -438,7 +367,11 @@ var dates = {
 }
 
 
-// Functions =============================================================
+///////////////////////////////////////
+//
+// H E L P E R   F U N C T I O N S
+//
+///////////////////////////////////////
 // Helper Function: getTotalCostsFromTransaction
 function getTotalCostsFromTransaction(transaction)
 {
@@ -488,7 +421,7 @@ function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
   }
 }
 
-// Called once toggleBookedStatusButton are rendern to set the button action
+// Called once toggleBookedStatusButton are renderd to set the button action
 function setButton_toggleTransactionListBookedStatus()
 {
   $('.buttonIsTransactionBooked').on("click", function()
@@ -518,31 +451,10 @@ function setButton_toggleTransactionListBookedStatus()
           transactionsData[i].dateBooked = Date.now();
         }
 
-        $.ajax({
-          type: 'PUT',
-          data: { "data" : JSON.stringify(transactionsData[i]) },
-          url: '/db/transactions_modify/' + $(this).attr('rel'),
-          dataType: 'json'
-        }).done(function( response ) {
-        
-          // Check for successful (blank) response
-          if (response.msg === '') {
-          
-            // Clear the form inputs
-            // TODO: Diesen reload sollte man weglassen können normalerweise.
-            reloadData();
-            $('#DisplayDB').click();
-
-          }
-          else {
-          
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-          
-          }
-        });
-
-        $('#DisplayDB').click();
+        ajaxPUT_Transaction(transactionsData[i], $(this).attr('rel')).done(function()
+        {
+          reloadDataAndRefreshDisplay.done(function(){$('#DisplayDB').click();});
+        })
       }
       else
       {
@@ -551,35 +463,214 @@ function setButton_toggleTransactionListBookedStatus()
     });
 }
 
-// Deletes a category, event musst have ibute "rel" with ID in it.
+function ajaxPOST_Transaction(newTransactionObject)
+{
+  // jQuery Deferred functionality via https://stackoverflow.com/questions/14377038/how-do-i-use-jquery-promise-deffered-in-a-custom-function
+
+  var ajaxPromise = $.ajax({
+    type: 'POST',
+    data: {data : JSON.stringify(newTransactionObject) },
+    url: '/db/transactions_add',
+    dataType: 'JSON'
+  }).done(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+  }).fail(function( response ) {
+    alert("Posting a new transaction failed.");
+  });
+
+  // return promise so that outside code cannot reject/resolve the deferred
+  return ajaxPromise;
+};
+
+function ajaxPOST_Category(newCategoryObject)
+{
+  var ajaxPromise = $.ajax({
+    type: 'POST',
+    data: {data : JSON.stringify(newCategoryObject) },
+    url: '/db/categories_add',
+    dataType: 'JSON'
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+      // Here we could optimize by not reloading thw hole database but keeping track ourselves
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+  },function( response ) {
+    alert("Posting a new transaction failed.");
+  });
+
+  // return promise so that outside code cannot reject/resolve the deferred
+  return ajaxPromise;
+};
+
+function ajaxPUT_Transaction(item,optionalID = null)
+{
+  var ajaxPromise = $.ajax({
+    type: 'PUT',
+    data: { "data" : JSON.stringify(item) },
+    url: '/db/transactions_modify/' + (optionalID === null ? item._id : optionalID).toString(),
+    dataType: 'json'
+  }).then(function( response ) {
+  
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+    }
+    else {
+    
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+    
+    }
+  });
+  return ajaxPromise;
+}
+
+function ajaxPUT_Category(item,optionalID = null)
+{
+  var ajaxPromise = $.ajax({
+    type: 'PUT',
+    data: { "data" : JSON.stringify(item) },
+    url: '/db/categories_modify/' + (optionalID === null ? item._id : optionalID).toString(),
+    dataType: 'json'
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    } 
+  },function(response)
+  {
+    alert("Something went wrong when updating a category.");
+    alert('Error: ' + response.msg);
+  });
+
+  return ajaxPromise.promise();
+}
+
+function ajaxDELETE_Category(item)
+{
+  var thisID = 0;
+  if(typeof item._id != "undefined")
+  {
+    thisUD = item._id;
+  }
+  else
+  {
+    thisID = item;
+  }
+
+  var ajaxPromise = $.ajax({
+    type: 'DELETE',
+    url: '/db/categories_delete/' + thisID
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+    
+  },function()
+  {
+    alert("Something went wrong when updating a category.");
+  });
+
+  return ajaxPromise;
+}
+
+function ajaxDELETE_Transaction(item)
+{
+  var thisID = 0;
+  if(typeof item._id != "undefined")
+  {
+    thisUD = item._id;
+  }
+  else
+  {
+    thisID = item;
+  }
+
+  var ajaxPromise = $.ajax({
+    type: 'DELETE',
+    url: '/db/transactions_delete/' + thisID
+  }).done(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+    
+  }).fail(function( response)
+  {
+    alert("Something went wrong when updating a category.");
+  });
+
+  return ajaxPromise;
+};
+
+// Deletes a category, event musst have attribute "rel" with ID in it.
 function deleteCategory(event)
 {
   event.preventDefault();
-    
-    // If they did, do our delete
-  $.ajax({
-    type: 'DELETE',
-    url: '/db/categories_delete/' + $(this).attr('rel')
-  }).done(function( response ) {
-  
-    // Check for a successful (blank) response
-    if (response.msg === '') {
-      //alert('Successfully deleted. ');
-    }
-    else {
-      alert('Error: ' + response.msg);
-    }
-  
-    // Update the table
-    reloadData();
-  
-  });  
+  ajaxDELETE_Category($(this).attr('rel')).then(function()
+    {
+      // Update the table
+      reloadDataAndRefreshDisplay();
+    });
+}
+
+function reloadDataAndRefreshDisplay()
+{
+  var reloadPromise = reloadData();
+  reloadPromise.then(function()
+  {
+    populateTransactionTable(selectedMonth,selectedYear);
+    populateAccountInformation();
+    populateCategoryTable();
+  });
 }
 
 // Reloads data from mongoDB and populates tables accordingly.
 function reloadData()
 {
-  $.getJSON('db/transactions_list').always(function( data ) 
+  var ajaxPromise1 = $.getJSON('db/transactions_list').then(function( data ) 
   {
     transactionsData = data;
 
@@ -594,10 +685,9 @@ function reloadData()
       return 0; //default return value (no sorting)
     });
     // Update the table
-    populateTransactionTable(selectedMonth,selectedYear);
-    populateAccountInformation();
+
   });
-  $.getJSON('db/categories_list').always(function( data ) 
+  var ajaxPromise2 = $.getJSON('db/categories_list').then(function( data ) 
   {
     categoryData = data;
 
@@ -612,9 +702,11 @@ function reloadData()
       return 0; //default return value (no sorting)
     });
 
-    populateCategoryTable()
+
   });
-  
+
+
+  return $.when(ajaxPromise1,ajaxPromise2);
   
 };
 
@@ -625,6 +717,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
 
   if(transactionsData.length === 0)
   {
+    alert("This should not have happend, unnecessary reload.")
     reloadData();
   }
 
@@ -705,7 +798,8 @@ function populateTransactionTable(selectedMonth,selectedYear) {
 
   // Inject the whole content string into our existing HTML table
   $('#transactionList table tbody').html(tableContent);
-  setButton_toggleTransactionListBookedStatus()
+  setButton_toggleTransactionListBookedStatus();
+
 };
 
 function populateCategoryTable() {
@@ -974,13 +1068,6 @@ function populateCategoryTable() {
     {
       tableContent += (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
     }
-    //if ((parseFloat(virtualCurrentMonthTotal) + parseFloat(virtualSpendingThisMonth)).toFixed(2) 
-    //    != (parseFloat(actualCurrentMonthTotal) + parseFloat(actualSpendingThisMonth)).toFixed(2))  
-    //{
-    //  tableContent += ' (<font color="orange">';
-    //  tableContent += (parseFloat(actualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth).toFixed(2);
-    //  tableContent += '</font>)';
-    //} 
 
     tableContent += '</td>';
 
@@ -1146,27 +1233,10 @@ function populateCategoryTable() {
         "allocatedSinceReference" : allocatedSinceReferenceArray
       }
 
-      $.ajax({
-        type: 'PUT',
-        data: { "data" : JSON.stringify(category) },
-        url: '/db/categories_modify/' + thisID,
-        dataType: 'json'
-      }).done(function( response ) {
-
-        // Check for successful (blank) response
-        if (response.msg === '') {
-
-
-        }
-        else {
-
-          // If something goes wrong, alert the error message that our service returned
-          alert('Error: ' + response.msg);
-
-        }
-        
+      ajaxPUT_Category(category,thisID).done(function()
+      {
+        reloadDataAndRefreshDisplay();
       });
-      reloadData();
 
     }
   
@@ -1446,6 +1516,8 @@ function prepareButtonsAddingTransaction() {
           }
         ]
       }
+
+      // Modifications of the generic object based on its type
       if(currentTransactionKind == "Income") 
       {
         newTransaction.amount[0].amount = (parseFloat(newTransaction.amount[0].amount) * -1.0).toFixed(2);
@@ -1496,31 +1568,13 @@ function prepareButtonsAddingTransaction() {
         }
       }
   
-      // Use AJAX to post the object to our adduser service
-      $.ajax({
-        type: 'POST',
-        data: {data : JSON.stringify(newTransaction) },
-        url: '/db/transactions_add',
-        dataType: 'JSON'
-      }).done(function( response ) {
-  
-        // Check for successful (blank) response
-        if (response.msg === '') {
-          // alert('Done');
-          // Clear the form inputs
+      ajaxPOST_Transaction(newTransaction).done(function()
+        {
           $('#addTransaction ' + currentTransactionDivName + ' input').val('');
-
-          // Here we could optimize by not reloading thw hole database but keeping track ourselves
-          reloadData();
+          reloadDataAndRefreshDisplay();
           $('#DisplayDB').click();
         }
-        else {
-  
-          // If something goes wrong, alert the error message that our service returned
-          alert('Error: ' + response.msg);
-  
-        }
-      });
+      );
 
       
     }
@@ -1745,8 +1799,10 @@ function showTransactionInfo(event) {
           {
             transactionsData[foundIter].amount[j].amount = $(this).parent().find('#modifyTransactionCategory' + j.toString() + '_' + transactionsData[foundIter]._id).val();
           }
-          updateDatabaseTransaction(transactionsData[foundIter]);
-          populateTransactionTable(selectedMonth,selectedYear);
+          ajaxPUT_Transaction(transactionsData[foundIter]).then(function()
+          {
+            reloadDataAndRefreshDisplay();
+          });
         }
         else
         {
@@ -1947,30 +2003,6 @@ function showCategoryInfoModal(event) {
   
 };
 
-function updateDatabaseTransaction(item)
-{
-  $.ajax({
-    type: 'PUT',
-    data: { "data" : JSON.stringify(item) },
-    url: '/db/transactions_modify/' + item._id,
-    dataType: 'json'
-  }).done(function( response ) {
-  
-    // Check for successful (blank) response
-    if (response.msg === '') {
-    
-      reloadData();
-
-    }
-    else {
-    
-      // If something goes wrong, alert the error message that our service returned
-      alert('Error: ' + response.msg);
-    
-    }
-  });
-}
-
 function modifyCategory(event)
 {
   // Prevent Link from Firing
@@ -2038,30 +2070,11 @@ function modifyCategory(event)
       }
 
       // Use AJAX to post the object to our adduser service
-      $.ajax({
-        type: 'PUT',
-        data: { "data" : JSON.stringify(newCategory) },
-        url: '/db/categories_modify/' + thisUserObject._id,
-        dataType: 'json'
-      }).done(function( response ) {
-    
-        // Check for successful (blank) response
-        if (response.msg === '') {
-    
-          // Clear the form inputs
-          $('#modifyDatabaseEntryCategory input').val('');
-
-
-        }
-        else {
-    
-          // If something goes wrong, alert the error message that our service returned
-          alert('Error: ' + response.msg);
-    
-        }
+      ajaxPUT_Category(newCategory,thisUserObject._id).done(function()
+      {
+        $('#modifyDatabaseEntryCategory input').val('');
+        reloadDataAndRefreshDisplay();
       });
-
-      reloadData();
 
       for (var i=0; i < transactionsData.length; ++i)
       {
@@ -2070,7 +2083,7 @@ function modifyCategory(event)
           if(transactionsData[i].amount[j].category === thisUserObject.name)
           {
             transactionsData[i].amount[j].category = $('#modifyDatabaseEntryCategory input#changeCategoryName').val();
-            updateDatabaseTransaction(transactionsData[i]);
+            ajaxPUT_Transaction(transactionsData[i]);
           }
         }
       }
@@ -2103,20 +2116,9 @@ function deleteTransaction(event) {
   if (confirmation === true) {
 
     // If they did, do our delete
-    $.ajax({
-      type: 'DELETE',
-      url: '/db/transactions_delete/' + $(this).attr('rel')
-    }).done(function( response ) {
-
-      // Check for a successful (blank) response
-      if (response.msg != '') 
-      {
-        alert('Error: ' + response.msg);
-      }
-
-      // Update the table
-      reloadData();
-
+    ajaxDELETE_Transaction($(this).attr('rel')).done(function()
+    {
+      reloadDataAndRefreshDisplay();
     });
 
   }
