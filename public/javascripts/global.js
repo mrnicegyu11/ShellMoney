@@ -1458,6 +1458,7 @@ function prepareButtonsAddingTransaction() {
       {
         newTransaction.name = "Transfer"
         newTransaction.amount[0].category = "Transfer"
+        newTransaction.targetAccount = $('#addTransaction '+ currentTransactionDivName +' .targetAccount').val();
       }
       else if (currentTransactionKind == "Correction")
       {
