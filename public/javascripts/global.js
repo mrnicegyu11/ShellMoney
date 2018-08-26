@@ -118,8 +118,7 @@ $(document).ready(function() {
   {
     onNavigationChange()
 
-    prepareButtonsAddingTransaction();
-    //showButtonsAddingTransaction(null);
+    populateAddTransactionView();
     $('#databaseView').css("display", "none");
     $('#addTransactionView').css("display", "block");
     $('#categoriesView').css("display", "none");
@@ -243,10 +242,7 @@ $(document).ready(function() {
         Promise.all(promisesArray).then(function()
         {
           reloadDataAndRefreshDisplay();    
-        }).then(function()
-        {
-          populateCategoryTable();
-        })
+        });
       }
     })
 
@@ -1347,7 +1343,7 @@ function populateAccountInformation()
   
 };
 
-function prepareButtonsAddingTransaction() {
+function populateAddTransactionView() {
   $( "#datepicker" ).datepicker({
     dateFormat: "yy-mm-dd"
   });
@@ -1552,7 +1548,7 @@ function prepareButtonsAddingTransaction() {
             break;
           }
         }
-        var debug = parseFloat($('#addTransaction #correction .inputAmount').val());
+
         var correctionAmount = (parseFloat($('#addTransaction #correction .inputAmount').val()) - parseFloat(accountData[foundMatchingAccount].totalCurrent))
         newTransaction.dateBooked = new Date().getTime();
         newTransaction.name = "Correction";
@@ -1577,13 +1573,16 @@ function prepareButtonsAddingTransaction() {
         }
       }
   
-      ajaxPOST_Transaction(newTransaction).done(function()
+      ajaxPOST_Transaction(newTransaction).then(function()
         {
           $('#addTransaction ' + currentTransactionDivName + ' input').val('');
           reloadDataAndRefreshDisplay();
-          $('#DisplayDB').click();
+
         }
-      );
+      ).then(function() 
+      {
+        $('#DisplayDB').click();
+      });
 
       
     }
