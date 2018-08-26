@@ -91,6 +91,7 @@ $(document).ready(function() {
         alert("This should not have happened, performing unnecessary reload.");
         reloadData();
       }
+      populateAccountInformation();
 
       $('#accountOverview').css("display","block");
     }
@@ -110,12 +111,6 @@ $(document).ready(function() {
     $('#databaseView').css("display", "block");
     $('#addTransactionView').css("display", "none");
     $('#categoriesView').css("display", "none");
-
-    $('#transactionList table tbody').off();
-    $('#transactionList table tbody').on('click', 'td a.linkshowtransaction', showTransactionInfo);
-    $('#transactionList table tbody').on('click', 'td a.linkdeletetransaction', deleteTransaction);
-    $('.buttonIsTransactionBooked').off();
-    $('.buttonIsTransactionBooked').on("click", setButton_toggleTransactionListBookedStatus);
   });
 
   // ADD TRANSACTION button functionality
@@ -145,7 +140,8 @@ $(document).ready(function() {
     $('#addTransactionView').css("display", "none");
     $('#categoriesView').css("display", "block");
 
-    $('#addCategoryButton').unbind().on('click', function()
+    $('#addCategoryButton').off();
+    $('#addCategoryButton').on('click', function()
     {
       $('#addCategory').css("display", "block");
       $('#addCategoryButton').css("display", "none");
@@ -199,6 +195,7 @@ $(document).ready(function() {
       });
     });
 
+    $('#addCategoryButtonCancel').off();
     $('#addCategoryButtonCancel').on('click', function()
     {
       $('#addCategory').css("display", "none");
@@ -243,9 +240,11 @@ $(document).ready(function() {
             promisesArray.push(curPromise);
           }
         }
-        Promise.all(promisesArray).done(function()
+        Promise.all(promisesArray).then(function()
         {
-          reloadDataAndRefreshDisplay();
+          reloadDataAndRefreshDisplay();    
+        }).then(function()
+        {
           populateCategoryTable();
         })
       }
@@ -254,45 +253,48 @@ $(document).ready(function() {
     $("#autofillAllocationButton").off("click");
     $("#autofillAllocationButton").on('click', function() 
     {
-      var promisesArray = [];
-      for (var i = 0; i < categoryData.length; i++)
+      var confirmationResult = confirm("Are you sure you want to auto-fill all allocations for this month?");
+      if (confirmationResult == true)
       {
-        var thisUserObject = categoryData[i];
-        var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
-        var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
-        if (lastMonthIter != null)
+        var promisesArray = [];
+        for (var i = 0; i < categoryData.length; i++)
         {
-          if(curMonthIter != null)
+          var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
+          var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+          if (lastMonthIter != null)
           {
-            categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
-          }
-          else
-          {
-            categoryData[i].allocatedSinceReference.push(
-            { 
-              "amount":categoryData[i].allocatedSinceReference[lastMonthIter].amount,
-              "year": selectedYear,
-              "month": selectedMonth
-            });
-          }
+            if(curMonthIter != null)
+            {
+              categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
+            }
+            else
+            {
+              categoryData[i].allocatedSinceReference.push(
+              { 
+                "amount":categoryData[i].allocatedSinceReference[lastMonthIter].amount,
+                "year": selectedYear,
+                "month": selectedMonth
+              });
+            }
 
-          var category = {
-            'name': categoryData[i].name,
-            'systems': categoryData[i].systems,
-            "referenceDate" : categoryData[i].referenceDate,
-            "referenceAmount" : categoryData[i].referenceAmount,
-            "associatedTransactions" : categoryData[i].associatedTransactions,
-            "allocatedSinceReference" : categoryData[i].allocatedSinceReference
-          }
+            var category = {
+              'name': categoryData[i].name,
+              'systems': categoryData[i].systems,
+              "referenceDate" : categoryData[i].referenceDate,
+              "referenceAmount" : categoryData[i].referenceAmount,
+              "associatedTransactions" : categoryData[i].associatedTransactions,
+              "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+            }
 
-          var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
-          promisesArray.push(curPromise);
+            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+            promisesArray.push(curPromise);
+          }
         }
+        Promise.all(promisesArray).then(function()
+        {
+          reloadDataAndRefreshDisplay();
+        });
       }
-      Promise.all(promisesArray).done(function()
-      {
-        reloadDataAndRefreshDisplay();
-      })
     });
   });
 
@@ -422,45 +424,47 @@ function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
 }
 
 // Called once toggleBookedStatusButton are renderd to set the button action
-function setButton_toggleTransactionListBookedStatus()
+function setButton_toggleTransactionListBookedStatus(event)
 {
-  $('.buttonIsTransactionBooked').on("click", function()
+  event.preventDefault()
+
+  var ID = $(this).attr('rel');
+  var foundIterator = null;
+
+  // Check if we habe the ID in the database
+  for(var i = 0; i < transactionsData.length; i++)
+  {
+    if(transactionsData[i]._id === ID)
     {
-      var ID = $(this).attr('rel');
-      var foundIterator = -1;
+      foundIterator = i;
+      break;
+    }
+  }
 
-      // Check if we habe the ID in the database
-      for(var i = 0; i < transactionsData.length; i++)
-      {
-        if(transactionsData[i]._id === ID)
-        {
-          foundIterator = i;
-          break;
-        }
-      }
+  // If we have found the ID
+  if(foundIterator != null)
+  {
+    if(transactionsData[foundIterator].dateBooked != null)
+    {
+      transactionsData[foundIterator].dateBooked = null;
+    }
+    else
+    {
+      transactionsData[foundIterator].dateBooked = Date.now();
+    }
 
-      // If we have found the ID
-      if(i != -1)
-      {
-        if(transactionsData[i].dateBooked != null)
-        {
-          transactionsData[i].dateBooked = null;
-        }
-        else
-        {
-          transactionsData[i].dateBooked = Date.now();
-        }
-
-        ajaxPUT_Transaction(transactionsData[i], $(this).attr('rel')).done(function()
-        {
-          reloadDataAndRefreshDisplay.done(function(){$('#DisplayDB').click();});
-        })
-      }
-      else
-      {
-        alert('Error: In function setButton_toggleTransactionListBookedStatus: ' + 'Did not find ID of button element in Database of Transactions.');
-      }
+    ajaxPUT_Transaction(transactionsData[foundIterator], $(this).attr('rel')).then(function()
+    {
+      reloadDataAndRefreshDisplay();
+    }).then(function() 
+    {
+      $('#DisplayDB').click();
     });
+  }
+  else
+  {
+    alert('Error: In function setButton_toggleTransactionListBookedStatus: ' + 'Did not find ID of button element in Database of Transactions.');
+  }
 }
 
 function ajaxPOST_Transaction(newTransactionObject)
@@ -798,8 +802,13 @@ function populateTransactionTable(selectedMonth,selectedYear) {
 
   // Inject the whole content string into our existing HTML table
   $('#transactionList table tbody').html(tableContent);
-  setButton_toggleTransactionListBookedStatus();
 
+  $('.buttonIsTransactionBooked').off();
+  $('.buttonIsTransactionBooked').on("click", setButton_toggleTransactionListBookedStatus);
+
+  $('#transactionList table tbody').off();
+  $('#transactionList table tbody').on('click', 'td a.linkshowtransaction', showTransactionInfo);
+  $('#transactionList table tbody').on('click', 'td a.linkdeletetransaction', deleteTransaction);
 };
 
 function populateCategoryTable() {
