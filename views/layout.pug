@@ -39,48 +39,15 @@ html
               | Add Transaction
             button(type="button",class="btn btn-primary",id="DisplayCategories")
               | Categories
-            button(type="button",class="btn btn-primary",id="DisplayCashing-Up")
-              | Cashing Up
       block content
         #databaseView(style="display:none")
-          #TransactionInfo
-            h2 Transaction Info
-            p
-              strong dateEntered:
-              |  <span id='transactionInfoDateEntered'></span>
-              br
-              strong dateBooked:
-              |  <span id='transactionInfoDateBooked'></span>
-              br
-              strong name:
-              |  <span id='transactionInfoName'></span>
-              br
-              strong id:
-              |  <span id='transactionInfoID'></span>
-              br
-              strong Account:
-              |  <span id='transactionInfoAccount'></span>
-              br
-              strong Target Account:
-              |  <span id='transactionInfoTargetAccount'></span>
-              br
-              strong bookingType:
-              |  <span id='transactionInfoBookingType'></span>
-              br
-              strong totalAmount:
-              |  <span id='transactionInfoTotalAmount'></span>
-              br
-              strong Categories:
-              br
-              |  <span id='transactionInfoCategories'></span>
-              br
-            // /USER INFO
-            // TRANSACTION LIST
           #transactionList
             h2 Transaction List
             table.table.my-2.flex.table-striped.table-bordered.mx-auto.p-auto(width="100%",cellspacing="0",cellpadding="0")
               thead
                 th Amount
+                th Date
+                th Account
                 th Name
                 th Booked?
                 th Delete?
@@ -91,7 +58,69 @@ html
           h2.my-2
            | Add Transaction
           #addTransaction
-          button(type="button",class="btn btn-dark",id="addTransactionButton")
+            .dropdown
+              button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button")
+               | Booking Type
+              .dropdown-menu
+                a.dropdown-item.dropdown-item-paymentTypeSelection(href="#")
+                 | Payment
+                a.dropdown-item.dropdown-item-paymentTypeSelection(href="#")
+                 | Income
+                a.dropdown-item.dropdown-item-paymentTypeSelection(href="#")
+                 | Transfer
+                a.dropdown-item.dropdown-item-paymentTypeSelection(href="#")
+                 | Correction
+            #general(style="display:none")
+              input(type="text",placeholder="Date",id="datepicker").m-2.p-2.datepicker
+              input(type="text",placeholder="Account",id="inputAccount").m-2.p-2.inputAccount
+            #payment(style="display:none")
+              input(type="text",placeholder="Name",id="inputNamePayment").m-2.p-2.inputName
+              div
+              input(type="number",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2").inputAmount
+              
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment1Button").category1Button
+                 | Pick Category 1
+                .dropdown-menu
+              input(type="number",placeholder="Amount 2",id="inputAmount2").m-2.p-2.inputAmount
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment2Button")
+                 | Pick Category 2
+                .dropdown-menu
+              input(type="number",placeholder="Amount 3",id="inputAmount3").m-2.p-2.inputAmount
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment3Button")
+                 | Pick Category 3
+                .dropdown-menu
+              input(type="number",placeholder="Amount 4",id="inputAmount4").m-2.p-2.inputAmount
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment4Button")
+                 | Pick Category 4
+                .dropdown-menu
+              #summedAmounts.m-2.p-2
+              button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
+               | Booked
+            #income(style="display:none")
+              input(type="text",placeholder="Name",id="inputNameIncome").m-2.p-2.inputName
+              input(type="number",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2").inputAmount
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryIncomeButton").category1Button
+                 | Pick Category (optional)
+                .dropdown-menu
+              button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
+               | Booked
+            #transfer(style="display:none")
+              input(type="text",placeholder="To Account",id="targetAccount").m-2.p-2.targetAccount
+              input(type="number",placeholder="Amount",id="inputAmount1",class="m-2 p-2").inputAmount
+              button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
+               | Booked
+            #correction(style="display:none")
+              input(type="number",placeholder="Target Amount",id="inputAmount1",class="m-2 p-2").inputAmount
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryCorrectionButton").category1Button
+                 | Pick Category (optional)
+                .dropdown-menu
+          button(type="button",class="btn btn-dark m-2 p-2",id="addTransactionButton")
            | Add Transaction
         #categoriesView.my-4(style="display:none")
           #categoryDatabaseView
@@ -99,12 +128,35 @@ html
               thead
                 th Name
                 th Saved
-                th Allocated
-                th Spent this month
+                th Allocated (
+                  a(href="#",id="categoryTableResetAllocations") reset
+                  | )
+                th Changes this month
                 th Total
                 th Modify?
                 th Delete?
               tbody
+          #categoryModal.modal(tabindex="-1",role="dialog",aria-labelledby="exampleModalCenterTitle",aria-hidden="true")
+            .modal-dialog.modal-dialog-centered.modal-lg(role="document")
+              .modal-content
+                .modal-header
+                  h5.modal-title#categoryModalTitle
+                  button.close(type="button",data-dismiss="modal",aria-label="Close")
+                    span(aria-hiden="true")
+                     | &times;
+                .modal-body.m-2.p-2
+                  #categoryInfoTransactions
+                  table.table.table-striped.table-responsive.m-2.p-2
+                    thead
+                      th Name
+                      th Date
+                      th Booked
+                      th Account
+                      th Amount
+                    tbody
+                #categoryInfoBottomText
+                  #noTransactions.m-2.p-2
+                   | No transactions found.
           #categoryUnallocatedMoney.m-2
           #categoryToBeAllocatedMoney.m-2
           #modifyDatabaseEntryCategory.my-4(style="display:none")
@@ -112,86 +164,26 @@ html
             h4 Change Category
             p 
               | Name: 
-              input(type="text",id="changeCategoryName").m-2
-              | Allocated:
-              input(type="text",id="changeCategoryAllocation").m-2
-            p
-              | Debitor 1:
-              input(type="text",id="changeCategoryDebitor1").m-2
-              | Percentage:
-              input(type="number",id="changeCategoryPercentage1").m-2
-            p
-              | Debitor 2:
-              input(type="text",id="changeCategoryDebitor2").m-2
-              | Percentage:
-              input(type="number",id="changeCategoryPercentage2").m-2            
-            p
-              | Debitor 3:
-              input(type="text",id="changeCategoryDebitor3").m-2
-              | Percentage
-              input(type="number",id="changeCategoryPercentage3").m-2  
-            p          
+              input(type="text",id="changeCategoryName").m-2   
               button(type="button",class="btn btn-dark",id="changeCategoryButton").m-2
-                | Change Category
+                | Save Changes
               button(type="button",class="btn btn-dark",id="cancelChangeCategoryButton").m-2
                 | Cancel
           button(type="button",class="btn btn-dark",id="addCategoryButton").m-2
-            | Add Category      
+            | Add Category
+          button(type="button",class="btn btn-info",id="autofillAllocationButton").m-2
+            | Auto-Fill Allocations from last month
           #addCategory.my-4(style="display:none")
             h4 Add Category
             p
               input(type="text",placeholder="Category Name",id="inputCategoryName").mx-2
             p
-              input(type="text",placeholder="Debitor 1",id="inputCategoryDebitor1").mx-2
-              input(type="number",placeholder="Pay-Percentage",id="inputCategoryPercentage1").mx-2
-            p
-              input(type="text",placeholder="Debitor 2",id="inputCategoryDebitor2").mx-2
-              input(type="number",placeholder="Pay-Percentage",id="inputCategoryPercentage2").mx-2            
-            p
-              input(type="text",placeholder="Debitor 3",id="inputCategoryDebitor3").mx-2
-              input(type="number",placeholder="Pay-Percentage",id="inputCategoryPercentage3").mx-2            
-            p
               button(type="button",class="btn btn-dark",id="addCategoryButtonAdd").mx-2
                | Add
               button(type="button",class="btn btn-dark",id="addCategoryButtonCancel").mx-2
                | Cancel
-          #categoriesInfo.my-4(style="display:none")
-            h4 Category Info
-            p
-              #categoryInfoName
-              br
-              #categoryInfoReferenceDate
-              br
-              #categoryInfoReferenceAmount
-              br
-              #categoryInfoAllocatedSinceReference
-              br
-              #categoryInfoDebitorList
-        #cashingUpView(style="display:none")
-          #cashingUpDatabaseView.my-4
-            table.table.my-2.flex.table-bordered.mx-auto.p-auto(width="100%",cellspacing="0",cellpadding="0")
-              thead
-                th Debitor
-                th Debt this month
-                th Reconsiliated?
-              tbody
-          #addRedemptionView
-            #addRedemptionPaymentForm(style="display:none")
-              h4 Add Redemption Payment
-              input(type="text",placeholder="Debitor Name",id="cashingUpInputDebitor",style="display:none").mx-2
-              input(type="text",placeholder="Category",id="cashingUpInputCategory",style="display:none").mx-2   
-              p
-                input(type="number",placeholder="0.0",id="cashingUpInputOriginalDebitorAmount",style="display:none").mx-2
-                input(type="number",placeholder="Amount",id="cashingUpInputAmount").mx-2
-                input(type="text",placeholder="Account",id="cashingUpInputAccount").mx-2
-              p
-                button(type="button",class="btn btn-success",id="cashingUpBookedButton").mx-2
-                 | Booked    
-              p
-                button(type="button",class="btn btn-dark",id="cashingUpButtonAdd").mx-2
-                 | Add
-                button(type="button",class="btn btn-dark",id="cashingUpButtonCancel").mx-2
-                 | Cancel
+
+
     script(src='https://code.jquery.com/jquery-3.3.1.min.js') 
     // Dont use the slim version here, this will cause calls to fail.
     script(src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js')

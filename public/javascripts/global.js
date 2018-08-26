@@ -5,21 +5,47 @@ var accountData = [];
 
 var selectedMonth = new Date().getMonth() + 1;
 var selectedYear = new Date().getFullYear();
+var lastPickedDateInSession = null;
+
+// Extend jQuery:
+$.fn.exists = function () {
+  return this.length !== 0;
+  // see: https://stackoverflow.com/questions/920236/how-can-i-detect-if-a-selector-returns-null
+  // and: https://stackoverflow.com/questions/4186906/check-if-object-exists-in-javascript
+}
+
+// Stuff we use:
+// ".buttonIsTransactionBooked"
+// -> Has element "rel" which is ID
+// -> Should ID always be rel?
+// ".datepicker"
+// ".dropdown-item-paymentTypeSelection"
+
+// Conventions:
+// INCOME has positive numbers
+// PAYMENTS have negative numbers.
+// Therefore amounts of transactions are always simply summed, never subtracted.
+
+// Wechselkurse nur relevant für Zukünftige Transaktionen, 
+// denn es wird über irgendwann aktuell die Zahlung getätigt.
 
 
-$( function() {
-  $( "#datepicker" ).datepicker();
-} );
 
 // DOM Ready =============================================================
 $(document).ready(function() {
-  // Populate the user table on initial page load
-  reloadData();
+  // Set initial month for display as current month
   selectedMonth = new Date().getMonth() + 1;
   selectedYear = new Date().getFullYear();
 
+  // Write Month/Date to div
+
+
+  // Reload Data from Server
+  reloadData();
   $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
-  
+
+
+  // Add functionality for month selection Buttons
   $('#monthUp').on("click",function()
   {
     if(selectedMonth === 12)
@@ -32,11 +58,10 @@ $(document).ready(function() {
       selectedMonth += 1;
     }
     populateCategoryTable();
-    populateCashingUpTable();
+
     populateTransactionTable(selectedMonth,selectedYear);
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
   })
-
   $('#monthDown').on("click",function()
   {
     if(selectedMonth === 1)
@@ -49,20 +74,24 @@ $(document).ready(function() {
       selectedMonth -= 1;
     }
     populateCategoryTable();
-    populateCashingUpTable();
+
     populateTransactionTable(selectedMonth,selectedYear);
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
   })
 
-  // ACCOUNTS BUTTON
+  // ACCOUNTS BUTTON Functionality
+  $('#accountsButton').off();
   $('#accountsButton').on('click', "button", function()
   {
     if($('#accountOverview').css("display") === "none")
     {
+      // Check for shitty siutation, this should never happen.
       if(transactionsData.length === 0)
       {
+        alert("This should not have happened, performing unnecessary reload.");
         reloadData();
       }
+      populateAccountInformation();
 
       $('#accountOverview').css("display","block");
     }
@@ -72,34 +101,29 @@ $(document).ready(function() {
     }
   });
 
-  // SHOW DB (LANDING PAGE)
+  // DB Navigation Button (LANDING PAGE) functionality
+  $('#navigation').off();
   $('#navigation').on('click', 'div.btn-class > button, #DisplayDB', function()
   {
-    onNavigationChange()
+    onNavigationChange();
     populateTransactionTable(selectedMonth,selectedYear);
 
     $('#databaseView').css("display", "block");
     $('#addTransactionView').css("display", "none");
     $('#categoriesView').css("display", "none");
-    $('#cashingUpView').css("display", "none");
-
-    $('#transactionList table tbody').off('click');
-    $('#transactionList table tbody').on('click', 'td a.linkshowtransaction', showTransactionInfo);
-    $('#transactionList table tbody').on('click', 'td a.linkdeletetransaction', deleteTransaction);
-    $('.buttonIsTransactionBooked').off();
-    $('.buttonIsTransactionBooked').on("click", setButton_toggleTransactionListBookedStatus);
   });
 
-  // ADD TRANSACTION
+  // ADD TRANSACTION button functionality
   $('#navigation').on('click', 'div.btn-class > button ,#DisplayAdd', function()
   {
     onNavigationChange()
 
-    showButtonsAddingTransaction(null);
+    prepareButtonsAddingTransaction();
+    //showButtonsAddingTransaction(null);
     $('#databaseView').css("display", "none");
     $('#addTransactionView').css("display", "block");
     $('#categoriesView').css("display", "none");
-    $('#cashingUpView').css("display", "none");
+
   });
 
   // CATEGORIES
@@ -115,8 +139,8 @@ $(document).ready(function() {
     $('#databaseView').css("display", "none");
     $('#addTransactionView').css("display", "none");
     $('#categoriesView').css("display", "block");
-    $('#cashingUpView').css("display", "none");
 
+    $('#addCategoryButton').off();
     $('#addCategoryButton').on('click', function()
     {
       $('#addCategory').css("display", "block");
@@ -127,11 +151,10 @@ $(document).ready(function() {
         event.preventDefault();
 
       
-        // Check and make sure errorCount's still at zero
+        // Check for empty submission
         if($('#addCategory input#inputCategoryName').val() != '') {
         
-          // If it is, compile all user info into one object
-          var newTransaction = {
+          var newCategory = {
             'name': $('#addCategory input#inputCategoryName').val(),
             'systems': null,
             "referenceDate" : Date.now(),
@@ -140,74 +163,25 @@ $(document).ready(function() {
             "allocatedSinceReference" : 0.0
           }
 
-          if($('#addCategory input#inputCategoryDebitor1').val() != "")
-          {
-            if (newTransaction.systems === null)
-            {
-              newTransaction.systems = [];
-            }
-
-            var debitor1Val = $('#addCategory input#inputCategoryDebitor1').val();
-            newTransaction.systems.push(
-              {
-                "debitor": $('#addCategory input#inputCategoryDebitor1').val(),
-                "percentage" : $('#addCategory input#inputCategoryPercentage1').val()
-              });
-          }
-          if($('#addCategory input#inputCategoryDebitor2').val() != "")
-          {
-            if (newTransaction.systems === null)
-            {
-              newTransaction.systems = [];
-            }
-            var debitor1Val = $('#addCategory input#inputCategoryDebitor2').val();
-            newTransaction.systems.push(
-              {
-                "debitor": $('#addCategory input#inputCategoryDebitor2').val(),
-                "percentage" : $('#addCategory input#inputCategoryPercentage2').val()
-              });
-          }
-          if($('#addCategory input#inputCategoryDebitor3').val() != "")
-          {
-            if (newTransaction.systems === null)
-            {
-              newTransaction.systems = [];
-            }
-            var debitor1Val = $('#addCategory input#inputCategoryDebitor3').val();
-            newTransaction.systems.push(
-              {
-                "debitor": $('#addCategory input#inputCategoryDebitor2').val(),
-                "percentage" : $('#addCategory input#inputCategoryPercentage2').val()
-              });
-          }
-
           // Use AJAX to post the object to our adduser service
-          $.ajax({
-            type: 'POST',
-            data: { "data" : JSON.stringify(newTransaction) },
-            url: '/db/categories_add',
-            dataType: 'json'
-          }).done(function( response ) {
-          
-            // Check for successful (blank) response
-            if (response.msg === '') {
-            
+          ajaxPOST_Category(newCategory).then(function() {
+        
               // Clear the form inputs
               $('#addCategory input').val('');
               $('#addCategory').css("display", "none");
               $('#addCategoryButton').css("display", "block");
 
-              reloadData();
+              reloadDataAndRefreshDisplay();
 
 
-            }
-            else {
+            },function()
+            {
             
               // If something goes wrong, alert the error message that our service returned
               alert('Error: ' + response.msg);
             
             }
-          });
+          );
 
           
         }
@@ -221,6 +195,7 @@ $(document).ready(function() {
       });
     });
 
+    $('#addCategoryButtonCancel').off();
     $('#addCategoryButtonCancel').on('click', function()
     {
       $('#addCategory').css("display", "none");
@@ -234,119 +209,101 @@ $(document).ready(function() {
      
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkdeletecategory', deleteCategory);
 
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfo);
+    $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
-  });
 
-  // CASHING-UP
-  $('#navigation').on('click', 'div.btn-class > button ,#DisplayCashing-Up', function()
-  {
-    onNavigationChange()
-    populateCashingUpTable();
-
-    
-    $('#cashingUpBookedButton').off("click");
-    $('#cashingUpBookedButton').on("click", function()
+    $("#categoryTableResetAllocations").off("click");
+    $("#categoryTableResetAllocations").on('click', function()
     {
-      if($(this).html() != "Booked")
+      var confirmationResult = confirm("Are you sure you want to reset all allocations for this month?");
+      if (confirmationResult == true)
       {
-        $(this).html("Booked");
-        $(this).removeClass("btn-warning");
-        $(this).addClass("btn-success");
-      }
-      else
-      {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
-      }
-    });
+        promisesArray = [];
+        for (var i = 0; i < categoryData.length; i++)
+        {
+          var thisUserObject = categoryData[i];
+          var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+          if (found != null)
+          {
+            categoryData[i].allocatedSinceReference.splice(found, 1);
 
+            var category = {
+              'name': thisUserObject.name,
+              'systems': thisUserObject.systems,
+              "referenceDate" : thisUserObject.referenceDate,
+              "referenceAmount" : thisUserObject.referenceAmount,
+              "associatedTransactions" : thisUserObject.associatedTransactions,
+              "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+            }
+          
+            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+            promisesArray.push(curPromise);
+          }
+        }
+        Promise.all(promisesArray).then(function()
+        {
+          reloadDataAndRefreshDisplay();    
+        }).then(function()
+        {
+          populateCategoryTable();
+        })
+      }
+    })
 
-    $('#cashingUpButtonAdd').off("click");
-    $('#cashingUpButtonAdd').on('click', function()
+    $("#autofillAllocationButton").off("click");
+    $("#autofillAllocationButton").on('click', function() 
     {
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addRedemptionView input#cashingUpInputDebitor').val() == "" 
-        || $('#addRedemptionView input#cashingUpInputCategory').val() == "" 
-        || $('#addRedemptionView input#cashingUpInputAmount').val() == "" 
-        || $('#addRedemptionView input#cashingUpBookedButton').val() == "" 
-      )
+      var confirmationResult = confirm("Are you sure you want to auto-fill all allocations for this month?");
+      if (confirmationResult == true)
       {
-        errorSubmission = true
-      }
-
-  
-      // Check and make sure errorCount's still at zero
-      if(! errorSubmission) 
-      {
-        // If it is, compile all user info into one object
-        var newTransaction = {
-          'name': $('#addRedemptionView input#cashingUpInputDebitor').val(),
-          'account': $('#addRedemptionView input#cashingUpInputAccount').val(),
-          'bookingType': "Redemption",
-          'dateEntered': (new Date()).setFullYear(parseInt(selectedYear),parseInt(selectedMonth),0),
-          'dateBooked': $('#addRedemptionView button#cashingUpBookedButton').html() === "Booked" ? Date.now() : null,
-          'amount' : [
+        var promisesArray = [];
+        for (var i = 0; i < categoryData.length; i++)
+        {
+          var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
+          var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+          if (lastMonthIter != null)
+          {
+            if(curMonthIter != null)
             {
-              "category" : $('#addRedemptionPaymentForm input#cashingUpInputCategory').val(),
-              "amount" : (parseFloat($('#addRedemptionView input#cashingUpInputAmount').val())).toString(),
-              "originalDebitorAmount" : (parseFloat($('#addRedemptionView input#cashingUpInputOriginalDebitorAmount').val())).toString(),
+              categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
             }
-          ]
-        };
-              // Use AJAX to post the object to our adduser service
-        $.ajax({
-            type: 'POST',
-            data: {data : JSON.stringify(newTransaction) },
-            url: '/db/transactions_add',
-            dataType: 'JSON'
-        }).done(function( response ) {
-      
-            // Check for successful (blank) response
-            if (response.msg === '') {
-              //alert('Done');
-              // Clear the form inputs
-              $('#addRedemptionView input').val('');
-              $("#addRedemptionPaymentForm").css("display","none");
-              reloadData();
-              $('#DisplayDB').click();
+            else
+            {
+              categoryData[i].allocatedSinceReference.push(
+              { 
+                "amount":categoryData[i].allocatedSinceReference[lastMonthIter].amount,
+                "year": selectedYear,
+                "month": selectedMonth
+              });
             }
-            else {
-              // If something goes wrong, alert the error message that our service returned
-              alert('Error: ' + response.msg);
+
+            var category = {
+              'name': categoryData[i].name,
+              'systems': categoryData[i].systems,
+              "referenceDate" : categoryData[i].referenceDate,
+              "referenceAmount" : categoryData[i].referenceAmount,
+              "associatedTransactions" : categoryData[i].associatedTransactions,
+              "allocatedSinceReference" : categoryData[i].allocatedSinceReference
             }
+
+            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+            promisesArray.push(curPromise);
+          }
+        }
+        Promise.all(promisesArray).then(function()
+        {
+          reloadDataAndRefreshDisplay();
         });
       }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred.');
-      }    
     });
-
-
-    $('#cashingUpButtonCancel').off('click');
-    $('#cashingUpButtonCancel').on('click', function()
-    {
-      $('#addRedemptionView input').val('');
-      $("#addRedemptionPaymentForm").css("display","none");
-    });
-
-
-
-
-    onNavigationChange()
-    $('#databaseView').css("display", "none");
-    $('#addTransactionView').css("display", "none");
-    $('#categoriesView').css("display", "none");
-    $('#cashingUpView').css("display", "block");
   });
 
   onNavigationChange()
 
-  $( "#datepicker" ).datepicker();
+  // initialize Datepicker
+  $( "" ).datepicker();
+
+  
 });
 
 
@@ -369,7 +326,7 @@ var dates = {
       //   a string     : Any format supported by the javascript engine, like
       //                  "YYYY/MM/DD", "MM/DD/YYYY", "Jan 31 2009" etc.
       //  an object     : Interpreted as an object with year, month and date
-      //                  attributes.  **NOTE** month is 0-11.
+      //                  ibutes.  **NOTE** month is 0-11.
       return (
           d.constructor === Date ? d :
           d.constructor === Array ? new Date(d[0],d[1],d[2]) :
@@ -412,8 +369,12 @@ var dates = {
 }
 
 
-// Functions =============================================================
-// Fill table with data
+///////////////////////////////////////
+//
+// H E L P E R   F U N C T I O N S
+//
+///////////////////////////////////////
+// Helper Function: getTotalCostsFromTransaction
 function getTotalCostsFromTransaction(transaction)
 {
   var totalAmount = 0.0;
@@ -424,8 +385,23 @@ function getTotalCostsFromTransaction(transaction)
   return totalAmount;
 }
 
+// Helper Function: getIteratorFromAllocatedSinceReferenceArray
 function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
 {
+  // Catch some easy out-of-bound stuff. 
+  // Deliberatly not properly taking care of this as months should when possible be between 1 and 12
+  if(monthQuery === 0 || monthQuery < 0)
+  {
+    yearQuery -= 1;
+    monthQuery += 12;
+  }
+  else if (monthQuery > 12)
+  {
+    yearQuery += 1;
+    monthQuery -= 12;
+  }
+
+
   var allocatedSinceReferenceArray = array;
 
   var found = -1;
@@ -447,89 +423,259 @@ function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
   }
 }
 
-function setButton_toggleTransactionListBookedStatus()
+// Called once toggleBookedStatusButton are renderd to set the button action
+function setButton_toggleTransactionListBookedStatus(event)
 {
-  $('.buttonIsTransactionBooked').on("click", function()
+  event.preventDefault()
+
+  var ID = $(this).attr('rel');
+  var foundIterator = null;
+
+  // Check if we habe the ID in the database
+  for(var i = 0; i < transactionsData.length; i++)
+  {
+    if(transactionsData[i]._id === ID)
     {
-      var ID = $(this).attr('rel');
-      var foundIterator = -1;
-      for(var i = 0; i < transactionsData.length; i++)
-      {
-        if(transactionsData[i]._id === ID)
-        {
-          foundIterator = i;
-          break;
-        }
-      }
-      if(i != -1)
-      {
-        if(transactionsData[i].dateBooked != null)
-        {
-          transactionsData[i].dateBooked = null;
-        }
-        else
-        {
-          transactionsData[i].dateBooked = Date.now();
-        }
+      foundIterator = i;
+      break;
+    }
+  }
 
-        $.ajax({
-          type: 'PUT',
-          data: { "data" : JSON.stringify(transactionsData[i]) },
-          url: '/db/transactions_modify/' + $(this).attr('rel'),
-          dataType: 'json'
-        }).done(function( response ) {
-        
-          // Check for successful (blank) response
-          if (response.msg === '') {
-          
-            // Clear the form inputs
-            // TODO: Diesen reload sollte man weglassen können normalerweise.
-            reloadData();
-            $('#DisplayDB').click();
+  // If we have found the ID
+  if(foundIterator != null)
+  {
+    if(transactionsData[foundIterator].dateBooked != null)
+    {
+      transactionsData[foundIterator].dateBooked = null;
+    }
+    else
+    {
+      transactionsData[foundIterator].dateBooked = Date.now();
+    }
 
-          }
-          else {
-          
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-          
-          }
-        });
-
-        $('#DisplayDB').click();
-      }
+    ajaxPUT_Transaction(transactionsData[foundIterator], $(this).attr('rel')).then(function()
+    {
+      reloadDataAndRefreshDisplay();
+    }).then(function() 
+    {
+      $('#DisplayDB').click();
     });
+  }
+  else
+  {
+    alert('Error: In function setButton_toggleTransactionListBookedStatus: ' + 'Did not find ID of button element in Database of Transactions.');
+  }
 }
 
+function ajaxPOST_Transaction(newTransactionObject)
+{
+  // jQuery Deferred functionality via https://stackoverflow.com/questions/14377038/how-do-i-use-jquery-promise-deffered-in-a-custom-function
+
+  var ajaxPromise = $.ajax({
+    type: 'POST',
+    data: {data : JSON.stringify(newTransactionObject) },
+    url: '/db/transactions_add',
+    dataType: 'JSON'
+  }).done(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+  }).fail(function( response ) {
+    alert("Posting a new transaction failed.");
+  });
+
+  // return promise so that outside code cannot reject/resolve the deferred
+  return ajaxPromise;
+};
+
+function ajaxPOST_Category(newCategoryObject)
+{
+  var ajaxPromise = $.ajax({
+    type: 'POST',
+    data: {data : JSON.stringify(newCategoryObject) },
+    url: '/db/categories_add',
+    dataType: 'JSON'
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+      // Here we could optimize by not reloading thw hole database but keeping track ourselves
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+  },function( response ) {
+    alert("Posting a new transaction failed.");
+  });
+
+  // return promise so that outside code cannot reject/resolve the deferred
+  return ajaxPromise;
+};
+
+function ajaxPUT_Transaction(item,optionalID = null)
+{
+  var ajaxPromise = $.ajax({
+    type: 'PUT',
+    data: { "data" : JSON.stringify(item) },
+    url: '/db/transactions_modify/' + (optionalID === null ? item._id : optionalID).toString(),
+    dataType: 'json'
+  }).then(function( response ) {
+  
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+    }
+    else {
+    
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+    
+    }
+  });
+  return ajaxPromise;
+}
+
+function ajaxPUT_Category(item,optionalID = null)
+{
+  var ajaxPromise = $.ajax({
+    type: 'PUT',
+    data: { "data" : JSON.stringify(item) },
+    url: '/db/categories_modify/' + (optionalID === null ? item._id : optionalID).toString(),
+    dataType: 'json'
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    } 
+  },function(response)
+  {
+    alert("Something went wrong when updating a category.");
+    alert('Error: ' + response.msg);
+  });
+
+  return ajaxPromise.promise();
+}
+
+function ajaxDELETE_Category(item)
+{
+  var thisID = 0;
+  if(typeof item._id != "undefined")
+  {
+    thisUD = item._id;
+  }
+  else
+  {
+    thisID = item;
+  }
+
+  var ajaxPromise = $.ajax({
+    type: 'DELETE',
+    url: '/db/categories_delete/' + thisID
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+    
+  },function()
+  {
+    alert("Something went wrong when updating a category.");
+  });
+
+  return ajaxPromise;
+}
+
+function ajaxDELETE_Transaction(item)
+{
+  var thisID = 0;
+  if(typeof item._id != "undefined")
+  {
+    thisUD = item._id;
+  }
+  else
+  {
+    thisID = item;
+  }
+
+  var ajaxPromise = $.ajax({
+    type: 'DELETE',
+    url: '/db/transactions_delete/' + thisID
+  }).done(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+    
+  }).fail(function( response)
+  {
+    alert("Something went wrong when updating a category.");
+  });
+
+  return ajaxPromise;
+};
+
+// Deletes a category, event musst have attribute "rel" with ID in it.
 function deleteCategory(event)
 {
   event.preventDefault();
-    
-    // If they did, do our delete
-    $.ajax({
-      type: 'DELETE',
-      url: '/db/categories_delete/' + $(this).attr('rel')
-    }).done(function( response ) {
-    
-      // Check for a successful (blank) response
-      if (response.msg === '') {
-        //alert('Successfully deleted. ');
-      }
-      else {
-        alert('Error: ' + response.msg);
-      }
-    
+  ajaxDELETE_Category($(this).attr('rel')).then(function()
+    {
       // Update the table
-      reloadData();
-    
-    });  
+      reloadDataAndRefreshDisplay();
+    });
 }
 
+function reloadDataAndRefreshDisplay()
+{
+  var reloadPromise = reloadData();
+  reloadPromise.then(function()
+  {
+    populateTransactionTable(selectedMonth,selectedYear);
+    populateAccountInformation();
+    populateCategoryTable();
+  });
+}
+
+// Reloads data from mongoDB and populates tables accordingly.
 function reloadData()
 {
-  $.getJSON('db/transactions_list').always(function( data ) 
+  var ajaxPromise1 = $.getJSON('db/transactions_list').then(function( data ) 
   {
-    // Stick our user data array into a userlist variable in the global object
     transactionsData = data;
 
     // Sort by descending date
@@ -543,13 +689,13 @@ function reloadData()
       return 0; //default return value (no sorting)
     });
     // Update the table
-    populateTransactionTable(selectedMonth,selectedYear);
-    populateAccountInformation();
+
   });
-  $.getJSON('db/categories_list').always(function( data ) 
+  var ajaxPromise2 = $.getJSON('db/categories_list').then(function( data ) 
   {
-    // Stick our user data array into a userlist variable in the global object
     categoryData = data;
+
+    // Sort by Name
     categoryData.sort(function(a, b) {
       var nameA=a.name.toLowerCase()
       var nameB=b.name.toLowerCase();
@@ -560,10 +706,11 @@ function reloadData()
       return 0; //default return value (no sorting)
     });
 
-    var some = 7+9;
-    populateCategoryTable()
+
   });
-  
+
+
+  return $.when(ajaxPromise1,ajaxPromise2);
   
 };
 
@@ -574,6 +721,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
 
   if(transactionsData.length === 0)
   {
+    alert("This should not have happend, unnecessary reload.")
     reloadData();
   }
 
@@ -591,11 +739,14 @@ function populateTransactionTable(selectedMonth,selectedYear) {
         totalAmount += parseFloat(this.amount[i].amount);
       }
       tableContent += totalAmount.toFixed(2) + '</a></td>';
+      tableContent += '<td class="transactionTableDateEntered">' + $.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(this.dateEntered))) + '</td>';
+      tableContent += '<td class="transactionTableAccount">' + this.account + '</td>';
+
 
       // Insert here booked? button code
       if(this.name != "Income" && this.name != "Correction" && this.bookingType != "Redemption")
       {
-        tableContent += '<td>' + this.name + '</td>';
+        tableContent += '<td class="transactionTableName">' + this.name + '</td>';
         tableContent += '<td>'
         if(this.dateBooked == null)
         {
@@ -651,148 +802,18 @@ function populateTransactionTable(selectedMonth,selectedYear) {
 
   // Inject the whole content string into our existing HTML table
   $('#transactionList table tbody').html(tableContent);
-  setButton_toggleTransactionListBookedStatus()
-};
 
-function populateCashingUpTable() 
-{
-  if(categoryData.length === 0)
-  {
-    reloadData();
-  }
-  if(transactionsData.length === 0)
-  {
-    reloadData();
-  }
+  $('.buttonIsTransactionBooked').off();
+  $('.buttonIsTransactionBooked').on("click", setButton_toggleTransactionListBookedStatus);
 
-  foundDebitorsPlusCategories = []
-
-  $.each(categoryData, function(){
-    // Find unqiue debitors
-    var found = -1;
-    if (this.systems != null)
-    {
-      for (var j = 0; j < this.systems.length; j++)
-      {
-        for (var i = 0; i < foundDebitorsPlusCategories.length; i++)
-        {
-          if(foundDebitorsPlusCategories[i].debitor === this.systems[j].debitor
-          && foundDebitorsPlusCategories[i].category === this.name)
-          {
-            found = i;
-            break;
-          }
-        }
-        if (found === -1)
-        {
-          foundDebitorsPlusCategories.push({"debitor":this.systems[j].debitor,"amount":0,"category": this.name,"isReconciled":null});
-        }
-      }
-    }
-  })
-
-  // Currently only scans selected month, it would be better if this checks for months which have not been redemped and adds this amount
-  for (var countDebitors = 0; countDebitors < foundDebitorsPlusCategories.length; countDebitors++)
-  {
-    var summedAmountIndivCategory = 0.0;
-    var isReconciled = null;
-    for (var i = 0; i < transactionsData.length; i++)
-    {
-      if(transactionsData[i].bookingType === "Redemption" 
-        && new Date(transactionsData[i].dateEntered).getMonth() + 1 === selectedMonth
-        && new Date(transactionsData[i].dateEntered).getFullYear() === selectedYear)
-      {
-        if(transactionsData[i].name === foundDebitorsPlusCategories[countDebitors].debitor 
-          && transactionsData[i].amount[0].category === foundDebitorsPlusCategories[countDebitors].category)
-        {
-          isReconciled = "yes";
-          //summedAmountIndivCategory += parseFloat(transactionsData[i].amount[0].originalDebitorAmount);
-        }
-      }
-      else if( transactionsData[i].bookingType === "Payment"
-        && new Date(transactionsData[i].dateEntered).getMonth() + 1 === selectedMonth
-        && new Date(transactionsData[i].dateEntered).getFullYear() === selectedYear)
-      {
-        for (var countPaymentSubCategories = 0; countPaymentSubCategories < transactionsData[i].amount.length; countPaymentSubCategories++)
-        {
-          for (var j = 0; j < categoryData.length; j++)
-          {
-            if (transactionsData[i].amount[countPaymentSubCategories].category === categoryData[j].name
-            && categoryData[j].systems != null)
-            {
-              for (var k = 0; k < categoryData[j].systems.length; k++)
-              {
-                if (categoryData[j].systems[k].debitor === foundDebitorsPlusCategories[countDebitors].debitor
-                  && foundDebitorsPlusCategories[countDebitors].category === categoryData[j].name)
-                {
-                  summedAmountIndivCategory += transactionsData[i].amount[countPaymentSubCategories].amount * parseFloat(categoryData[j].systems[k].percentage) / 100.0;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    foundDebitorsPlusCategories[countDebitors] = {
-      "debitor":foundDebitorsPlusCategories[countDebitors].debitor,
-      "amount":summedAmountIndivCategory,
-      "category":foundDebitorsPlusCategories[countDebitors].category,
-      "isReconciled":isReconciled
-    };
-  }
-
-  var tableContent = '';
-  for (var i = 0; i < foundDebitorsPlusCategories.length; i++)
-  {
-    if (parseFloat(parseFloat(foundDebitorsPlusCategories[i].amount).toFixed(2)) < 0.0)
-    {
-      tableContent += '<tr>';
-      tableContent += '<td><a href="#" class="cashingUpTableDebitor" rel="' + foundDebitorsPlusCategories[i].debitor.split(' ').join('-') + '_' + foundDebitorsPlusCategories[i].category.split(' ').join('-') + '">';
-      tableContent += foundDebitorsPlusCategories[i].debitor + " - " + foundDebitorsPlusCategories[i].category + '</a></td>';
-
-
-      tableContent += '<td id="cashingUpTableDebtAmount_' +foundDebitorsPlusCategories[i].debitor.split(' ').join('-') + '_' + foundDebitorsPlusCategories[i].category.split(' ').join('-') + '">' + (-1.0*parseFloat(foundDebitorsPlusCategories[i].amount)).toFixed(2) + '</td>';
-
-      tableContent += '<td>';
-      tableContent += foundDebitorsPlusCategories[i].isReconciled === null ? "No" : "Yes";
-      tableContent += '</td>';
-
-      tableContent += '</tr>';
-    }
-  }
-
-  $('#cashingUpDatabaseView table tbody').html(tableContent);
-  
-  $('.cashingUpTableDebitor').off("click");
-  $('.cashingUpTableDebitor').on("click", function(event)
-  {
-    event.preventDefault();
-
-    var rel = $(this).attr('rel');
-
-    $("#addRedemptionPaymentForm").css("display","block");
-
-    var debitor = rel.substr(0, rel.indexOf('_')); 
-    $("#addRedemptionPaymentForm input#cashingUpInputDebitor").val(debitor.split('-').join(" "));
-
-    var category = rel.split('_')[1];; 
-    $("#addRedemptionPaymentForm input#cashingUpInputCategory").val(category.split('-').join(" "));
-
-    var amount = $("#cashingUpTableDebtAmount_" + rel).html();
-    amount = parseFloat(amount);
-    $("#addRedemptionPaymentForm p input#cashingUpInputAmount").val(amount)
-
-    var originalDebitorAmount = $("#cashingUpTableDebtAmount_" + rel).html();
-    originalDebitorAmount = parseFloat(originalDebitorAmount);
-    $("#addRedemptionPaymentForm p input#cashingUpInputOriginalDebitorAmount").val(originalDebitorAmount);
-
-  });
-
+  $('#transactionList table tbody').off();
+  $('#transactionList table tbody').on('click', 'td a.linkshowtransaction', showTransactionInfo);
+  $('#transactionList table tbody').on('click', 'td a.linkdeletetransaction', deleteTransaction);
 };
 
 function populateCategoryTable() {
 
-  var unallocatedAmount = 0.0;
+  var totalIncomeThisMonth = 0.0;
   for (var i = 0; i < transactionsData.length; i++)
   {
     // Da Redemptions immer eine Category haben, werden Sie beim unallozierten Geld nicht einbezogen
@@ -800,28 +821,70 @@ function populateCategoryTable() {
       && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
       && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
     {
+      // Some Income and Corrections have a specific category, those are thus allocated and do not need to be considered.
       if (transactionsData[i].amount[0].category == "Income" || transactionsData[i].amount[0].category == "Correction")
       {
-        unallocatedAmount += parseFloat(transactionsData[i].amount[0].amount);
+        totalIncomeThisMonth += parseFloat(transactionsData[i].amount[0].amount);
       }
     }
   }
   // Das hier sollte die Menge an absolutem Income diesen Monat sein.
-  var toBeAllocatedThisPeriod = unallocatedAmount;
+  $('#categoryToBeAllocatedMoney').html("<strong>Total Income this Month: </strong>"+ totalIncomeThisMonth.toFixed(2));
 
-  // Nun werden alle allozierungen abgezogen und damit errechnet, wie viel aktuell unalloziert sind.
-  for (var i = 0; i < categoryData.length; i++)
+
+  ////
+  ///
+  /// Iterates all previous and current month
+  var unallocatedAmount = 0.0;
+  // 1. Find oldest Date in Transactions
+  var oldestDateFound = new Date();
+  for(var i=0; i < transactionsData.length; i++)
   {
-    var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
-    var allocatedThisMonth = 0.0;
-    if (found != null)
+    var thisDate = new Date(transactionsData[i].dateEntered);
+    if (dates.compare(thisDate,oldestDateFound) === -1)
     {
-      allocatedThisMonth = categoryData[i].allocatedSinceReference[found].amount;
+      oldestDateFound = thisDate;
     }
-    unallocatedAmount -= parseFloat(allocatedThisMonth);
+  }
+  for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
+  {
+    for (var countMonth = oldestDateFound.getMonth() + 1;
+    countMonth < 13 && (countMonth <= selectedMonth || countYear != selectedYear);
+    countMonth++)
+    {
+      for (var i = 0; i < transactionsData.length; i++)
+      {
+        // Da Redemptions immer eine Category haben, werden Sie beim unallozierten Geld nicht einbezogen
+        if ((transactionsData[i].bookingType === "Income" || transactionsData[i].bookingType === "Correction" ) 
+          && new Date(transactionsData[i].dateEntered).getMonth() + 1 == countMonth
+          && new Date(transactionsData[i].dateEntered).getFullYear() == countYear)
+        {
+          // Some Income and Corrections have a specific category, those are thus allocated and do not need to be considered.
+          if (transactionsData[i].amount[0].category == "Income" || transactionsData[i].amount[0].category == "Correction")
+          {
+            unallocatedAmount += parseFloat(transactionsData[i].amount[0].amount);
+          }
+        }
+      }
+
+        // Nun werden alle allozierungen abgezogen und damit errechnet, wie viel aktuell unalloziert sind.
+      for (var i = 0; i < categoryData.length; i++)
+      {
+        var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,countYear,countMonth);
+        var allocatedThisMonth = 0.0;
+        if (found != null)
+        {
+          allocatedThisMonth = categoryData[i].allocatedSinceReference[found].amount;
+        }
+        unallocatedAmount -= parseFloat(allocatedThisMonth);
+      }
+    }
   }
   $('#categoryUnallocatedMoney').html("<strong>Unallocated Amount: </strong>"+ unallocatedAmount.toFixed(2));
-  $('#categoryToBeAllocatedMoney').html("<strong>Total Income this Month: </strong>"+ toBeAllocatedThisPeriod.toFixed(2));
+  $('#categoryUnallocatedMoney').attr("val",unallocatedAmount.toFixed(2))
+  ///
+  //
+  
 
 
   // Empty content string
@@ -835,18 +898,6 @@ function populateCategoryTable() {
 
     tableContent += '<td><a href="#" class="linkshowcategory" rel="' + this._id + '">' + this.name + '</a></td>';
     
-    // 1. Find oldest Date in Transactions
-    var oldestDateFound = new Date();
-    for(var i=0; i < transactionsData.length; i++)
-    {
-      var thisDate = new Date(transactionsData[i].dateEntered);
-      if (dates.compare(thisDate,oldestDateFound) === -1)
-      {
-        oldestDateFound = thisDate;
-      }
-    }
-    
-
     // For every category:
       // Summiere transactionen bis selected Month / Year
 
@@ -863,7 +914,6 @@ function populateCategoryTable() {
   
 
     // Hier wird alles AUSSER dem aktuellen Monat durchgezählt
-    // (aktuell nur virtuell) (aktuell nur Debitoren inkludiert, Transactionen werden als Booked angenommen, Redemptions sind drinnen)
     var virtualCurrentMonthTotal = 0.0;
     var actualCurrentMonthTotal = 0.0;
     for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
@@ -888,81 +938,29 @@ function populateCategoryTable() {
               // If category and selectedDate matches 
               if(transactionsData[i].amount[j].category === this.name)
               {
-                if (transactionsData[i].bookingType === "Redemption")
-                {
-                  if (transactionsData[i].dateBooked != null)
-                  {
-                    actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-                  }
-  
-                  if (parseFloat(transactionsData[i].amount[j].amount) != parseFloat(transactionsData[i].amount[j].originalDebitorAmount))
-                  {
-                    var difference = parseFloat(transactionsData[i].amount[j].amount) - parseFloat(transactionsData[i].amount[j].originalDebitorAmount);
-                    virtualSpendingThisMonth += difference;
-                  }
-                }
-                else if(transactionsData[i].bookingType === "Payment")
+                if(transactionsData[i].bookingType === "Payment")
                 {
                   if (transactionsData[i].dateBooked != null)
                   {
                     actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
                   }
 
-                  // If no systems, just add the amount.
-                  if(this.systems == null || this.systems == [])
-                  {
-                    virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-                  }
-                  // If systems are present, calculate virtual amount
-                  else if (this.systems.length > 0)
-                  {
-                    var iHaveToPay = transactionsData[i].amount[j].amount;
-                    for (var k=0; k < this.systems.length; k++)
-                    {
-                      iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-                    }
-                    virtualSpendingThisMonth += iHaveToPay;
-                  }
+                  // just add the amount.
+                  virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
                 }
                 else if(transactionsData[i].bookingType === "Correction")
                 {
                   actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
 
-                  // If no systems, just add the amount.
-                  if(this.systems == null || this.systems == [])
-                  {
-                    virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-                  }
-                  // If systems are present, calculate virtual amount
-                  else if (this.systems.length > 0)
-                  {
-                    var iHaveToPay = transactionsData[i].amount[j].amount;
-                    for (var k=0; k < this.systems.length; k++)
-                    {
-                      iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-                    }
-                    virtualSpendingThisMonth += iHaveToPay;
-                  }
-                  else if(transactionsData[i].bookingType === "Income")
-                  {
-                    actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+                  // If just add the amount.
+                  virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+                }
+                else if(transactionsData[i].bookingType === "Income")
+                {
+                  actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
   
-                    // If no systems, just add the amount.
-                    if(this.systems == null || this.systems == [])
-                    {
-                      virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-                    }
-                    // If systems are present, calculate virtual amount
-                    else if (this.systems.length > 0)
-                    {
-                      var iHaveToPay = transactionsData[i].amount[j].amount;
-                      for (var k=0; k < this.systems.length; k++)
-                      {
-                        iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-                      }
-                      virtualSpendingThisMonth += iHaveToPay;
-                    }
-                  }
+                  // If no systems, just add the amount.
+                  virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
                 }
               }
             }
@@ -983,11 +981,11 @@ function populateCategoryTable() {
     }
 
     var amountSavedDisplayText = parseFloat(virtualCurrentMonthTotal).toFixed(2);
-    if (parseFloat(virtualCurrentMonthTotal).toFixed(2) != parseFloat(actualCurrentMonthTotal).toFixed(2))  
-    {
-      amountSavedDisplayText += ' (<font color="orange">'+ parseFloat(actualCurrentMonthTotal).toFixed(2) + '</font>)';
-    }  
-    tableContent += '<td id="categoryAmountSaved">' + amountSavedDisplayText + '</td>';
+    //if (parseFloat(virtualCurrentMonthTotal).toFixed(2) != parseFloat(actualCurrentMonthTotal).toFixed(2))  
+    //{
+    //  amountSavedDisplayText += ' (<font color="orange">'+ parseFloat(actualCurrentMonthTotal).toFixed(2) + '</font>)';
+    //}  
+    tableContent += '<td id="categoryAmountSaved" val="' + amountSavedDisplayText + '" valActualSavings="' + virtualCurrentMonthTotal.toFixed(2) + '">' + amountSavedDisplayText + '</td>';
 
 
 
@@ -995,13 +993,13 @@ function populateCategoryTable() {
     var allocatedThisMonth = 0.0;
     if (found != null)
     {
-      allocatedThisMonth = this.allocatedSinceReference[found].amount;
+      allocatedThisMonth = parseFloat(this.allocatedSinceReference[found].amount);
     }
-    tableContent += '<td><input type="text" class="m.1" rel="' + this._id + '" value="' + allocatedThisMonth + '" id="categoryAllocated">' + '</td>';
+    tableContent += '<td><input type="number" class="m.1" rel="' + this._id + '" value="' + allocatedThisMonth + '" id="categoryAllocated">' + '</td>';
 
 
 
-    // Hier wird der aktuelle Monat durchgezählt (aktuell nur virtuell) (aktuell nur Debitoren inkludiert, Transactionen werden als Booked angenommen, Redemptions sind drinnen)
+    // Hier wird der aktuelle Monat durchgezählt
     var virtualSpendingThisMonth = 0.0;   
     var actualSpendingThisMonth = 0.0;
     for(var i=0; i < transactionsData.length; i++)
@@ -1019,67 +1017,24 @@ function populateCategoryTable() {
               actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
             }
 
-            if(this.systems == null || this.systems == [])
-            {
-              virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-            }
-            else if (this.systems.length > 0)
-            {
-              var iHaveToPay = transactionsData[i].amount[j].amount;
-              for (var k=0; k < this.systems.length; k++)
-              {
-                iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-              }
-              virtualSpendingThisMonth += iHaveToPay;
-            }
-          }
-          else if (transactionsData[i].bookingType === "Redemption")
-          {
-            if (transactionsData[i].dateBooked != null)
-            {
-              actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-            }
-            if (parseFloat(transactionsData[i].amount[j].amount) != parseFloat(transactionsData[i].amount[j].originalDebitorAmount))
-            {
-              var difference = parseFloat(transactionsData[i].amount[j].amount) - parseFloat(transactionsData[i].amount[j].originalDebitorAmount);
-              virtualSpendingThisMonth += difference;
-            }
+            virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
           }
           else if (transactionsData[i].bookingType === "Correction")
           {
+            // Corrections are always applied immedeatly, they thus have no date by convention
             actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
 
-            if(this.systems == null || this.systems == [])
-            {
-              virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-            }
-            else if (this.systems.length > 0)
-            {
-              var iHaveToPay = transactionsData[i].amount[j].amount;
-              for (var k=0; k < this.systems.length; k++)
-              {
-                iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-              }
-              virtualSpendingThisMonth += iHaveToPay;
-            }
+            virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
           }
           else if (transactionsData[i].bookingType === "Income")
           {
-            actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
-
-            if(this.systems == null || this.systems == [])
+            // We exclude income that is unbooked and transactions that take place in the future
+            // For the calculation of the actual money
+            if (transactionsData[i].dateBooked != null )
             {
-              virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+              actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
             }
-            else if (this.systems.length > 0)
-            {
-              var iHaveToPay = transactionsData[i].amount[j].amount;
-              for (var k=0; k < this.systems.length; k++)
-              {
-                iHaveToPay -= parseFloat(this.systems[k].percentage) / 100.0 * transactionsData[i].amount[j].amount;
-              }
-              virtualSpendingThisMonth += iHaveToPay;
-            }
+            virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
           }
         }
       }
@@ -1087,32 +1042,41 @@ function populateCategoryTable() {
 
 
     var amountSpentDisplayText = "";
-    if (parseFloat(allocatedThisMonth) + parseFloat(virtualSpendingThisMonth) < 0.0)
+    if (parseFloat((virtualSpendingThisMonth).toFixed(2)) < 0.0
+       && (virtualSpendingThisMonth).toFixed(2) != "0.00")
     {
       amountSpentDisplayText += '<font color="red">'
     }
     amountSpentDisplayText += parseFloat(virtualSpendingThisMonth).toFixed(2);
-    if (parseFloat(allocatedThisMonth) + parseFloat(virtualSpendingThisMonth) < 0.0)
+    if (parseFloat((virtualSpendingThisMonth).toFixed(2))  < 0.0
+       && (virtualSpendingThisMonth).toFixed(2) != "0.00")
     {
       amountSpentDisplayText += '</font>'
     }
-    if (parseFloat(virtualSpendingThisMonth).toFixed(2) != parseFloat(actualSpendingThisMonth).toFixed(2))  
+    //if (parseFloat(virtualSpendingThisMonth).toFixed(2) != parseFloat(actualSpendingThisMonth).toFixed(2))  
+    //{
+    //  amountSpentDisplayText += ' (<font color="orange">'+ parseFloat(actualSpendingThisMonth).toFixed(2) + '</font>)';
+    //}  
+    tableContent += '<td id="categorySpentThisMonth" val="' + parseFloat(virtualSpendingThisMonth).toFixed(2);
+    tableContent += '" valClearedThisMonth="' + parseFloat(actualSpendingThisMonth).toFixed(2) + '">' + amountSpentDisplayText + '</td>';
+
+
+
+    
+    var virtualTotalFloat =  (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth);
+    tableContent += '<td id="categoryTotalAmount" val="' + virtualTotalFloat.toFixed(2);
+    tableContent += '" valCurrentBalance="' + (parseFloat(actualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth).toFixed(2) + '">';
+    if (parseFloat((virtualTotalFloat).toFixed(2)) < 0.0
+      &&(virtualTotalFloat).toFixed(2) != "0.00")
     {
-      amountSpentDisplayText += ' (<font color="orange">'+ parseFloat(actualSpendingThisMonth).toFixed(2) + '</font>)';
-    }  
-    tableContent += '<td id="categorySpentThisMonth">' + amountSpentDisplayText + '</td>';
-
-
-
-    tableContent += '<td id="categoryTotalAmount" >';
-    tableContent += (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
-    if ((parseFloat(virtualCurrentMonthTotal) + parseFloat(virtualSpendingThisMonth)).toFixed(2) 
-        != (parseFloat(actualCurrentMonthTotal) + parseFloat(actualSpendingThisMonth)).toFixed(2))  
+      tableContent += '<font color="red">'; 
+      tableContent += (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
+      tableContent += "</font>"
+    }
+    else
     {
-      tableContent += ' (<font color="orange">';
-      tableContent += (parseFloat(actualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth).toFixed(2);
-      tableContent += '</font>)';
-    } 
+      tableContent += (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
+    }
 
     tableContent += '</td>';
 
@@ -1121,7 +1085,7 @@ function populateCategoryTable() {
     tableContent += '</tr>';
   });
 
-  tableContent += '<tr id="summaryRow" class="table-success">'
+  tableContent += '<tr id="summaryRow" class="table-success" style="display:none">'
   tableContent += '<td>Marked Rows</td>';
   for (var i = 0; i < 6; i++)
   {
@@ -1132,8 +1096,8 @@ function populateCategoryTable() {
   // Inject the whole content string into our existing HTML table
   $('#categoryDatabaseView table tbody').html(tableContent);
 
-  $('#categoryDatabaseView table').off("click");
-  $('#categoryDatabaseView table').on('click', '.clickable-row', function(event) {
+  $('#categoryDatabaseView table .clickable-row').off("click");
+  $('#categoryDatabaseView table .clickable-row').on('click', function(event) {
     event.preventDefault();
     
     if($(this).hasClass('table-info'))
@@ -1169,8 +1133,23 @@ function populateCategoryTable() {
           //allocated += parseFloat($(this.categoryAllocated));
           allocated += parseFloat($($(this).find("#categoryAllocated")[0]).val());
           
-          spentThisMonth += parseFloat($($(this).find("#categorySpentThisMonth")[0]).html());
-          totalAmount += parseFloat($($(this).find("#categoryTotalAmount")[0]).html());
+          if($($(this).find("#categorySpentThisMonth")[0]).children().length === 0)
+          {
+            spentThisMonth += parseFloat($($(this).find("#categorySpentThisMonth")[0]).html());
+          }
+          else
+          {
+            spentThisMonth += parseFloat($($(this).find("#categorySpentThisMonth")[0]).attr("val"));
+          }
+          
+          if($($(this).find("#categoryTotalAmount")[0]).children().length === 0)
+          {
+            totalAmount += parseFloat($($(this).find("#categoryTotalAmount")[0]).html());
+          }
+          else
+          {
+            totalAmount += parseFloat($($(this).find("#categoryTotalAmount")[0]).attr("val"));
+          }
 
         }
       });
@@ -1186,17 +1165,39 @@ function populateCategoryTable() {
       $("#categoryDatabaseView table #summaryRow #1").html("");
       $("#categoryDatabaseView table #summaryRow #2").html("");
       $("#categoryDatabaseView table #summaryRow #3").html("");
+      //$("#categoryDatabaseView table #summaryRow").attr("style","display:none");
       //$('#categoryDatabaseView table #summaryRow').css("display","none");
     }
 
   });
 
 
+  $('#categoryDatabaseView table tbody input').each(function()
+  {
+    var displayString = parseFloat($('#categoryUnallocatedMoney').attr("val")).toFixed(2);
+    $(this).attr("title", "Unallocated: " + displayString);
+    $(this).tooltip();
+    $(this).tooltip("enable");
+  });
+
+  $('#categoryDatabaseView table tbody input').off("focus");
+  $('#categoryDatabaseView table tbody input').on("focus",function()
+  {
+    $(this).tooltip("open");
+  });
+
   $('#categoryDatabaseView table tbody input').off("blur");
   $('#categoryDatabaseView table tbody input').blur(function(event)
   {
     event.preventDefault();
 
+    $(this).tooltip("close");
+
+    var newVal = $(this).val();
+    if(newVal === "")
+    {
+      newVal = "0";
+    }
     var thisID = $(this).attr('rel');
 
      // Get our User Object
@@ -1215,22 +1216,22 @@ function populateCategoryTable() {
     var found = getIteratorFromAllocatedSinceReferenceArray(allocatedSinceReferenceArray,selectedYear,selectedMonth);
     if (found != null)
     {
-      allocatedSinceReferenceArray[found].amount = $(this).val();
+      allocatedSinceReferenceArray[found].amount = newVal;
     }
     else
     {
       if(Array.isArray(allocatedSinceReferenceArray))
       {
-        allocatedSinceReferenceArray.push({"amount":$(this).val(),"year":selectedYear,"month":selectedMonth});
+        allocatedSinceReferenceArray.push({"amount":newVal,"year":selectedYear,"month":selectedMonth});
       }
       else
       {
         allocatedSinceReferenceArray = [];
-        allocatedSinceReferenceArray.push({"amount":$(this).val(),"year":selectedYear,"month":selectedMonth});
+        allocatedSinceReferenceArray.push({"amount":newVal,"year":selectedYear,"month":selectedMonth});
       }
     }
 
-    if(thisUserObject != [] && $(this).val() != thisUserObject.val)
+    if(thisUserObject != [] && newVal != thisUserObject.val)
     {
       var category = {
         'name': thisUserObject.name,
@@ -1241,40 +1242,11 @@ function populateCategoryTable() {
         "allocatedSinceReference" : allocatedSinceReferenceArray
       }
 
-      $.ajax({
-        type: 'POST',
-        data: { "data" : JSON.stringify(category) },
-        url: '/db/categories_add',
-        dataType: 'json'
-      }).done(function( response ) {
-
-        // Check for successful (blank) response
-        if (response.msg === '') {
-
-
-        }
-        else {
-
-          // If something goes wrong, alert the error message that our service returned
-          alert('Error: ' + response.msg);
-
-        }
+      ajaxPUT_Category(category,thisID).done(function()
+      {
+        reloadDataAndRefreshDisplay();
       });
 
-      // Delete old entry
-      $.ajax({
-        type: 'DELETE',
-        url: '/db/categories_delete/' + thisID
-      }).done(function( response ) {
-        // Check for a successful (blank) response
-        if (response.msg === '') {
-          reloadData();
-          populateCategoryTable();
-        }
-        else {
-          alert('Error: ' + response.msg);
-        }
-      });
     }
   
   
@@ -1375,272 +1347,153 @@ function populateAccountInformation()
   
 };
 
-function showButtonsAddingTransaction(thisID) {
-  $('#addTransaction').html("");
+function prepareButtonsAddingTransaction() {
+  $( "#datepicker" ).datepicker({
+    dateFormat: "yy-mm-dd"
+  });
 
-  var dropdownAccount = $(document.createElement('div'));
-  dropdownAccount.attr("class","dropdown");
-
-  var dropdownAccount_b1 = $(document.createElement('button'));
-  dropdownAccount_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-  dropdownAccount_b1.attr("type","button");
-  dropdownAccount_b1.attr("data-toggle","dropdown");
-
-  if (thisID === null)
-    dropdownAccount_b1.html("Booking Type"); 
+  // Set starting Date 
+  if (lastPickedDateInSession != null)
+  {
+    $("#datepicker").val($.datepicker.formatDate( "yy-mm-dd", new Date(lastPickedDateInSession)));
+  }
   else
-    dropdownAccount_b1.html(thisID);
-
-  dropdownAccount.append(dropdownAccount_b1);
-
-  var divDropdown = $(document.createElement('div'));
-  divDropdown.attr("class","dropdown-menu");
-
-  var dropdownEntry1 = $(document.createElement('a'));
-  dropdownEntry1.attr("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry1.attr("href", "#");
-  // Here pick accounts dynamically
-  dropdownEntry1.html("Payment");
-  divDropdown.append(dropdownEntry1);
+  {
+    $("#datepicker").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
+  }
+  
 
 
-  var dropdownEntry2 = $(document.createElement('a'));
-  dropdownEntry2.attr("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry2.attr("href", "#");
-  // Here pick accounts dynamically
-  dropdownEntry2.html("Income");
-  divDropdown.append(dropdownEntry2);
+  if ($("#inputCategoryPayment1Button").parent().find(".dropdown-menu").children().length == 0)
+  {
+    // Extra None Entry:
+    var dropdownEntryNone = $(document.createElement('a'));
+    dropdownEntryNone.attr("class", "dropdown-item dropdown-item-categorySelection");
+    dropdownEntryNone.attr("href", "#");
+    dropdownEntryNone.html("None");
+    dropdownEntryNone.appendTo($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"));
+    dropdownEntryNone.clone().appendTo($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"));
+    //
+    for (var i = 0; i < categoryData.length; ++i)
+    {
+      var dropdownEntry = $(document.createElement('a'));
+      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
+      dropdownEntry.attr("href", "#");
+      dropdownEntry.html(categoryData[i].name);
+      dropdownEntry.appendTo($("#inputCategoryPayment1Button").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#inputCategoryPayment2Button").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#inputCategoryPayment3Button").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#inputCategoryPayment4Button").parent().find(".dropdown-menu"));
 
-  var dropdownEntry3 = $(document.createElement('a'));
-  dropdownEntry3.attr("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry3.attr("href", "#");
-  // Here pick accounts dynamically
-  dropdownEntry3.html("Transfer");
-  divDropdown.append(dropdownEntry3);
+      dropdownEntry.clone().appendTo($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"));
+    }
+  }
 
-  var dropdownEntry4 = $(document.createElement('a'));
-  dropdownEntry4.attr("class", "dropdown-item dropdown-item-paymentTypeSelection");
-  dropdownEntry4.attr("href", "#");
-  // Here pick accounts dynamically
-  dropdownEntry4.html("Correction");
-  divDropdown.append(dropdownEntry4);
-
-  dropdownAccount.append(divDropdown);
-
-  $('#addTransaction').append(dropdownAccount);
-  //$('#addTransaction').append($(document.createElement('br')));
+  $('.insertTransactionButtonToggleBooked').off("click");
+  $('.insertTransactionButtonToggleBooked').on("click", function()
+  {
+    if($.trim($(this).html()) == "Booked")
+    {
+      $(this).html("Not Booked");
+      $(this).removeClass("btn-success");
+      $(this).addClass("btn-warning");
+    }
+    else
+    {
+      $(this).html("Booked");
+      $(this).removeClass("btn-warning");
+      $(this).addClass("btn-success");
+    }
+  });
 
   $('#addTransactionButton').off("click");
-  if(thisID === "Payment")
+  $('#addTransactionButton').on("click",function(event)
   {
-    var textfieldDate = $(document.createElement('input'));
-    textfieldDate.attr("type", "text");
-    textfieldDate.attr("placeholder", "Date");
-    textfieldDate.attr("id", "datepickerPayment");
-    textfieldDate.attr("class", "m-2 p-2 datepicker");
-    $('#addTransaction').append(textfieldDate);
+    event.preventDefault();
 
-    $( function() {
-      $( "#datepickerPayment" ).datepicker();
-    } );
-
-    $( "#datepickerPayment" ).datepicker({
-      dateFormat: "yy-mm-dd"
-    });
-
-    $("#datepickerPayment").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
-    $('#addTransaction').append($(document.createElement('br')));
-    
-
-    var textfieldName = $(document.createElement('input'));
-    textfieldName.attr("type", "text");
-    textfieldName.attr("placeholder", "Name");
-    textfieldName.attr("id", "inputName");
-    textfieldName.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldName);
-    
-
-    var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.attr("type", "text");
-    textfieldAccount.attr("placeholder", "Account");
-    textfieldAccount.attr("id", "inputAccount");
-    textfieldAccount.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount 1");
-    textfieldTotalamount.attr("id", "inputAmount1");
-    $('#addTransaction').append(textfieldTotalamount);
-    textfieldTotalamount.attr("class", "m-2 p-2");
-
-    // CATEGORY DROPDOWN
-    var dropdownCategory1 = $(document.createElement('div'));
-    dropdownCategory1.attr("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategory1Button");
-    dropdownCat_b1.attr("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category 1"); 
-    dropdownCategory1.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
-    for (var i = 0; i < categoryData.length; ++i)
+    var currentTransactionKind = null
+    var currentTransactionDivName = null
+    if($('#addTransaction #payment').attr("style") != "display:none")
     {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
+      currentTransactionKind = "Payment";
+      currentTransactionDivName = "#payment";
+    } else if ($('#addTransaction #income').attr("style") != "display:none") 
+    {
+      currentTransactionKind = "Income";
+      currentTransactionDivName = "#income";
+    } else if ($('#addTransaction #transfer').attr("style") != "display:none")
+    {
+      currentTransactionKind = "Transfer";
+      currentTransactionDivName = "#transfer";
+    } else if ($('#addTransaction #correction').attr("style") != "display:none")
+    {
+      currentTransactionKind = "Correction";
+      currentTransactionDivName= "#correction";
     }
-    dropdownCategory1.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory1);
-    //
-   
 
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount 2");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    textfieldTotalamount.attr("id", "inputAmount2");
-    $('#addTransaction').append(textfieldTotalamount);
-    
-
-    // CATEGORY DROPDOWN
-    var dropdownCategory2 = $(document.createElement('div'));
-    dropdownCategory2.attr("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategory2Button");
-    dropdownCat_b1.attr("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category 2"); 
-    dropdownCategory2.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
-    for (var i = 0; i < categoryData.length; ++i)
+    // Super basic validation - increase errorCount variable if any fields are blank
+    var errorSubmission = false;
+    if (currentTransactionKind == "Payment" || currentTransactionKind == "Income")
     {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory2.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory2);
-    //
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount 3");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    textfieldTotalamount.attr("id", "inputAmount3");
-    $('#addTransaction').append(textfieldTotalamount);
-    
-    // CATEGORY DROPDOWN
-    var dropdownCategory3 = $(document.createElement('div'));
-    dropdownCategory3.attr("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategory3Button");
-    dropdownCat_b1.attr("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category 3"); 
-    dropdownCategory3.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory3.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory3);
-    //
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount 4");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    textfieldTotalamount.attr("id", "inputAmount4");
-    $('#addTransaction').append(textfieldTotalamount);
-    
-    // CATEGORY DROPDOWN
-    var dropdownCategory4 = $(document.createElement('div'));
-    dropdownCategory4.attr("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategory4Button");
-    dropdownCat_b1.attr("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category 4"); 
-    dropdownCategory4.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory4.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory4);
-    //
-
-    var buttonBooked = $(document.createElement('button'));
-    buttonBooked.attr("type", "text");
-    buttonBooked.attr("class", "btn btn-success m-2 p-2");
-    buttonBooked.html("Booked");
-    buttonBooked.attr("id", "insertTransactionPaymentButtonToggleBooked");
-    $('#addTransaction').append(buttonBooked);
-    $('#addTransaction').append($(document.createElement('br'))); 
-
-    $('#insertTransactionPaymentButtonToggleBooked').off("click");
-    $('#insertTransactionPaymentButtonToggleBooked').on("click", function()
-    {
-      if($(this).html() === "Booked")
-      {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
-      }
-      else
-      {
-        $(this).html("Booked");
-        $(this).removeClass("btn-warning");
-        $(this).addClass("btn-success");
-      }
-    });
-
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
       if(
-        $('#addTransaction input#inputName').val() == "" 
-        || $('#addTransaction input#inputAccount').val() == "" 
-        || $('#addTransaction input#inputAmount1').val() == "" 
-        || $('#addTransaction #inputCategory1Button').html() == "" 
+        $('#addTransaction '+ currentTransactionDivName +' .inputName').val() == "" 
+        || $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' .category1Button').html() == "" 
       )
       {
         errorSubmission = true
       }
+    }
+    else if (currentTransactionKind == "Transfer")
+    {
+      if(
+          $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' .targetAccount').val() == "" 
+      )
+      {
+        errorSubmission = true
+      }
+    }
+    else if (currentTransactionKind == "Correction")
+    {
+      if(
+          $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+      )
+      {
+        errorSubmission = true
+      }
+      var foundMatchingAccount = -1;
+      for (var i = 0; i < accountData.length; ++i)
+      {
+        if(accountData[i].name === $('#addTransaction #general .inputAccount').val())
+        {
+          foundMatchingAccount = i;
+          break;
+        }
+      }
+      if (foundMatchingAccount == -1)
+      {
+        errorSubmission = true
+      }
+    }
+    else
+    {
+      errorSubmission = true
+    }
 
+    if(currentTransactionKind == "Payment"
+      || (currentTransactionKind == "Income" && $("#inputCategoryIncomeButton").html() != "None" && $("#inputCategoryIncomeButton").html() != "Pick Category (optional)")
+      || (currentTransactionKind == "Correction" && $("#inputCategoryCorrectionButton").html() != "None" && $("#inputCategoryCorrectionButton").html() != "Pick Category (optional)")
+      )
+    {
       var foundCategory = false;
       for (var i = 0; i < categoryData.length; ++i)
       {
-        var debug1 = $('#addTransaction #inputCategory1Button');
-        if(categoryData[i].name === $('#addTransaction #inputCategory1Button').html())
+        if(categoryData[i].name === $('#addTransaction '+ currentTransactionDivName +' .category1Button').html())
         {
           foundCategory = true;
           break;
@@ -1650,550 +1503,187 @@ function showButtonsAddingTransaction(thisID) {
       {
         errorSubmission = true;
       }
+    }
 
-      // Check and make sure errorCount's still at zero
-      if(! errorSubmission && foundCategory) {
-    
-        // If it is, compile all user info into one object
-        var newTransaction = {
-          'name': $('#addTransaction input#inputName').val(),
-          'account': $('#addTransaction input#inputAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerPayment').val())).getTime(),
-          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? Date.now() : null,
-          'amount' : [
-            {
-              "category" : $('#addTransaction #inputCategory1Button').html(),
-              "amount" : (parseFloat($('#addTransaction input#inputAmount1').val()) * -1.0).toString()
-            }
-          ]
+    // Check and make sure errorCount's still at zero
+    if(! errorSubmission) {
+  
+      // Set our Object that keeps track of the last entered Date for the current session:
+      lastPickedDateInSession = new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepicker').val())).getTime();
+
+      // If it is, compile all user info into one object
+      var newTransaction = {
+        'name': $('#addTransaction ' + currentTransactionDivName + ' .inputName').val(),
+        'account': $('#addTransaction ' + "#general" + ' .inputAccount').val(),
+        'bookingType': currentTransactionKind,
+        'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getTime(),
+        'dateBooked': $.trim($('#addTransaction ' + currentTransactionDivName + ' .insertTransactionButtonToggleBooked').html()) === "Booked" ? Date.now() : null,
+        'amount' : [
+          {
+            "category" : $('#addTransaction ' + currentTransactionDivName + ' .category1Button').html(),
+            "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount1').val()) * -1.0).toString()
+          }
+        ]
+      }
+
+      // Modifications of the generic object based on its type
+      if(currentTransactionKind == "Income") 
+      {
+        newTransaction.amount[0].amount = (parseFloat(newTransaction.amount[0].amount) * -1.0).toFixed(2);
+        if($("#inputCategoryIncomeButton").html() == "None" || $("#inputCategoryIncomeButton").html() == "Pick Category (optional)")
+        {
+          newTransaction.amount[0].category = "Income"
         }
-
+      }
+      else if (currentTransactionKind == "Transfer")
+      {
+        newTransaction.name = "Transfer"
+        newTransaction.amount[0].category = "Transfer"
+        newTransaction.targetAccount = $('#addTransaction '+ currentTransactionDivName +' .targetAccount').val();
+      }
+      else if (currentTransactionKind == "Correction")
+      {
+        var foundMatchingAccount = -1;
+        for (var i = 0; i < accountData.length; ++i)
+        {
+          if(accountData[i].name === $('#addTransaction #general .inputAccount').val())
+          {
+            foundMatchingAccount = i;
+            break;
+          }
+        }
+        var debug = parseFloat($('#addTransaction #correction .inputAmount').val());
+        var correctionAmount = (parseFloat($('#addTransaction #correction .inputAmount').val()) - parseFloat(accountData[foundMatchingAccount].totalCurrent))
+        newTransaction.dateBooked = new Date().getTime();
+        newTransaction.name = "Correction";
+        if (($("#inputCategoryCorrectionButton").html() == "None" || $("#inputCategoryCorrectionButton").html() == "Pick Category (optional)"))
+        {
+          newTransaction.amount[0].category = "Correction"
+        }
+        newTransaction.amount[0].amount = correctionAmount;
+      }
+      else if (currentTransactionKind == "Payment")
+      {
         for (var i = 0; i < 2; ++i)
         {
-          if($('#addTransaction #inputCategory' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() && $('#addTransaction input#inputAmount'+ (i+2).toString()).val() != "")
+          if($('#addTransaction ' + currentTransactionDivName + ' #inputCategoryPayment' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() && $('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val() != "")
           {
             newTransaction.amount.push(
               {
-                "category": $('#addTransaction #inputCategory'+ (i+2).toString() + "Button").html() ,
-                "amount" : (parseFloat($('#addTransaction input#inputAmount'+ (i+2).toString()).val()) * -1.0).toString()
+                "category": $('#addTransaction ' + currentTransactionDivName + ' #inputCategoryPayment'+ (i+2).toString() + "Button").html() ,
+                "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val()) * -1.0).toString()
               });
           }
         }
-    
-        // Use AJAX to post the object to our adduser service
-        $.ajax({
-          type: 'POST',
-          data: {data : JSON.stringify(newTransaction) },
-          url: '/db/transactions_add',
-          dataType: 'JSON'
-        }).done(function( response ) {
-    
-          // Check for successful (blank) response
-          if (response.msg === '') {
-            //alert('Done');
-            // Clear the form inputs
-            $('#addTransaction input').val('');
-            $('#addTransactionButton').off("click");
-            reloadData();
-            $('#DisplayDB').click();
-           
-    
-          }
-          else {
-    
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-    
-          }
-        });
-
-        
       }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred.');
-      }
-    });
-  }
-  else if (thisID === "Income")
-  {
-    var textfieldDate = $(document.createElement('input'));
-    textfieldDate.attr("type", "text");
-    textfieldDate.attr("placeholder", "Date");
-    textfieldDate.attr("id", "datepickerIncome");
-    textfieldDate.attr("class", "m-2 p-2 datepicker");
-    $('#addTransaction').append(textfieldDate);
-
-    $( function() {
-      $( "#datepickerIncome" ).datepicker();
-    } );
-
-    $( "#datepickerIncome" ).datepicker({
-      dateFormat: "yy-mm-dd"
-    });
-
-    $("#datepickerIncome").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
-    $('#addTransaction').append($(document.createElement('br')));
-    
-
-    var textfieldName = $(document.createElement('input'));
-    textfieldName.attr("type", "text");
-    textfieldName.attr("placeholder", "Name");
-    textfieldName.attr("id", "inputName");
-    textfieldName.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldName);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount");
-    textfieldTotalamount.attr("id", "inputAmount");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldTotalamount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.attr("type", "text");
-    textfieldAccount.attr("placeholder", "Account");
-    textfieldAccount.attr("id", "inputAccount");
-    textfieldAccount.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    // CATEGORY DROPDOWN
-    var dropdownCategory = $(document.createElement('div'));
-    dropdownCategory.attr("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategoryButton");
-    dropdownCat_b1.attr("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category (optional)"); 
-    dropdownCategory.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
-    var dropdownEntry = $(document.createElement('a'));
-    dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-    dropdownEntry.attr("href", "#");
-    dropdownEntry.html("No category");
-    divDropdown.append(dropdownEntry);
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory);
-    //
-
-    var buttonBooked = $(document.createElement('button'));
-    buttonBooked.attr("type", "text");
-    buttonBooked.attr("class", "btn btn-success m-2 p-2");
-    buttonBooked.html("Booked");
-    buttonBooked.attr("id", "insertTransactionPaymentButtonToggleBooked");
-    $('#addTransaction').append(buttonBooked);
-    $('#addTransaction').append($(document.createElement('br'))); 
-
-    $('#insertTransactionPaymentButtonToggleBooked').off("click");
-    $('#insertTransactionPaymentButtonToggleBooked').on("click", function()
-    {
-      // Future Transactions can never be booked. Only past ones can be booked
-      if (new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerIncome').val())) > new Date())
-      {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
-      }
-      else
-      {
-        if($(this).html() === "Booked")
+  
+      ajaxPOST_Transaction(newTransaction).done(function()
         {
-          $(this).html("Not Booked");
-          $(this).removeClass("btn-success");
-          $(this).addClass("btn-warning");
-        }
-        else
-        {
-          $(this).html("Booked");
-          $(this).removeClass("btn-warning");
-          $(this).addClass("btn-success");
-        }
-      }
-    });
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addTransaction input#inputAccount').val() == "" 
-        || $('#addTransaction input#inputAmount').val() == ""  
-        || $('#addTransaction input#inputName').val() == ""  
-      )
-      {
-        errorSubmission = true
-      }
-
-      if(!errorSubmission ) 
-      {
-        var newTransaction = {
-          'name': $('#addTransaction input#inputName').val(),
-          'account': $('#addTransaction input#inputAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerIncome').val())).getTime(),
-          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerIncome').val())).getTime() : null,
-          'amount' : [
-            {
-              "category" : ($('#addTransaction #inputCategoryButton').html() === "No category" 
-                || $('#addTransaction #inputCategoryButton').html() === "Pick Category (optional)") ? "Income" : $('#addTransaction #inputCategoryButton').html(),
-              "amount" : $('#addTransaction input#inputAmount').val()
-            }
-          ]
-        }
-    
-        // Use AJAX to post the object to our adduser service
-        $.ajax({
-          type: 'POST',
-          data: {data : JSON.stringify(newTransaction) },
-          url: '/db/transactions_add',
-          dataType: 'JSON'
-        }).done(function( response ) {
-    
-          // Check for successful (blank) response
-          if (response.msg === '') {
-    
-            // Clear the form inputs
-            $('#addTransaction input').val('');
-            $('#addTransactionButton').off("click");
-            reloadData();
-            $('#DisplayDB').click();
-
-    
-          }
-          else {
-    
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-    
-          }
-        });
-
-        
-      }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred. Please fill in the relevant fields.');
-        return false;
-      }
-    });
-  }
-  else if (thisID === "Transfer")
-  {
-    //$('#addTransaction').append($(document.createElement('br')));
-    var textfieldDate = $(document.createElement('input'));
-    textfieldDate.attr("type", "text");
-    textfieldDate.attr("placeholder", "Date");
-    textfieldDate.attr("id", "datepickerTransfer");
-    textfieldDate.attr("class", "m-2 p-2 datepicker");
-    $('#addTransaction').append(textfieldDate);
-
-    $( function() {
-      $( "#datepickerTransfer" ).datepicker();
-    } );
-
-    $( "#datepickerTransfer" ).datepicker({
-      dateFormat: "yy-mm-dd"
-    });
-
-    $("#datepickerTransfer").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Amount");
-    textfieldTotalamount.attr("id", "inputAmount");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldTotalamount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.attr("type", "text");
-    textfieldAccount.attr("placeholder", "From Account");
-    textfieldAccount.attr("id", "inputAccount");
-    textfieldAccount.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount);
-    $('#addTransaction').append($(document.createElement('br')));
-    
-    var textfieldAccount2 = $(document.createElement('input'));
-    textfieldAccount2.attr("type", "text");
-    textfieldAccount2.attr("placeholder", "To Account");
-    textfieldAccount2.attr("id", "targetAccount");
-    textfieldAccount2.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount2);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    var buttonBooked = $(document.createElement('button'));
-    buttonBooked.attr("type", "text");
-    buttonBooked.attr("class", "btn btn-success m-2 p-2");
-    buttonBooked.html("Booked");
-    buttonBooked.attr("id", "insertTransactionPaymentButtonToggleBooked");
-    $('#addTransaction').append(buttonBooked);
-    $('#addTransaction').append($(document.createElement('br'))); 
-
-    $('#insertTransactionPaymentButtonToggleBooked').off("click");
-    $('#insertTransactionPaymentButtonToggleBooked').on("click", function()
-    {
-      // Future Transactions can never be booked. Only past ones can be booked
-      if (new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerTransfer').val())) > new Date())
-      {
-        $(this).html("Not Booked");
-        $(this).removeClass("btn-success");
-        $(this).addClass("btn-warning");
-      }
-      else
-      {
-        if($(this).html() === "Booked")
-        {
-          $(this).html("Not Booked");
-          $(this).removeClass("btn-success");
-          $(this).addClass("btn-warning");
-        }
-        else
-        {
-          $(this).html("Booked");
-          $(this).removeClass("btn-warning");
-          $(this).addClass("btn-success");
-        }
-      }
-    });
-
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addTransaction input#targetAccount').val() == "" 
-        || $('#addTransaction input#inputAccount').val() == "" 
-        || $('#addTransaction input#inputAmount').val() == ""  
-      )
-      {
-        errorSubmission = true
-      }
-      // Check and make sure errorCount's still at zero
-      if(! errorSubmission) {
-    
-        // If it is, compile all user info into one object
-        var newTransaction = {
-          'name': "Transfer",
-          'account': $('#addTransaction input#inputAccount').val(),
-          'targetAccount' : $('#addTransaction input#targetAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerTransfer').val())).getTime(),
-          'dateBooked': $('#insertTransactionPaymentButtonToggleBooked').html() === "Booked" ? new Date($.datepicker.parseDate( "yy-mm-dd",$('#datepickerTransfer').val())).getTime() : null,
-          'amount' : [
-            {
-              "category" : "Transfer",
-              "amount" : $('#addTransaction input#inputAmount').val()
-            }
-          ]
-        }
-    
-        // Use AJAX to post the object to our adduser service
-        $.ajax({
-          type: 'POST',
-          data: {data : JSON.stringify(newTransaction) },
-          url: '/db/transactions_add',
-          dataType: 'JSON'
-        }).done(function( response ) {
-    
-          // Check for successful (blank) response
-          if (response.msg === '') {
-    
-            // Clear the form inputs
-            $('#addTransaction input').val('');
-            $('#addTransactionButton').off("click");
-            reloadData();
-            $('#DisplayDB').click();
-
-    
-          }
-          else {
-    
-            // If something goes wrong, alert the error message that our service returned
-            alert('Error: ' + response.msg);
-    
-          }
-        });
-
-        
-      }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred. Please fill in the relevant fields.');
-        return false;
-      }
-    });
-  }
-  else if (thisID === "Correction")
-  {
-    var textfieldTotalamount = $(document.createElement('input'));
-    textfieldTotalamount.attr("type", "number");
-    textfieldTotalamount.attr("placeholder", "Target Balance");
-    textfieldTotalamount.attr("id", "inputAmount");
-    textfieldTotalamount.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldTotalamount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    // CATEGORY DROPDOWN
-    var dropdownCategory = $(document.createElement('div'));
-    dropdownCategory.attr("class","dropdown");
-    var dropdownCat_b1 = $(document.createElement('button'));
-    dropdownCat_b1.attr("class", "btn btn-secondary dropdown-toggle my-3");
-    dropdownCat_b1.attr("type","button");
-    dropdownCat_b1.attr("id","inputCategoryButton");
-    dropdownCat_b1.attr("data-toggle","dropdown");
-    dropdownCat_b1.html("Pick Category (optional)"); 
-    dropdownCategory.append(dropdownCat_b1);
-    var divDropdown = $(document.createElement('div'));
-    divDropdown.attr("class","dropdown-menu");
-    var dropdownEntry = $(document.createElement('a'));
-    dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-    dropdownEntry.attr("href", "#");
-    dropdownEntry.html("No category");
-    divDropdown.append(dropdownEntry);
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      divDropdown.append(dropdownEntry);
-    }
-    dropdownCategory.append(divDropdown);
-    $('#addTransaction').append(dropdownCategory);
-    //
-
-    var textfieldAccount = $(document.createElement('input'));
-    textfieldAccount.attr("type", "text");
-    textfieldAccount.attr("placeholder", "Account");
-    textfieldAccount.attr("id", "inputAccount");
-    textfieldAccount.attr("class", "m-2 p-2");
-    $('#addTransaction').append(textfieldAccount);
-    $('#addTransaction').append($(document.createElement('br')));
-
-    $('#addTransactionButton').on("click",function(event)
-    {
-      event.preventDefault();
-
-      // Super basic validation - increase errorCount variable if any fields are blank
-      var errorSubmission = false;
-      if(
-        $('#addTransaction input#inputAccount').val() == "" 
-        || $('#addTransaction input#inputAmount').val() == ""  
-      )
-      {
-        errorSubmission = true
-      }
-
-      if(accountData.length === 0)
-      {
-        populateAccountInformation();
-      }
-      var foundMatchingAccount = -1;
-      for (var i = 0; i < accountData.length; ++i)
-      {
-        if(accountData[i].name === $('#addTransaction input#inputAccount').val())
-        {
-          foundMatchingAccount = i;
-          break;
-        }
-      }
-
-      if(!errorSubmission && foundMatchingAccount != -1) 
-      {
-        var correctionAmount = (parseFloat($('#addTransaction input#inputAmount').val()) - parseFloat(accountData[foundMatchingAccount].totalCurrent))
-        var newTransaction = {
-          'name': "Correction",
-          'account': $('#addTransaction input#inputAccount').val(),
-          'bookingType': thisID,
-          'dateEntered': Date.now(),
-          'dateBooked': Date.now(),
-          'amount' : [
-            {
-              "category" : ($('#addTransaction #inputCategoryButton').html() != "Pick Category (optional)" 
-                && $('#addTransaction #inputCategoryButton').html() != "No category" ) ? $('#addTransaction #inputCategoryButton').html() : "Correction",
-              "amount" : correctionAmount.toString()    
-            }
-          ]
-        }
-    
-        // Use AJAX to post the object to our adduser service
-        if(correctionAmount != 0.0)
-        {
-          $.ajax({
-            type: 'POST',
-            data: {data : JSON.stringify(newTransaction) },
-            url: '/db/transactions_add',
-            dataType: 'JSON'
-          }).done(function( response ) {
-          
-            // Check for successful (blank) response
-            if (response.msg === '') {
-            
-              // Clear the form inputs
-              $('#addTransaction input').val('');
-              $('#addTransactionButton').off("click");
-              reloadData();
-              $('#DisplayDB').click();
-
-            
-            }
-            else {
-            
-              // If something goes wrong, alert the error message that our service returned
-              alert('Error: ' + response.msg);
-            
-            }
-          });
-        }
-        else
-        {
-          $('#addTransaction input').val('');
-          $('#addTransactionButton').off("click");
-          reloadData();
+          $('#addTransaction ' + currentTransactionDivName + ' input').val('');
+          reloadDataAndRefreshDisplay();
           $('#DisplayDB').click();
         }
-      }
-      else {
-        // If errorCount is more than 0, error out
-        alert('Error occurred.');
+      );
+
+      
+    }
+    else 
+	  {
+      // If errorCount is more than 0, error out
+      alert('Error occurred. Data is incomplete.');
+    }
+  });
+
+  $('#addTransaction #payment .inputAmount').keyup(function () {
+    var summedVal = 0.0;
+    $('#addTransaction #payment .inputAmount').each(function(i,obj)
+    {
+      if(parseFloat(obj.value) != NaN && obj.value != "")
+      {
+        summedVal = summedVal + parseFloat(obj.value);
       }
     });
-  }
+    $('#addTransaction #payment #summedAmounts').html("Summed Amount: " + summedVal.toFixed(2));
+
+  });
+
 
   $('.dropdown-item-paymentTypeSelection').off("click");
   $('.dropdown-item-paymentTypeSelection').on('click', function(event)
   {
-
+    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
     // Prevent Link from Firing
     event.preventDefault();
 
-    // Retrieve username from link rel attribute
+    // Retrieve username from link rel ibute
     var thisID = $(this).html();
-
-
-    showButtonsAddingTransaction(thisID);
-
+    $("#addTransaction #general").attr("style","display:block");
+	  if (thisID === "Payment")
+	  {
+      if($("#addTransaction #payment").attr("style") == "display:block")
+      {
+        $('#addTransaction ' + "#payment" + ' input').val('');
+      }
+      else
+      {
+        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount 1");
+	      $("#addTransaction #payment").attr("style","display:block");
+	      $("#addTransaction #income").attr("style","display:none");
+	      $("#addTransaction #transfer").attr("style","display:none");
+        $("#addTransaction #correction").attr("style","display:none");
+        $("#addTransaction #general #inputAccount").attr("placeholder","Account");
+      }
+    }
+    else if (thisID === "Income")
+	  {
+      if($("#addTransaction #income").attr("style") == "display:block")
+      {
+        $('#addTransaction ' + "#income" + ' input').val('');
+      }
+      else
+      {
+        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount");
+	      $("#addTransaction #income").attr("style","display:block");
+	      $("#addTransaction #payment").attr("style","display:none");
+	      $("#addTransaction #transfer").attr("style","display:none");
+        $("#addTransaction #correction").attr("style","display:none");
+        $("#addTransaction #general #inputAccount").attr("placeholder","Account");
+      }
+    }
+    else if (thisID === "Transfer")
+	  {
+      if($("#addTransaction #transfer").attr("style") == "display:block")
+      {
+        $('#addTransaction ' + "#transfer" + ' input').val('');
+      }
+      else
+      {
+        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount");
+        $("#addTransaction #general #inputAccount").attr("placeholder","From Account");
+	      $("#addTransaction #transfer").attr("style","display:block");
+	      $("#addTransaction #payment").attr("style","display:none");
+	      $("#addTransaction #income").attr("style","display:none");
+        $("#addTransaction #correction").attr("style","display:none");
+      }
+    }
+    else if (thisID === "Correction")
+	  {
+      if($("#addTransaction #correction").attr("style") == "display:block")
+      {
+        $('#addTransaction ' + "#correction" + ' input').val('');
+      }
+      else
+      {
+        $("#addTransaction #general #inputAmount1").attr("placeholder","Target Amount");
+        $("#addTransaction #general #inputAccount").attr("placeholder","Account");
+	      $("#addTransaction #correction").attr("style","display:block");
+	      $("#addTransaction #payment").attr("style","display:none");
+	      $("#addTransaction #income").attr("style","display:none");
+        $("#addTransaction #transfer").attr("style","display:none");
+      }
+	  }
   })
+  
   $('.dropdown-item-categorySelection').off("click");
   $('.dropdown-item-categorySelection').on('click', function(event)
   {
@@ -2202,16 +1692,6 @@ function showButtonsAddingTransaction(thisID) {
 
     $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
   })
-
-  $('#addTransaction').append($(document.createElement('br'))); 
-
-  categoryNames = []
-  for (catItem in categoryData)
-  {
-    categoryNames.push(catItem.name);
-  }
-  //$('.categoryInputField').autocomplete({source: categoryNames});
-
 };
 
 // Show User Info
@@ -2220,7 +1700,7 @@ function showTransactionInfo(event) {
   // Prevent Link from Firing
   event.preventDefault();
 
-  // Retrieve username from link rel attribute
+  // Retrieve username from link rel ibute
   var thisID = $(this).attr('rel');
   
   // Get our User Object
@@ -2236,46 +1716,117 @@ function showTransactionInfo(event) {
 
   //perform error checking here.
 
-  if(thisUserObject != [])
+  $("#transactionList table tbody tr").each(function(i,obj)
   {
-    //Populate Info Box
-    $('#transactionInfoDateEntered').text(new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10));
-    $('#transactionInfoDateBooked').text(/**/thisUserObject.dateBooked === null ? null : ( new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10) )/**/);
-    $('#transactionInfoName').text(thisUserObject.name);
-    $('#transactionInfoID').text(thisUserObject._id);
-    $('#transactionInfoAccount').text(thisUserObject.account);
-    $('#transactionInfoBookingType').text(thisUserObject.bookingType);
+    if(thisID === $(obj).find("td")[0].childNodes[0].rel)
+    {
+      var newHTML = '<br><div id="transactionDetails" style="display:block">'
+      newHTML += "<strong>Name: </strong>";
+      newHTML += '<input type="text" value="' + thisUserObject.name + '"id="modifyTransactionInputName' + thisID + '">';
+      newHTML += "<br>"
+      newHTML += "<strong>Date Entered: </strong>";
+      newHTML += '<input type="text" id="modifyTransactionDatepicker' + thisID + '">';
+      //newHTML += new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10);
+      newHTML += "<br>"
+      newHTML += "<strong>Account: </strong>";
+      newHTML += '<input type="text" value="' + thisUserObject.account + '"id="modifyTransactionInputAccount' + thisID + '">';
+      newHTML += "<br>"
+      newHTML += "<strong>Booking Type: </strong>";
+      newHTML += thisUserObject.bookingType;
+      newHTML += "<br>"
+      if(thisUserObject.bookingType == "Transfer")
+      {
+        newHTML += "<strong>Target Account: </strong>";
+        //newHTML += thisUserObject.targetAccount;
+        newHTML += '<input type="text" value="' + thisUserObject.targetAccount + '"id="modifyTransactionInputTargetAccount' + thisID + '">';
+        newHTML += "<br>"
+      }
+      var totalAmount = 0.0;
+      var categoriesString = "";
+      for (var j=0; j < thisUserObject.amount.length; ++j)
+      {
+        totalAmount = totalAmount + parseFloat(thisUserObject.amount[j].amount);
+        categoriesString += '<div style="padding-left:5em">' + thisUserObject.amount[j].category.toString() + ": ";
+        categoriesString += '<input type="number" value="' + parseFloat(thisUserObject.amount[j].amount).toFixed(2) + '" id="modifyTransactionCategory' + j.toString() + '_' + thisID + '"></div>';
+      }
+      newHTML += categoriesString;
+      newHTML += "<strong>Total Amount: </strong>";
+      newHTML += totalAmount.toFixed(2);
+      newHTML += "<br>";
 
-    if(thisUserObject.bookingType == "Transfer")
-    {
-      $('#transactionInfoTargetAccount').text(thisUserObject.targetAccount);
-    }
-    else
-    {
-      $('#transactionInfoTargetAccount').text("");
-    }
+      newHTML += '<button type="text" id="'+ thisID +'" class="btn btn-success m-1 p-1 modifyTransactionButton" rel="' + thisUserObject._id + '">Update</button></div>'
+      if($(obj).find(".transactionTableName #transactionDetails").exists())
+      {
+        if($(obj).find(".transactionTableName #transactionDetails").attr("style") === "display:none")
+        {
+          $(obj).find(".transactionTableName #transactionDetails").attr("style","display:block")
+        }
+        else
+        {
+          $(obj).find(".transactionTableName #transactionDetails").attr("style","display:none");
+        }
+      }
+      else
+      {
+        $(obj).find(".transactionTableName").html($(obj).find(".transactionTableName").html() + newHTML);
+      }
+
+      $( '#modifyTransactionDatepicker' + thisID ).datepicker({
+        dateFormat: "yy-mm-dd"
+      });
+      $('#modifyTransactionDatepicker' + thisID ).val($.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(thisUserObject.dateEntered)) ));
+
     
-    var totalAmount = 0.0;
-    var categoriesString = "";
-    for (var i=0; i < thisUserObject.amount.length; ++i)
-    {
-      totalAmount = totalAmount + parseFloat(thisUserObject.amount[i].amount);
-      categoriesString += thisUserObject.amount[i].category.toString() + " - " + parseFloat(thisUserObject.amount[i].amount).toFixed(2) + "<br>";
+      $(".modifyTransactionButton").off("click");
+      $(".modifyTransactionButton").on("click",function()
+      {
+        var currentID = $(this).attr("rel");
+
+        // Get our User Object
+        var foundIter = null;
+        for (var i=0; i < transactionsData.length; ++i)
+        {
+          if(transactionsData[i]._id == currentID)
+          {
+            foundIter = i;
+            break;
+          }
+        }
+        if (foundIter != null)
+        {
+          transactionsData[foundIter].name = $(this).parent().find("#modifyTransactionInputName" + transactionsData[foundIter]._id).val();
+          //var debug1 = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + foundIter.toString()).val()));
+          //var debug2 = $(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id);
+          //var debug3 = $.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val());
+          transactionsData[foundIter].dateEntered = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val())).getTime();
+          transactionsData[foundIter].account = $(this).parent().find("#modifyTransactionInputAccount" + transactionsData[foundIter]._id).val();
+          if(transactionsData[foundIter].bookingType == "Transfer")
+          {
+            transactionsData[foundIter].targetAccount = $(this).parent().find("#modifyTransactionInputTargetAccount" + transactionsData[foundIter]._id).val();
+          }
+          for (var j = 0; j < transactionsData[foundIter].amount.length; j++)
+          {
+            transactionsData[foundIter].amount[j].amount = $(this).parent().find('#modifyTransactionCategory' + j.toString() + '_' + transactionsData[foundIter]._id).val();
+          }
+          ajaxPUT_Transaction(transactionsData[foundIter]).then(function()
+          {
+            reloadDataAndRefreshDisplay();
+          });
+        }
+        else
+        {
+          alert ("Something went wrong when updating the transaction.");
+        }
+      });
     }
-    $('#transactionInfoTotalAmount').text(totalAmount.toFixed(2));
-
-
-    $('#transactionInfoCategories').html(categoriesString);
-  }
+  })
 };
 
-function showCategoryInfo(event) {
+function showCategoryInfoModal(event) {
 
-  $('#categoriesInfo').attr("style","display:block");
   // Prevent Link from Firing
-  event.preventDefault();
+  //event.preventDefault();
 
-  // Retrieve username from link rel attribute
   var thisID = $(this).attr('rel');
   
   // Get our User Object
@@ -2289,37 +1840,176 @@ function showCategoryInfo(event) {
     }
   }
 
-  //perform error checking here.
-
   if(thisUserObject != [])
   {
-    //Populate Info Box
-    $('#categoriesInfo #categoryInfoName').html("<strong>Name: </strong>" + thisUserObject.name);
-    $('#categoriesInfo #categoryInfoReferenceDate').html("<strong>Reference Date: </strong>" + new Date(parseInt(thisUserObject.referenceDate)).toISOString().substring(0, 10));
-    $('#categoriesInfo #categoryInfoReferenceAmount').html("<strong>Reference Amount: </strong>" + thisUserObject.referenceAmount);
+    $(".modal-body #categoryInfoTransactions").parent().find("table").attr("style","display:block");
 
-    if (getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,selectedYear,selectedMonth) != null)
+    $("#categoryModalTitle").html(thisUserObject.name);
+
+
+    var oldestDateFound = new Date();
+    for(var i=0; i < transactionsData.length; i++)
     {
-      $('#categoriesInfo #categoryInfoAllocatedSinceReference').html("<strong>AllocatedSinceReference: </strong>" +
-        thisUserObject.allocatedSinceReference[getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,selectedYear,selectedMonth)].amount);
+      var thisDate = new Date(transactionsData[i].dateEntered);
+      if (dates.compare(thisDate,oldestDateFound) === -1)
+      {
+        oldestDateFound = thisDate;
+      }
+    }
+    var htmlContent = "";
+    var allocatedInTotal = 0.0;
+    for (var countYear = oldestDateFound.getFullYear(); countYear <= selectedYear; countYear++)
+    {
+      for (var countMonth = oldestDateFound.getMonth() + 1;
+      countMonth < 13 && (countMonth <= selectedMonth || countYear != selectedYear);
+      countMonth++)
+      {
+        if (getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,countYear,countMonth) != null)
+        {
+          allocatedInTotal += parseFloat(thisUserObject.allocatedSinceReference[getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,countYear,countMonth)].amount);
+        }
+      }
+    }
+    
+    htmlContent += '<div class="m-2 p-2"><strong>Uncleared Transactions (all months): </strong>'
+    htmlContent += (parseFloat($(this).parent().parent().find("#categoryTotalAmount").attr("val")) - parseFloat($(this).parent().parent().find("#categoryTotalAmount").attr("valCurrentBalance")) ).toFixed(2);
+    htmlContent += "</div>";
+    htmlContent += '<div class="m-2 p-2"><strong>Cleared Transaction Amount (this month): </strong>'
+    htmlContent += parseFloat($(this).parent().parent().find("#categorySpentThisMonth").attr("valClearedThisMonth")).toFixed(2);
+    htmlContent += "</div>";
+    htmlContent += '<div class="m-2 p-2"><strong>Current Daily Total Balance: </strong>'
+    htmlContent += parseFloat($(this).parent().parent().find("#categoryTotalAmount").attr("valCurrentBalance")).toFixed(2);
+    htmlContent += "</div>";
+    htmlContent += '<div class="m-2 p-2"><strong>Allocated (all months): </strong>' + allocatedInTotal.toFixed(2) + "</div>";
+    var whereToInsert = $(".modal-body #categoryInfoTransactions");
+    whereToInsert.html(htmlContent);
+    // Debug Display disabled
+    //whereToInsert.html(htmlString);
+
+    htmlContent = "";
+    var countEntries = 0;
+    for (var i=0; i < transactionsData.length; ++i)
+    {
+      for(var j = 0; j < transactionsData[i].amount.length;j++)
+      {
+        if(transactionsData[i].amount[j].category === thisUserObject.name
+          && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
+          && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
+        {
+          var tableContent = '<tr>';
+          tableContent += '<td>'+ transactionsData[i].name +'</td>';
+          tableContent += '<td>'+ $.datepicker.formatDate( "yy-mm-dd", new Date(transactionsData[i].dateEntered)) +'</td>';
+          if(transactionsData[i].dateBooked != null)
+          {
+            tableContent += '<td>'+ "Booked" +'</td>';
+          }
+          else
+          {
+            tableContent += '<td>'+ "<strong>Not Booked</strong>" +'</td>';
+          }
+          tableContent += '<td>'+ transactionsData[i].account +'</td>';
+          tableContent += '<td>'+ parseFloat(transactionsData[i].amount[j].amount).toFixed(2) +'</td>';
+          tableContent +='</tr>';
+          htmlContent += tableContent;
+
+          countEntries++;
+        }
+      }
+    }
+    whereToInsert = $(".modal-body #categoryInfoTransactions").parent().find("table tbody");
+    whereToInsert.html(htmlContent);
+
+
+    
+    if(countEntries === 0)
+    {
+      $("#noTransactions").css("display","block")
+      $("#categoryInfoTransactions").parent().find("table").css("display","none")
     }
     else
     {
-      $('#categoriesInfo #categoryInfoAllocatedSinceReference').html("<strong>AllocatedSinceReference: </strong>0");
+      $("#noTransactions").css("display","none")
+      $("#categoryInfoTransactions").parent().find("table").css("display","block")
     }
-    var htmlString = "";
-    if(thisUserObject.systems != null)
-    {
-      htmlString += "<strong>Debitors</strong><br>";
 
-      for (var i=0; i < thisUserObject.systems.length; ++i)
+    if(!$("#buttonShowMoreTransactions").exists())
+    {
+      var div1 = $(document.createElement('div'));
+      div1.attr("class","m-2 p-2");
+      $("#categoryInfoBottomText").append(div1)
+
+      var showMoreButton = $(document.createElement('button'));
+      showMoreButton.attr("type","text");
+      showMoreButton.attr("placeholder","Show more")
+      showMoreButton.attr("id","buttonShowMoreTransactions");
+      showMoreButton.attr("rel",$(this).attr('rel'));
+      showMoreButton.html("Show more");
+      div1.append(showMoreButton);
+
+      $("#buttonShowMoreTransactions").off("click");
+      $("#buttonShowMoreTransactions").on("click", function()
       {
-        htmlString += " - " + thisUserObject.systems[i].debitor + " pays " + thisUserObject.systems[i].percentage + "%.<br>";
-      }
+        var curObj = null;
+        var thisID = $(this).attr('rel');
+        for (var i=0; i < categoryData.length; ++i)
+        {
+          if(categoryData[i]._id == thisID)
+          {
+            curObj = categoryData[i];
+            break;
+          }
+        }
+        var additionalHtmlContent = [];
+        for (var i=0; i < transactionsData.length; ++i)
+        {
+          for(var j = 0; j < transactionsData[i].amount.length;j++)
+          {
+            if(transactionsData[i].amount[j].category === curObj.name
+              && /*is not current month*/ !(new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
+                && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
+              && /*is not in the future*/ ( (new Date(transactionsData[i].dateEntered).getMonth() + 1 < selectedMonth && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
+                || new Date(transactionsData[i].dateEntered).getFullYear() < selectedYear)             )
+            {
+              //var tableContent = $(document.createElement('tr'));
+              var tableContentHtml = '<tr><td>'+ transactionsData[i].name +'</td>';
+              tableContentHtml += '<td>'+ $.datepicker.formatDate( "yy-mm-dd", new Date(transactionsData[i].dateEntered)) +'</td>';
+              if(transactionsData[i].dateBooked != null)
+              {
+                tableContentHtml += '<td>'+ "Booked" +'</td>';
+              }
+              else
+              {
+                tableContentHtml += '<td>'+ "<strong>Not Booked</strong>" +'</td>';
+              }
+              tableContentHtml += '<td>'+ transactionsData[i].account +'</td>';
+              tableContentHtml += '<td>'+ parseFloat(transactionsData[i].amount[j].amount).toFixed(2) +'</td></tr>';
+              //tableContent.html(tableContentHtml);
+              additionalHtmlContent.push(tableContentHtml)
+            }
+          }
+        }
+        if (additionalHtmlContent.length != 0)
+        {
+          for (var i = 0; i < additionalHtmlContent.length; i++)
+          {
+            $(".modal-body #categoryInfoTransactions").parent().find("table tbody").html($(".modal-body #categoryInfoTransactions").parent().find("table tbody").html() + additionalHtmlContent[i]);
+          }
+          $("#categoryInfoTransactions").parent().find("table").css("display","");
+          $("#noTransactions").css("display","none");
+        }
+        $("#buttonShowMoreTransactions").attr("style","display:none");
+      });
     }
-    htmlString += "<br><br>";
-    $('#categoryInfoDebitorList').html(htmlString);
+    else
+    {
+      $("#buttonShowMoreTransactions").attr("style","display:block");
+      $("#buttonShowMoreTransactions").attr("rel",$(this).attr('rel'));
+    }
+      
+
+    $('#categoryModal').modal();
   }
+  
 };
 
 function modifyCategory(event)
@@ -2329,9 +2019,9 @@ function modifyCategory(event)
 
   $('#addCategoryButton').css("display", "none");
 
-  // Retrieve username from link rel attribute
+  // Retrieve username from link rel ibute
   var thisID = $(this).attr('rel');
-  $('#tegoryID').val(thisID);
+  $('#modifyCategoryID').val(thisID);
   
   // Get our User Object
   var thisUserObject = null;
@@ -2350,30 +2040,18 @@ function modifyCategory(event)
   {
     //Populate Info Box
     $('#modifyDatabaseEntryCategory #changeCategoryName').val(thisUserObject.name);
-    $('#modifyDatabaseEntryCategory #changeCategoryAllocation').val(thisUserObject.allocatedSinceReference);
-    if(thisUserObject.systems != null)
-    {
-      for (var i=0; i < thisUserObject.systems.length && i < 3; ++i)
-      {
-        $('#modifyDatabaseEntryCategory #changeCategoryDebitor' + (i+1).toString()).val(thisUserObject.systems[i].debitor);
-        $('#modifyDatabaseEntryCategory #changeCategoryPercentage' + (i+1).toString()).val(thisUserObject.systems[i].percentage);
-      }
-      for (var i=thisUserObject.systems.length; i < 3; ++i)
-      {
-        $('#modifyDatabaseEntryCategory #changeCategoryDebitor' + (i+1).toString()).val("");
-        $('#modifyDatabaseEntryCategory #changeCategoryPercentage' + (i+1).toString()).val("");
-      }
-    }
-    
   }
-
+  else
+  {
+    alert("Something went deeply wrong.")
+  }
   $('#modifyDatabaseEntryCategory').attr("style","display:block");
 
   $('#modifyDatabaseEntryCategory #changeCategoryButton').off("click");
   $('#modifyDatabaseEntryCategory #changeCategoryButton').on("click",function(event)
   {
-    // Retrieve username from link rel attribute
-    var thisID = $('#tegoryID').val();
+    // Retrieve username from link rel ibute
+    var thisID = $('#modifyCategoryID').val();
     
     // Get our User Object
     var thisUserObject = null;
@@ -2386,115 +2064,42 @@ function modifyCategory(event)
       }
     }
   
-    //perform error checking here.
-  
     if(thisUserObject != null)
     {
       event.preventDefault();
 
-      var allocatedSinceReferenceArray = thisUserObject.allocatedSinceReference;
-
-      var found = getIteratorFromAllocatedSinceReferenceArray(allocatedSinceReferenceArray,selectedYear,selectedMonth);
-      if (found != null)
-      {
-        allocatedSinceReferenceArray[i].amount = $('#modifyDatabaseEntryCategory #changeCategoryAllocation').val();
-      }
-      else
-      {
-        allocatedSinceReferenceArray.push({"amount":$('#modifyDatabaseEntryCategory #changeCategoryAllocation').val(),"year":selectedYear,"month":selectedMonth});
-      }
 
       // If it is, compile all user info into one object
-      var newTransaction = {
+      var newCategory = {
         'name': $('#modifyDatabaseEntryCategory input#changeCategoryName').val(),
-        'systems': null,
         "referenceDate" : thisUserObject.referenceDate,
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
-        "allocatedSinceReference" : allocatedSinceReferenceArray
-      }
-
-      if($('#modifyDatabaseEntryCategory input#changeCategoryDebitor1').val() != "")
-      {
-        if (newTransaction.systems === null)
-        {
-          newTransaction.systems = [];
-        }
-
-        var debitor1Val = $('#modifyDatabaseEntryCategory input#changeCategoryDebitor1').val();
-        newTransaction.systems.push(
-          {
-            "debitor": $('#modifyDatabaseEntryCategory input#changeCategoryDebitor1').val(),
-            "percentage" : $('#modifyDatabaseEntryCategory input#changeCategoryPercentage1').val()
-          });
-      }
-      if($('#modifyDatabaseEntryCategory input#changeCategoryDebitor2').val() != "")
-      {
-        if (newTransaction.systems === null)
-        {
-          newTransaction.systems = [];
-        }
-        var debitor1Val = $('#modifyDatabaseEntryCategory input#changeCategoryDebitor2').val();
-        newTransaction.systems.push(
-          {
-            "debitor": $('#modifyDatabaseEntryCategory input#changeCategoryDebitor2').val(),
-            "percentage" : $('#modifyDatabaseEntryCategory input#changeCategoryPercentage2').val()
-          });
-      }
-      if($('#modifyDatabaseEntryCategory input#changeCategoryDebitor3').val() != "")
-      {
-        if (newTransaction.systems === null)
-        {
-          newTransaction.systems = [];
-        }
-        var debitor1Val = $('#modifyDatabaseEntryCategory input#changeCategoryDebitor3').val();
-        newTransaction.systems.push(
-          {
-            "debitor": $('#modifyDatabaseEntryCategory input#changeCategoryDebitor3').val(),
-            "percentage" : $('#modifyDatabaseEntryCategory input#changeCategoryPercentage3').val()
-          });
+        "allocatedSinceReference" : thisUserObject.allocatedSinceReference
       }
 
       // Use AJAX to post the object to our adduser service
-      $.ajax({
-        type: 'POST',
-        data: { "data" : JSON.stringify(newTransaction) },
-        url: '/db/categories_add',
-        dataType: 'json'
-      }).done(function( response ) {
-    
-        // Check for successful (blank) response
-        if (response.msg === '') {
-    
-          // Clear the form inputs
-          $('#modifyDatabaseEntryCategory input').val('');
-
-
-        }
-        else {
-    
-          // If something goes wrong, alert the error message that our service returned
-          alert('Error: ' + response.msg);
-    
-        }
+      ajaxPUT_Category(newCategory,thisUserObject._id).done(function()
+      {
+        $('#modifyDatabaseEntryCategory input').val('');
+        reloadDataAndRefreshDisplay();
       });
 
-      // Delete old entry
-      $.ajax({
-        type: 'DELETE',
-        url: '/db/categories_delete/' + thisID
-      }).done(function( response ) {
-        // Check for a successful (blank) response
-        if (response.msg === '') {
-          reloadData();
+      for (var i=0; i < transactionsData.length; ++i)
+      {
+        for(var j = 0; j < transactionsData[i].amount.length; j++)
+        {
+          if(transactionsData[i].amount[j].category === thisUserObject.name)
+          {
+            transactionsData[i].amount[j].category = $('#modifyDatabaseEntryCategory input#changeCategoryName').val();
+            ajaxPUT_Transaction(transactionsData[i]);
+          }
         }
-        else {
-          alert('Error: ' + response.msg);
-        }
-      });
+      }
     }
 
     // Update the table
+    
     populateCategoryTable();
     $('#modifyDatabaseEntryCategory').attr("style","display:none");
     $('#addCategoryButton').css("display", "block");
@@ -2508,32 +2113,21 @@ function modifyCategory(event)
   });
 };
 
-// Delete User
+// Delete transaction
 function deleteTransaction(event) {
 
   event.preventDefault();
 
   // Pop up a confirmation dialog
-  var confirmation = confirm('Are you sure you want to delete this entry?');
+  var confirmation = confirm('Are you sure you want to delete this transaction?');
 
   // Check and make sure the user confirmed
   if (confirmation === true) {
 
     // If they did, do our delete
-    $.ajax({
-      type: 'DELETE',
-      url: '/db/transactions_delete/' + $(this).attr('rel')
-    }).done(function( response ) {
-
-      // Check for a successful (blank) response
-      if (response.msg != '') 
-      {
-        alert('Error: ' + response.msg);
-      }
-
-      // Update the table
-      reloadData();
-
+    ajaxDELETE_Transaction($(this).attr('rel')).done(function()
+    {
+      reloadDataAndRefreshDisplay();
     });
 
   }

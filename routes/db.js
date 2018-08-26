@@ -43,6 +43,28 @@ router.post('/categories_add', function(req, res) {
   });
 });
 
+/* MODIFY categories. */
+router.put('/categories_modify/:id', function(req, res) {
+  var db = req.dbCategories;
+  var collection = db.get('categories1');;
+  var toModify = req.params.id;
+  collection.update({ '_id' : toModify }, JSON.parse(req.body.data),function(err) 
+  {
+    res.send((err === null) ? { msg: '' } : { msg:'error: ' + err });
+    if(err != null)
+    {
+      console.log("Error");
+      console.log(err);
+      
+    }
+    else
+    {
+      console.log("PUT Data");
+      console.log(req.body.data);
+    }
+  });
+});
+
 /* DELETE to transactions. */
 router.delete('/transactions_delete/:id', function(req, res) {
   var db = req.dbTransactions;
