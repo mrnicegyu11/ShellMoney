@@ -41,263 +41,297 @@ $(document).ready(function() {
 
 
   // Reload Data from Server
-  reloadData();
-  $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
-
-
-  // Add functionality for month selection Buttons
-  $('#monthUp').on("click",function()
+  reloadData().then(function()
   {
-    if(selectedMonth === 12)
-    {
-      selectedYear += 1;
-      selectedMonth = 1;
-    }
-    else
-    {
-      selectedMonth += 1;
-    }
-    populateCategoryTable();
 
-    populateTransactionTable(selectedMonth,selectedYear);
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
-  })
-  $('#monthDown').on("click",function()
-  {
-    if(selectedMonth === 1)
-    {
-      selectedYear -= 1;
-      selectedMonth = 12;
-    }
-    else
-    {
-      selectedMonth -= 1;
-    }
-    populateCategoryTable();
 
-    populateTransactionTable(selectedMonth,selectedYear);
-    $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
-  })
 
-  // ACCOUNTS BUTTON Functionality
-  $('#accountsButton').off();
-  $('#accountsButton').on('click', "button", function()
-  {
-    if($('#accountOverview').css("display") === "none")
+    // Add functionality for month selection Buttons
+    $('#monthUp').on("click",function()
     {
-      // Check for shitty siutation, this should never happen.
+      if(selectedMonth === 12)
+      {
+        selectedYear += 1;
+        selectedMonth = 1;
+      }
+      else
+      {
+        selectedMonth += 1;
+      }
+      populateCategoryTable();
+  
+      populateTransactionTable(selectedMonth,selectedYear);
+      $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
+    })
+    $('#monthDown').on("click",function()
+    {
+      if(selectedMonth === 1)
+      {
+        selectedYear -= 1;
+        selectedMonth = 12;
+      }
+      else
+      {
+        selectedMonth -= 1;
+      }
+      populateCategoryTable();
+  
+      populateTransactionTable(selectedMonth,selectedYear);
+      $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
+    })
+  
+    // ACCOUNTS BUTTON Functionality
+    $('#buttonShowAccounts').off();
+    $('#buttonShowAccounts').on('click', function()
+    {
       if(transactionsData.length === 0)
       {
         alert("This should not have happened, performing unnecessary reload.");
         reloadData();
       }
       populateAccountInformation();
-
-      $('#accountOverview').css("display","block");
-    }
-    else
-    {
-      $('#accountOverview').css("display","none");
-    }
-  });
-
-  // DB Navigation Button (LANDING PAGE) functionality
-  $('#navigation').off();
-  $('#navigation').on('click', 'div.btn-class > button, #DisplayDB', function()
-  {
-    onNavigationChange();
-    populateTransactionTable(selectedMonth,selectedYear);
-
-    $('#databaseView').css("display", "block");
-    $('#addTransactionView').css("display", "none");
-    $('#categoriesView').css("display", "none");
-  });
-
-  // ADD TRANSACTION button functionality
-  $('#navigation').on('click', 'div.btn-class > button ,#DisplayAdd', function()
-  {
-    onNavigationChange()
-
-    populateAddTransactionView();
-    $('#databaseView').css("display", "none");
-    $('#addTransactionView').css("display", "block");
-    $('#categoriesView').css("display", "none");
-
-  });
-
-  // CATEGORIES
-  $('#navigation').on('click', 'div.btn-class > button ,#DisplayCategories', function()
-  {
-    $('#addCategoryButton').off("click");
-    $('#addCategoryButtonAdd').off("click");
-    $('#addCategoryButtonCancel').off("click");
-
-    onNavigationChange()
-
-    populateCategoryTable();
-    $('#databaseView').css("display", "none");
-    $('#addTransactionView').css("display", "none");
-    $('#categoriesView').css("display", "block");
-
-    $('#addCategoryButton').off();
-    $('#addCategoryButton').on('click', function()
-    {
-      $('#addCategory').css("display", "block");
-      $('#addCategoryButton').css("display", "none");
-      // Click on Add Category
-      $('#addCategoryButtonAdd').on('click', function()
+      if($('#accountOverview').css("display") === "none")
       {
-        event.preventDefault();
+        // Check for shitty siutation, this should never happen.
+        $('#accountOverview').css("display","block");
+      }
+      else
+      {
+        $('#accountOverview').css("display","none");
+      }
+
+      $('#buttonAddAccount').off();
+      $('#buttonAddAccount').on('click',function()
+      {
+        $('#accountsAdd').css("display","block");
+      });
+      $('#buttonCancelAddAccount').off();
+      $('#buttonCancelAddAccount').on('click',function()
+      {
+        $('#accountsAdd').css("display","none");
+      });
+      $('#buttonSaveAddAccount').off();
+      $('#buttonSaveAddAccount').on("click",function()
+      {
+        var newAccount = {
+          name : $("#accountsAdd input").val(),
+          totalCurrent : 0.0,
+          totalVirtual : 0.0
+        };
+        var curAjaxPromise = ajaxPOST_Account(newAccount);
 
       
-        // Check for empty submission
-        if($('#addCategory input#inputCategoryName').val() != '') {
-        
-          var newCategory = {
-            'name': $('#addCategory input#inputCategoryName').val(),
-            'systems': null,
-            "referenceDate" : Date.now(),
-            "referenceAmount" : 0.0,
-            "associatedTransactions" : null,
-            "allocatedSinceReference" : 0.0
-          }
-
-          // Use AJAX to post the object to our adduser service
-          ajaxPOST_Category(newCategory).then(function() {
-        
-              // Clear the form inputs
-              $('#addCategory input').val('');
-              $('#addCategory').css("display", "none");
-              $('#addCategoryButton').css("display", "block");
-
-              reloadDataAndRefreshDisplay();
-
-
-            },function()
-            {
-            
-              // If something goes wrong, alert the error message that our service returned
-              alert('Error: ' + response.msg);
-            
-            }
-          );
-
-          
-        }
-        else {
-          // If errorCount is more than 0, error out
-          alert('Please fill in the name');
-          return false;
-        }
-
-        $('#addCategoryButtonAdd').off("click");
-      });
-    });
-
-    $('#addCategoryButtonCancel').off();
-    $('#addCategoryButtonCancel').on('click', function()
-    {
-      $('#addCategory').css("display", "none");
-      $('#addCategoryButton').css("display", "block");
-      $('#addCategory input').val('');
-      $('#addCategoryButtonAdd').off("click");
-    });
-
-    
-
-     
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkdeletecategory', deleteCategory);
-
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
-
-    $("#categoryTableResetAllocations").off("click");
-    $("#categoryTableResetAllocations").on('click', function()
-    {
-      var confirmationResult = confirm("Are you sure you want to reset all allocations for this month?");
-      if (confirmationResult == true)
-      {
-        promisesArray = [];
-        for (var i = 0; i < categoryData.length; i++)
-        {
-          var thisUserObject = categoryData[i];
-          var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
-          if (found != null)
-          {
-            categoryData[i].allocatedSinceReference.splice(found, 1);
-
-            var category = {
-              'name': thisUserObject.name,
-              'systems': thisUserObject.systems,
-              "referenceDate" : thisUserObject.referenceDate,
-              "referenceAmount" : thisUserObject.referenceAmount,
-              "associatedTransactions" : thisUserObject.associatedTransactions,
-              "allocatedSinceReference" : categoryData[i].allocatedSinceReference
-            }
-          
-            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
-            promisesArray.push(curPromise);
-          }
-        }
-        Promise.all(promisesArray).then(function()
-        {
-          reloadDataAndRefreshDisplay();    
-        });
-      }
-    })
-
-    $("#autofillAllocationButton").off("click");
-    $("#autofillAllocationButton").on('click', function() 
-    {
-      var confirmationResult = confirm("Are you sure you want to auto-fill all allocations for this month?");
-      if (confirmationResult == true)
-      {
-        var promisesArray = [];
-        for (var i = 0; i < categoryData.length; i++)
-        {
-          var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
-          var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
-          if (lastMonthIter != null)
-          {
-            if(curMonthIter != null)
-            {
-              categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
-            }
-            else
-            {
-              categoryData[i].allocatedSinceReference.push(
-              { 
-                "amount":categoryData[i].allocatedSinceReference[lastMonthIter].amount,
-                "year": selectedYear,
-                "month": selectedMonth
-              });
-            }
-
-            var category = {
-              'name': categoryData[i].name,
-              'systems': categoryData[i].systems,
-              "referenceDate" : categoryData[i].referenceDate,
-              "referenceAmount" : categoryData[i].referenceAmount,
-              "associatedTransactions" : categoryData[i].associatedTransactions,
-              "allocatedSinceReference" : categoryData[i].allocatedSinceReference
-            }
-
-            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
-            promisesArray.push(curPromise);
-          }
-        }
-        Promise.all(promisesArray).then(function()
+        $.when(curAjaxPromise).then(function()
         {
           reloadDataAndRefreshDisplay();
+          $("#accountsAdd input").val("");
+          $("#accountsAdd").css("display","none");
         });
-      }
+
+      });
     });
+  
+    // DB Navigation Button (LANDING PAGE) functionality
+    $('#navigation').off();
+    $('#navigation').on('click', 'div.btn-class > button, #DisplayDB', function()
+    {
+      onNavigationChange();
+      populateTransactionTable(selectedMonth,selectedYear);
+  
+      $('#databaseView').css("display", "block");
+      $('#addTransactionView').css("display", "none");
+      $('#categoriesView').css("display", "none");
+    });
+  
+    // ADD TRANSACTION button functionality
+    $('#navigation').on('click', 'div.btn-class > button ,#DisplayAdd', function()
+    {
+      onNavigationChange()
+  
+      populateAddTransactionView();
+      $('#databaseView').css("display", "none");
+      $('#addTransactionView').css("display", "block");
+      $('#categoriesView').css("display", "none");
+  
+    });
+  
+    // CATEGORIES
+    $('#navigation').on('click', 'div.btn-class > button ,#DisplayCategories', function()
+    {
+      $('#addCategoryButton').off("click");
+      $('#addCategoryButtonAdd').off("click");
+      $('#addCategoryButtonCancel').off("click");
+  
+      onNavigationChange()
+  
+      populateCategoryTable();
+      $('#databaseView').css("display", "none");
+      $('#addTransactionView').css("display", "none");
+      $('#categoriesView').css("display", "block");
+  
+      $('#addCategoryButton').off();
+      $('#addCategoryButton').on('click', function()
+      {
+        $('#addCategory').css("display", "block");
+        $('#addCategoryButton').css("display", "none");
+        // Click on Add Category
+        $('#addCategoryButtonAdd').on('click', function()
+        {
+          event.preventDefault();
+  
+        
+          // Check for empty submission
+          if($('#addCategory input#inputCategoryName').val() != '') {
+          
+            var newCategory = {
+              'name': $('#addCategory input#inputCategoryName').val(),
+              'systems': null,
+              "referenceDate" : Date.now(),
+              "referenceAmount" : 0.0,
+              "associatedTransactions" : null,
+              "allocatedSinceReference" : 0.0
+            }
+  
+            // Use AJAX to post the object to our adduser service
+            ajaxPOST_Category(newCategory).then(function() {
+          
+                // Clear the form inputs
+                $('#addCategory input').val('');
+                $('#addCategory').css("display", "none");
+                $('#addCategoryButton').css("display", "block");
+  
+                reloadDataAndRefreshDisplay();
+  
+  
+              },function()
+              {
+              
+                // If something goes wrong, alert the error message that our service returned
+                alert('Error: ' + response.msg);
+              
+              }
+            );
+  
+            
+          }
+          else {
+            // If errorCount is more than 0, error out
+            alert('Please fill in the name');
+            return false;
+          }
+  
+          $('#addCategoryButtonAdd').off("click");
+        });
+      });
+  
+      $('#addCategoryButtonCancel').off();
+      $('#addCategoryButtonCancel').on('click', function()
+      {
+        $('#addCategory').css("display", "none");
+        $('#addCategoryButton').css("display", "block");
+        $('#addCategory input').val('');
+        $('#addCategoryButtonAdd').off("click");
+      });
+  
+      
+  
+       
+      $('#categoryDatabaseView table tbody').on('click', 'td a.linkdeletecategory', deleteCategory);
+  
+      $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
+      $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
+  
+      $("#categoryTableResetAllocations").off("click");
+      $("#categoryTableResetAllocations").on('click', function()
+      {
+        var confirmationResult = confirm("Are you sure you want to reset all allocations for this month?");
+        if (confirmationResult == true)
+        {
+          promisesArray = [];
+          for (var i = 0; i < categoryData.length; i++)
+          {
+            var thisUserObject = categoryData[i];
+            var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+            if (found != null)
+            {
+              categoryData[i].allocatedSinceReference.splice(found, 1);
+  
+              var category = {
+                'name': thisUserObject.name,
+                'systems': thisUserObject.systems,
+                "referenceDate" : thisUserObject.referenceDate,
+                "referenceAmount" : thisUserObject.referenceAmount,
+                "associatedTransactions" : thisUserObject.associatedTransactions,
+                "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+              }
+            
+              var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+              promisesArray.push(curPromise);
+            }
+          }
+          Promise.all(promisesArray).then(function()
+          {
+            reloadDataAndRefreshDisplay();    
+          });
+        }
+      })
+  
+      $("#autofillAllocationButton").off("click");
+      $("#autofillAllocationButton").on('click', function() 
+      {
+        var confirmationResult = confirm("Are you sure you want to auto-fill all allocations for this month?");
+        if (confirmationResult == true)
+        {
+          var promisesArray = [];
+          for (var i = 0; i < categoryData.length; i++)
+          {
+            var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
+            var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+            if (lastMonthIter != null)
+            {
+              if(curMonthIter != null)
+              {
+                categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
+              }
+              else
+              {
+                categoryData[i].allocatedSinceReference.push(
+                { 
+                  "amount":categoryData[i].allocatedSinceReference[lastMonthIter].amount,
+                  "year": selectedYear,
+                  "month": selectedMonth
+                });
+              }
+  
+              var category = {
+                'name': categoryData[i].name,
+                'systems': categoryData[i].systems,
+                "referenceDate" : categoryData[i].referenceDate,
+                "referenceAmount" : categoryData[i].referenceAmount,
+                "associatedTransactions" : categoryData[i].associatedTransactions,
+                "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+              }
+  
+              var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+              promisesArray.push(curPromise);
+            }
+          }
+          Promise.all(promisesArray).then(function()
+          {
+            reloadDataAndRefreshDisplay();
+          });
+        }
+      });
+    });
+  
+    onNavigationChange()
+  
+    // initialize Datepicker
+    $( "" ).datepicker();
+
   });
-
-  onNavigationChange()
-
-  // initialize Datepicker
-  $( "" ).datepicker();
+  
 
   
 });
@@ -519,6 +553,33 @@ function ajaxPOST_Category(newCategoryObject)
   return ajaxPromise;
 };
 
+function ajaxPOST_Account(newAccountObject)
+{
+  var ajaxPromise = $.ajax({
+    type: 'POST',
+    data: {data : JSON.stringify(newAccountObject) },
+    url: '/db/accounts_add',
+    dataType: 'JSON'
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+      // Here we could optimize by not reloading thw hole database but keeping track ourselves
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+  },function( response ) {
+    alert("Posting a new transaction failed.");
+  });
+
+  // return promise so that outside code cannot reject/resolve the deferred
+  return ajaxPromise;
+};
+
 function ajaxPUT_Transaction(item,optionalID = null)
 {
   var ajaxPromise = $.ajax({
@@ -565,6 +626,35 @@ function ajaxPUT_Category(item,optionalID = null)
   },function(response)
   {
     alert("Something went wrong when updating a category.");
+    alert('Error: ' + response.msg);
+  });
+
+  return ajaxPromise.promise();
+}
+
+function ajaxPUT_Account(item,optionalID = null)
+{
+  var ajaxPromise = $.ajax({
+    type: 'PUT',
+    data: { "data" : JSON.stringify(item) },
+    url: '/db/accounts_modify/' + (optionalID === null ? item._id : optionalID).toString(),
+    dataType: 'json'
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    } 
+  },function(response)
+  {
+    alert("Something went wrong when updating an account.");
     alert('Error: ' + response.msg);
   });
 
@@ -645,6 +735,43 @@ function ajaxDELETE_Transaction(item)
   return ajaxPromise;
 };
 
+function ajaxDELETE_Account(item)
+{
+  var thisID = 0;
+  if(typeof item._id != "undefined")
+  {
+    thisUD = item._id;
+  }
+  else
+  {
+    thisID = item;
+  }
+
+  var ajaxPromise = $.ajax({
+    type: 'DELETE',
+    url: '/db/accounts_delete/' + thisID
+  }).done(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+
+
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+    
+  }).fail(function( response)
+  {
+    alert("Something went wrong when updating an accounts.");
+  });
+
+  return ajaxPromise;
+};
+
 // Deletes a category, event musst have attribute "rel" with ID in it.
 function deleteCategory(event)
 {
@@ -664,7 +791,9 @@ function reloadDataAndRefreshDisplay()
     populateTransactionTable(selectedMonth,selectedYear);
     populateAccountInformation();
     populateCategoryTable();
+    onNavigationChange();
   });
+  
 }
 
 // Reloads data from mongoDB and populates tables accordingly.
@@ -693,7 +822,7 @@ function reloadData()
 
     // Sort by Name
     categoryData.sort(function(a, b) {
-      var nameA=a.name.toLowerCase()
+      var nameA=a.name.toLowerCase();
       var nameB=b.name.toLowerCase();
       if (nameA < nameB) //sort string ascending
        return -1;
@@ -704,9 +833,101 @@ function reloadData()
 
 
   });
+  var ajaxPromise3 = $.getJSON('db/accounts_list').then(function( data ) 
+  {
+    foundAccounts = data;
+
+    // Sort by Name
+    foundAccounts.sort(function(a, b) {
+      var nameA=a.name.toLowerCase();
+      var nameB=b.name.toLowerCase();
+      if (nameA < nameB) //sort string ascending
+       return -1;
+      if (nameA > nameB)
+       return 1;
+      return 0; //default return value (no sorting)
+    });
+
+    $.each($(foundAccounts), function()
+    {
+      this.totalCurrent = 0.0;
+      this.totalVirtual = 0.0;
+    });
 
 
-  return $.when(ajaxPromise1,ajaxPromise2);
+    $.each($(transactionsData), function()
+    {
+      var found = -1;
+      // Search if we know this account already
+      for (var i = 0; i < foundAccounts.length; i++)
+      {
+        if(foundAccounts[i].name === this.account)
+        {
+          found = i;
+          
+          if(typeof foundAccounts[i].totalCurrent == "undefined")
+          {
+            foundAccounts[i].totalCurrent = 0.0;
+          }
+          if(typeof foundAccounts[i].totalVirtual == "undefined")
+          {
+            foundAccounts[i].totalVirtual = 0.0;
+          }
+          /*if(typeof foundAccounts[i].totalCurrent == "string")
+          {
+            foundAccounts[i].totalCurrent = 0.0 //parseFloat(foundAccounts[i].totalCurrent);
+          }
+          if(typeof foundAccounts[i].totalVirtual == "string")
+          {
+            foundAccounts[i].totalVirtual = 0.0 //parseFloat(foundAccounts[i].totalVirtual);
+          }*/
+          break;
+        }
+      }
+      // If yes... (the account is known)
+      if(found != -1)
+      {
+        var totalAmountVirtual = getTotalCostsFromTransaction(this);
+        var totalAmount = this.dateBooked != null ? getTotalCostsFromTransaction(this) : 0.0;
+        if (this.bookingType === "Transfer")
+        {
+          foundAccounts[found].totalCurrent -= totalAmount;
+          foundAccounts[found].totalVirtual -= totalAmountVirtual;
+          var found2 = -1;
+          for (var j = 0; j < foundAccounts.length; j++)
+          {
+            if(foundAccounts[j].name === this.targetAccount)
+            {
+              found2 = j;
+              break;
+            }
+          }
+          if(found2 != -1)
+          {
+            foundAccounts[found2].totalCurrent += totalAmount;
+            foundAccounts[found2].totalVirtual += totalAmountVirtual;
+          }
+          else
+          {
+            alert("Error! We found a transaction where we do not know which account it belongs to.");
+          }
+        }
+        else
+        {
+          foundAccounts[found].totalCurrent += totalAmount;
+          foundAccounts[found].totalVirtual += totalAmountVirtual;
+        }
+      }
+      else // add this new account to out list
+      {
+        alert("Error! We found a transaction where we do not know which account it belongs to.")
+      }
+    });
+
+    accountData = foundAccounts;
+  });
+
+  return $.when(ajaxPromise1,ajaxPromise2,ajaxPromise3);
   
 };
 
@@ -1253,70 +1474,19 @@ function populateCategoryTable() {
 function populateAccountInformation() 
 {
   var tableContent = '';
-  foundAccounts = [];
-
-  // For each item in our JSON, add a table row and cells to the content string
-  $.each($(transactionsData), function(){
-    var found = -1;
-    for (var i = 0; i < foundAccounts.length; i++)
-    {
-      if(foundAccounts[i].name === this.account)
-      {
-        found = i;
-        break;
-      }
-    }
-    if(found != -1)
-    {
-      var totalAmountVirtual = getTotalCostsFromTransaction(this);
-      var totalAmount = this.dateBooked != null ? getTotalCostsFromTransaction(this) : 0.0;
-      if (this.bookingType === "Transfer")
-      {
-        foundAccounts[found].totalCurrent -= totalAmount;
-        foundAccounts[found].totalVirtual -= totalAmountVirtual;
-        var found2 = -1;
-        for (var j = 0; j < foundAccounts.length; j++)
-        {
-          if(foundAccounts[j].name === this.targetAccount)
-          {
-            found2 = j;
-            break;
-          }
-        }
-        if(found2 != -1)
-        {
-          foundAccounts[found2].totalCurrent += totalAmount;
-          foundAccounts[found2].totalVirtual += totalAmountVirtual;
-        }
-        else
-        {
-          foundAccounts.push({"name" : this.targetAccount, "totalCurrent" : totalAmount, "totalVirtual" : totalAmountVirtual});
-        }
-      }
-      else
-      {
-        foundAccounts[found].totalCurrent += totalAmount;
-        foundAccounts[found].totalVirtual += totalAmountVirtual;
-      }
-    }
-    else
-    {
-      var totalAmountVirtual = getTotalCostsFromTransaction(this);
-      var totalAmount = this.dateBooked != null ? getTotalCostsFromTransaction(this) : 0.0;
-      foundAccounts.push({"name" : this.account, "totalCurrent" : totalAmount, "totalVirtual" : totalAmountVirtual});
-    }
-  });
   
   var sumCurrent = 0.0;
   var sumVirtual = 0.0;
-  for (var i = 0; i < foundAccounts.length; ++i)
+  for (var i = 0; i < accountData.length; ++i)
   {
     tableContent += '<tr class="w-auto pauto">';
-    tableContent += '<td>' + foundAccounts[i].name + '</td>';
-    tableContent += '<td>' + foundAccounts[i].totalCurrent.toFixed(2) + '</td>';
-    sumCurrent += foundAccounts[i].totalCurrent;
-    tableContent += '<td>' + foundAccounts[i].totalVirtual.toFixed(2) + '</td>';
-    sumVirtual += foundAccounts[i].totalVirtual;
+    tableContent += '<td>' + accountData[i].name + '</td>';
+    tableContent += '<td>' + accountData[i].totalCurrent.toFixed(2) + '</td>';
+    sumCurrent += accountData[i].totalCurrent;
+    tableContent += '<td>' + accountData[i].totalVirtual.toFixed(2) + '</td>';
+    sumVirtual += accountData[i].totalVirtual;
+    tableContent += '<td>' + '<a href="#" rel="' + accountData[i]._id + '" class="accountsTableModifyButton">Modify</a>' + '</td>';
+    tableContent += '<td>' + '<a href="#" rel="' + accountData[i]._id + '" class="accountsTableDeleteButton">Delete</a>' + '</td>';
   }
   tableContent += '<tr class="w-auto pauto">';
   tableContent += '<td>' + "Summed" + '</td>';
@@ -1334,13 +1504,15 @@ function populateAccountInformation()
   {
     tableContent += '</td>';
   }
+  tableContent += '<td></td><td></td>';
+
   
 
   tableContent += '</tr>';
 
-  accountData = foundAccounts;
+
   $('#accountOverview table tbody').html(tableContent);
-  
+  onNavigationChange();
 };
 
 function populateAddTransactionView() {
@@ -1386,6 +1558,19 @@ function populateAddTransactionView() {
     }
   }
 
+  if ($("#inputAccount").parent().find(".dropdown-menu").children().length == 0)
+  {
+    for (var i = 0; i < accountData.length; ++i)
+    {
+      var dropdownEntry = $(document.createElement('a'));
+      dropdownEntry.attr("class", "dropdown-item dropdown-item-accountSelection");
+      dropdownEntry.attr("href", "#");
+      dropdownEntry.html(accountData[i].name);
+      dropdownEntry.appendTo($("#inputAccount").parent().find(".dropdown-menu"));
+      dropdownEntry.clone().appendTo($("#targetAccount").parent().find(".dropdown-menu"));
+    }
+  }
+
   $('.insertTransactionButtonToggleBooked').off("click");
   $('.insertTransactionButtonToggleBooked').on("click", function()
   {
@@ -1428,13 +1613,13 @@ function populateAddTransactionView() {
       currentTransactionDivName= "#correction";
     }
 
-    // Super basic validation - increase errorCount variable if any fields are blank
+    // Super basic validation
     var errorSubmission = false;
     if (currentTransactionKind == "Payment" || currentTransactionKind == "Income")
     {
       if(
         $('#addTransaction '+ currentTransactionDivName +' .inputName').val() == "" 
-        || $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+        || $('#addTransaction '+ "#general" +' .inputAccount').html() == "" 
         || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
         || $('#addTransaction '+ currentTransactionDivName +' .category1Button').html() == "" 
       )
@@ -1445,10 +1630,14 @@ function populateAddTransactionView() {
     else if (currentTransactionKind == "Transfer")
     {
       if(
-          $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+          $('#addTransaction '+ "#general" +' .inputAccount').html() == "" 
         || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
-        || $('#addTransaction '+ currentTransactionDivName +' .targetAccount').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' .targetAccount').html() == "" 
       )
+      {
+        errorSubmission = true
+      }
+      else if ($('#addTransaction '+ "#general" +' .inputAccount').html() == $('#addTransaction '+ currentTransactionDivName +' .targetAccount').html())
       {
         errorSubmission = true
       }
@@ -1456,7 +1645,7 @@ function populateAddTransactionView() {
     else if (currentTransactionKind == "Correction")
     {
       if(
-          $('#addTransaction '+ "#general" +' .inputAccount').val() == "" 
+          $('#addTransaction '+ "#general" +' .inputAccount').html() == "" 
         || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
       )
       {
@@ -1465,7 +1654,7 @@ function populateAddTransactionView() {
       var foundMatchingAccount = -1;
       for (var i = 0; i < accountData.length; ++i)
       {
-        if(accountData[i].name === $('#addTransaction #general .inputAccount').val())
+        if(accountData[i].name === $('#addTransaction #general .inputAccount').html())
         {
           foundMatchingAccount = i;
           break;
@@ -1481,6 +1670,7 @@ function populateAddTransactionView() {
       errorSubmission = true
     }
 
+    // Rough Sanity Check
     if(currentTransactionKind == "Payment"
       || (currentTransactionKind == "Income" && $("#inputCategoryIncomeButton").html() != "None" && $("#inputCategoryIncomeButton").html() != "Pick Category (optional)")
       || (currentTransactionKind == "Correction" && $("#inputCategoryCorrectionButton").html() != "None" && $("#inputCategoryCorrectionButton").html() != "Pick Category (optional)")
@@ -1510,7 +1700,7 @@ function populateAddTransactionView() {
       // If it is, compile all user info into one object
       var newTransaction = {
         'name': $('#addTransaction ' + currentTransactionDivName + ' .inputName').val(),
-        'account': $('#addTransaction ' + "#general" + ' .inputAccount').val(),
+        'account': $('#addTransaction ' + "#general" + ' .inputAccount').html(),
         'bookingType': currentTransactionKind,
         'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getTime(),
         'dateBooked': $.trim($('#addTransaction ' + currentTransactionDivName + ' .insertTransactionButtonToggleBooked').html()) === "Booked" ? Date.now() : null,
@@ -1533,16 +1723,17 @@ function populateAddTransactionView() {
       }
       else if (currentTransactionKind == "Transfer")
       {
+        newTransaction.amount[0].amount = (parseFloat(newTransaction.amount[0].amount) * -1.0).toFixed(2);
         newTransaction.name = "Transfer"
         newTransaction.amount[0].category = "Transfer"
-        newTransaction.targetAccount = $('#addTransaction '+ currentTransactionDivName +' .targetAccount').val();
+        newTransaction.targetAccount = $('#addTransaction '+ currentTransactionDivName +' .targetAccount').html();
       }
       else if (currentTransactionKind == "Correction")
       {
         var foundMatchingAccount = -1;
         for (var i = 0; i < accountData.length; ++i)
         {
-          if(accountData[i].name === $('#addTransaction #general .inputAccount').val())
+          if(accountData[i].name === $('#addTransaction #general .inputAccount').html())
           {
             foundMatchingAccount = i;
             break;
@@ -1589,7 +1780,7 @@ function populateAddTransactionView() {
     else 
 	  {
       // If errorCount is more than 0, error out
-      alert('Error occurred. Data is incomplete.');
+      alert('Error in data submission.');
     }
   });
 
@@ -1685,6 +1876,15 @@ function populateAddTransactionView() {
   
   $('.dropdown-item-categorySelection').off("click");
   $('.dropdown-item-categorySelection').on('click', function(event)
+  {
+    // Prevent Link from Firing
+    event.preventDefault();
+
+    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
+  })
+
+  $('.dropdown-item-accountSelection').off("click");
+  $('.dropdown-item-accountSelection').on('click', function(event)
   {
     // Prevent Link from Firing
     event.preventDefault();
@@ -1794,9 +1994,6 @@ function showTransactionInfo(event) {
         if (foundIter != null)
         {
           transactionsData[foundIter].name = $(this).parent().find("#modifyTransactionInputName" + transactionsData[foundIter]._id).val();
-          //var debug1 = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + foundIter.toString()).val()));
-          //var debug2 = $(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id);
-          //var debug3 = $.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val());
           transactionsData[foundIter].dateEntered = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val())).getTime();
           transactionsData[foundIter].account = $(this).parent().find("#modifyTransactionInputAccount" + transactionsData[foundIter]._id).val();
           if(transactionsData[foundIter].bookingType == "Transfer")
@@ -2112,6 +2309,108 @@ function modifyCategory(event)
   });
 };
 
+function modifyAccount(event)
+{
+  // Prevent Link from Firing
+  event.preventDefault();
+
+  // Retrieve username from link rel ibute
+  var thisID = $(this).attr('rel');
+  
+  // Get our User Object
+  var thisUserObject = null;
+  for (var i=0; i < accountData.length; ++i)
+  {
+    if(accountData[i]._id == thisID)
+    {
+      thisUserObject = accountData[i];
+      break;
+    }
+  }
+
+
+  
+  if(thisUserObject != null)
+  {
+    $("#accountsModify").css("display","block");
+    $("#buttonSaveModifyAccount").attr("rel",thisID);
+
+
+    $("#buttonSaveModifyAccount").off();
+    $("#buttonSaveModifyAccount").on("click",function()
+    {
+      var thisID = $(this).attr('rel');
+      // Get our User Object
+      var thisUserObject = null;
+      var oldName = "";
+      for (var i=0; i < accountData.length; ++i)
+      {
+        if(accountData[i]._id == thisID)
+        {
+          thisUserObject = accountData[i];
+          oldName = accountData[i].name;
+          break;
+        }
+      }
+
+      var newAccount = thisUserObject;
+      newAccount.name = $("#accountsModify input").val();
+      newAccount.totalCurrent = 0.0;
+      newAccount.totalVirtual = 0.0;
+
+      var ajaxPromises = []
+      var ajaxPromise1 = ajaxPUT_Account(newAccount,thisID);
+
+      ajaxPromises.push(ajaxPromise1);
+
+      for (var i=0; i < transactionsData.length; ++i)
+      {
+        if(transactionsData[i].account === oldName)
+        {
+          transactionsData[i].account = $("#accountsModify input").val();
+        }
+        else if (transactionsData[i].bookingType === "Transfer")
+        {
+          if (transactionsData[i].targetAccount === oldName)
+          {
+            transactionsData[i].targetAccount = $("#accountsModify input").val();
+          }
+          else
+          {
+            continue;
+          }
+        }
+        else
+        {
+          continue;
+        }
+        var curAjaxPromise = ajaxPUT_Transaction(transactionsData[i]);
+        ajaxPromises.push(curAjaxPromise);
+      }
+
+      $.when(ajaxPromises).then(function()
+      {
+        reloadDataAndRefreshDisplay();
+        $("#accountsModify input").val("");
+        $("#accountsModify").css("display","none");
+        $("#buttonSaveModifyAccount").attr("rel","");
+      });
+    })
+
+    $("#buttonCancelModifyAccount").off();
+    $("#buttonCancelModifyAccount").on("click",function()
+    {
+      $("#accountsModify").css("display","none");
+      $("#buttonSaveModifyAccount").attr("rel","");
+      $("#accountsModify input").val("");
+    })
+  }
+  else
+  {
+    alert("Something went terribly wrong...");
+  }
+};
+
 // Delete transaction
 function deleteTransaction(event) {
 
@@ -2141,6 +2440,9 @@ function onNavigationChange()
   $("#addRedemptionPaymentForm").css("display","none");
   $('#modifyDatabaseEntryCategory').attr("style","display:none");
   $('#categoriesInfo').attr("style","display:none");
+
+  $('.accountsTableModifyButton').off();
+  $('.accountsTableModifyButton').on("click",modifyAccount);
 };
 
 

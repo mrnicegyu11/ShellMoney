@@ -9,6 +9,7 @@ var mongo = require('mongodb');
 var monk = require('monk');
 var dbTransactions = monk('nodejsUser:Toj3jaiHir@localhost:62946/finance');
 var dbCategories = monk('nodejsUser:Toj3jaiHir@localhost:62946/categories1');
+var dbAccounts = monk('nodejsUser:Toj3jaiHir@localhost:62946/accounts');
 
 var indexRouter = require('./routes/index');
 var dbRouter = require('./routes/db');
@@ -29,6 +30,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(function(req,res,next){
   req.dbTransactions = dbTransactions;
   req.dbCategories = dbCategories;
+  req.dbAccounts = dbAccounts;
   next();
 });
 

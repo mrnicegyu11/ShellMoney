@@ -15,20 +15,35 @@ html
       h3
         #selectedMonthYear
         button(type="button",class="btn btn-primary",id="monthUp")
-          | 🢁
+          | +
         button(type="button",class="btn btn-primary",id="monthDown")
-          | 🢃
-      #accountsButton
-        button(type="button",class="btn btn-primary",id="buttonShowAccounts")
-          | Show Accounts
+          | -
+      button(type="button",class="btn btn-primary",id="buttonShowAccounts")
+        | Show Accounts
       block accounts
-        #accountOverview(style="display:none")
+        #accountOverview(style="display:none").m-2.p-2
+          button(type="button",class="btn btn-primary",id="buttonAddAccount")
+            | Add Account
+          #accountsAdd(style="display:none")
+            input(type="text",placeholder="Name",id="addAccountName").m-2.p-2
+            button(type="button",class="btn btn-primary",id="buttonSaveAddAccount").m-2.p-2
+              | Add
+            button(type="button",class="btn btn-primary",id="buttonCancelAddAccount").m-2.p-2
+              | Cancel
+          #accountsModify(style="display:none")
+            input(type="text",placeholder="Name",id="modifyAccountName").m-2.p-2
+            button(type="button",class="btn btn-primary",id="buttonSaveModifyAccount").m-2.p-2
+              | Save
+            button(type="button",class="btn btn-primary",id="buttonCancelModifyAccount").m-2.p-2
+              | Cancel
           table.table-dark.my-2.flex.table-striped.table-bordered.mx-auto.p-auto(width="100%",cellspacing="0",cellpadding="0")
             thead
               tr.w-auto.pauto
                 th Name
                 th Current Balance
                 th Balance including unbooked transactions
+                th 
+                th 
             tbody
       block navigation
         #navigation.my-4
@@ -72,7 +87,10 @@ html
                  | Correction
             #general(style="display:none")
               input(type="text",placeholder="Date",id="datepicker").m-2.p-2.datepicker
-              input(type="text",placeholder="Account",id="inputAccount").m-2.p-2.inputAccount
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputAccount").inputAccount
+                 | Account
+                .dropdown-menu
             #payment(style="display:none")
               input(type="text",placeholder="Name",id="inputNamePayment").m-2.p-2.inputName
               div
@@ -110,7 +128,10 @@ html
               button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
                | Booked
             #transfer(style="display:none")
-              input(type="text",placeholder="To Account",id="targetAccount").m-2.p-2.targetAccount
+              .dropdown
+                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="targetAccount").targetAccount
+                 | Target Account
+                .dropdown-menu
               input(type="number",placeholder="Amount",id="inputAmount1",class="m-2 p-2").inputAmount
               button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
                | Booked
