@@ -891,8 +891,8 @@ function reloadData()
         var totalAmount = this.dateBooked != null ? getTotalCostsFromTransaction(this) : 0.0;
         if (this.bookingType === "Transfer")
         {
-          foundAccounts[found].totalCurrent -= totalAmount;
-          foundAccounts[found].totalVirtual -= totalAmountVirtual;
+          foundAccounts[found].totalCurrent += totalAmount;
+          foundAccounts[found].totalVirtual += totalAmountVirtual;
           var found2 = -1;
           for (var j = 0; j < foundAccounts.length; j++)
           {
@@ -904,8 +904,8 @@ function reloadData()
           }
           if(found2 != -1)
           {
-            foundAccounts[found2].totalCurrent += totalAmount;
-            foundAccounts[found2].totalVirtual += totalAmountVirtual;
+            foundAccounts[found2].totalCurrent -= totalAmount;
+            foundAccounts[found2].totalVirtual -= totalAmountVirtual;
           }
           else
           {
@@ -987,28 +987,11 @@ function populateTransactionTable(selectedMonth,selectedYear) {
         {
           tableContent += "</div><div> from " + this.account +" to " + this.targetAccount;
         }
-        else if (this.bookingType == "Redemption")
-        {
-          tableContent += "</div><div> (Redemption)";
-        }
 
         tableContent += '</div></td>';
         tableContent += '<td>'
-        if (this.bookingType != "Redemption")
-        {
-          tableContent += '<button type="button" class="btn btn-outline-success">Yes</button>';
-        }
-        else
-        {
-          if(this.dateBooked == null)
-          {
-            tableContent += '<button type="button" class="btn btn-warning buttonIsTransactionBooked" rel="' + this._id + '">No</button>';
-          }
-          else
-          {
-            tableContent += '<button type="button" class="btn btn-success buttonIsTransactionBooked" rel="' + this._id + '">Yes</button>';
-          }
-        }
+        tableContent += '<button type="button" class="btn btn-outline-success">Yes</button>';
+
       }
     
       tableContent +='</td>';
@@ -1723,7 +1706,7 @@ function populateAddTransactionView() {
       }
       else if (currentTransactionKind == "Transfer")
       {
-        newTransaction.amount[0].amount = (parseFloat(newTransaction.amount[0].amount) * -1.0).toFixed(2);
+        newTransaction.amount[0].amount = (parseFloat(newTransaction.amount[0].amount) * 1.0).toFixed(2);
         newTransaction.name = "Transfer"
         newTransaction.amount[0].category = "Transfer"
         newTransaction.targetAccount = $('#addTransaction '+ currentTransactionDivName +' .targetAccount').html();
