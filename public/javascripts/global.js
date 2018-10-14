@@ -833,7 +833,9 @@ function reloadData()
 
 
   });
-  var ajaxPromise3 = $.getJSON('db/accounts_list').then(function( data ) 
+  var ajaxPromise3 = $.getJSON('db/accounts_list');
+  
+  var ajaxPromise4 = $.when(ajaxPromise1,ajaxPromise3).then(function( data ) 
   {
     foundAccounts = data;
 
@@ -927,7 +929,7 @@ function reloadData()
     accountData = foundAccounts;
   });
 
-  return $.when(ajaxPromise1,ajaxPromise2,ajaxPromise3);
+  return $.when(ajaxPromise2,ajaxPromise4);
   
 };
 
