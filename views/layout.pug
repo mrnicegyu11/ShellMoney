@@ -11,6 +11,19 @@ html
 
   body
     div.container
+      #notificationModal.modal(tabindex="-1",role="dialog",aria-labelledby="exampleModalCenterTitle",aria-hidden="true")
+        .modal-dialog.modal-dialog-centered.modal-lg(role="document")
+          .modal-content
+            .modal-header
+              h5.modal-title#notificationModalTitle
+              button.close(type="button",data-dismiss="modal",aria-label="Close")
+                span(aria-hiden="true")
+                 | &times;
+            .modal-body.m-2.p-2
+              #notificationModalContent
+            #notificationModalBottomText
+              #noTransactions.m-2.p-2
+               | No transactions found.
       h1= title
       h3
         #selectedMonthYear

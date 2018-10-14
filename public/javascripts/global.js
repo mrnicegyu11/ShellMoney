@@ -740,7 +740,7 @@ function ajaxDELETE_Account(item)
   var thisID = 0;
   if(typeof item._id != "undefined")
   {
-    thisUD = item._id;
+    thisID = item._id;
   }
   else
   {
@@ -764,10 +764,11 @@ function ajaxDELETE_Account(item)
 
     }
     
-  }).fail(function( response)
+  }).fail(function()
   {
-    alert("Something went wrong when updating an accounts.");
-  });
+    alert("Something went wrong when deleting an account.");
+  }
+  );
 
   return ajaxPromise;
 };
@@ -816,6 +817,7 @@ function reloadData()
     // Update the table
 
   });
+
   var ajaxPromise2 = $.getJSON('db/categories_list').then(function( data ) 
   {
     categoryData = data;
@@ -833,14 +835,14 @@ function reloadData()
 
 
   });
-  var ajaxPromise3 = $.getJSON('db/accounts_list');
-  
-  var ajaxPromise4 = $.when(ajaxPromise1,ajaxPromise3).then(function( data ) 
+
+  var ajaxPromise3 = $.getJSON('db/accounts_list').then(function( data, ajaxPromise1 ) 
   {
-    foundAccounts = data;
+    accountData = data;
 
     // Sort by Name
-    foundAccounts.sort(function(a, b) {
+    accountData.sort(function(a, b) 
+    {
       var nameA=a.name.toLowerCase();
       var nameB=b.name.toLowerCase();
       if (nameA < nameB) //sort string ascending
@@ -849,8 +851,11 @@ function reloadData()
        return 1;
       return 0; //default return value (no sorting)
     });
+  });
 
-    $.each($(foundAccounts), function()
+  var ajaxPromise4 = $.when(ajaxPromise1,ajaxPromise3).then(function()
+  {
+    $.each($(accountData), function()
     {
       this.totalCurrent = 0.0;
       this.totalVirtual = 0.0;
@@ -861,28 +866,20 @@ function reloadData()
     {
       var found = -1;
       // Search if we know this account already
-      for (var i = 0; i < foundAccounts.length; i++)
+      for (var i = 0; i < accountData.length; i++)
       {
-        if(foundAccounts[i].name === this.account)
+        if(accountData[i].name === this.account)
         {
           found = i;
-          
-          if(typeof foundAccounts[i].totalCurrent == "undefined")
+
+          if(typeof accountData[i].totalCurrent == "undefined")
           {
-            foundAccounts[i].totalCurrent = 0.0;
+            accountData[i].totalCurrent = 0.0;
           }
-          if(typeof foundAccounts[i].totalVirtual == "undefined")
+          if(typeof accountData[i].totalVirtual == "undefined")
           {
-            foundAccounts[i].totalVirtual = 0.0;
+            accountData[i].totalVirtual = 0.0;
           }
-          /*if(typeof foundAccounts[i].totalCurrent == "string")
-          {
-            foundAccounts[i].totalCurrent = 0.0 //parseFloat(foundAccounts[i].totalCurrent);
-          }
-          if(typeof foundAccounts[i].totalVirtual == "string")
-          {
-            foundAccounts[i].totalVirtual = 0.0 //parseFloat(foundAccounts[i].totalVirtual);
-          }*/
           break;
         }
       }
@@ -893,12 +890,12 @@ function reloadData()
         var totalAmount = this.dateBooked != null ? getTotalCostsFromTransaction(this) : 0.0;
         if (this.bookingType === "Transfer")
         {
-          foundAccounts[found].totalCurrent += totalAmount;
-          foundAccounts[found].totalVirtual += totalAmountVirtual;
+          accountData[found].totalCurrent += totalAmount;
+          accountData[found].totalVirtual += totalAmountVirtual;
           var found2 = -1;
-          for (var j = 0; j < foundAccounts.length; j++)
+          for (var j = 0; j < accountData.length; j++)
           {
-            if(foundAccounts[j].name === this.targetAccount)
+            if(accountData[j].name === this.targetAccount)
             {
               found2 = j;
               break;
@@ -906,30 +903,28 @@ function reloadData()
           }
           if(found2 != -1)
           {
-            foundAccounts[found2].totalCurrent -= totalAmount;
-            foundAccounts[found2].totalVirtual -= totalAmountVirtual;
+            accountData[found2].totalCurrent -= totalAmount;
+            accountData[found2].totalVirtual -= totalAmountVirtual;
           }
-          else
+          else if (this.targetAccount != "Deleted Account")
           {
             alert("Error! We found a transaction where we do not know which account it belongs to.");
           }
         }
         else
         {
-          foundAccounts[found].totalCurrent += totalAmount;
-          foundAccounts[found].totalVirtual += totalAmountVirtual;
+          accountData[found].totalCurrent += totalAmount;
+          accountData[found].totalVirtual += totalAmountVirtual;
         }
       }
-      else // add this new account to out list
+      else if (this.account != "Deleted Account") // add this new account to out list
       {
         alert("Error! We found a transaction where we do not know which account it belongs to.")
       }
     });
-
-    accountData = foundAccounts;
   });
 
-  return $.when(ajaxPromise2,ajaxPromise4);
+  return $.when(ajaxPromise1,ajaxPromise2,ajaxPromise3,ajaxPromise4);
   
 };
 
@@ -1299,7 +1294,8 @@ function populateCategoryTable() {
   $('#categoryDatabaseView table tbody').html(tableContent);
 
   $('#categoryDatabaseView table .clickable-row').off("click");
-  $('#categoryDatabaseView table .clickable-row').on('click', function(event) {
+  $('#categoryDatabaseView table .clickable-row').on('click', function(event) 
+  {
     event.preventDefault();
     
     if($(this).hasClass('table-info'))
@@ -1495,8 +1491,71 @@ function populateAccountInformation()
 
   tableContent += '</tr>';
 
-
   $('#accountOverview table tbody').html(tableContent);
+
+  
+  // Functionality for deleting accounts
+  $('.accountsTableDeleteButton').off('click');
+  $('.accountsTableDeleteButton').on('click', function(event)
+  {
+    event.preventDefault();
+    var curAccountIdent = $(this).attr('rel');
+    
+    //Find account
+    var foundID = -1;
+    for (var i=0; i < accountData.length; ++i)
+    {
+      if(accountData[i]._id == curAccountIdent)
+      {
+        foundID = i;
+        break;
+      }
+    }
+
+    if(i === -1 )
+    {
+      alert("Something went wrong!");
+    }
+    else if (parseFloat(Math.abs(accountData[foundID].totalCurrent).toFixed(2)) != 0.00 
+              || parseFloat(Math.abs(accountData[foundID].totalVirtual).toFixed(2)) != 0.0)
+    {
+      alert("Only Accounts with a balance of exactly 0.00 can be deleted.")
+    }
+    else
+    {
+      var confirmation = confirm('Are you sure you want to delete this account? Transactions connected to it will lack information! This cannot be undone!');
+      if (confirmation == true)
+      {
+        var promisesArray = [];
+        for (var i=0; i < transactionsData.length; ++i)
+        {
+          if(transactionsData[i].account == accountData[foundID].name)
+          {
+            var item = transactionsData[i];
+            item.account = "Deleted Account";
+            var currentPromise = ajaxPUT_Transaction(item);
+            promisesArray.push(currentPromise);
+          }
+          else if(transactionsData[i].bookingType == "Transfer")
+          {
+            if(transactionsData[i].targetAccount == accountData[foundID].name)
+            {
+              var item = transactionsData[i];
+              item.targetAccount = "Deleted Account";
+              var currentPromise = ajaxPUT_Transaction(item);
+              promisesArray.push(currentPromise);
+            }
+          }
+        }
+
+        Promise.all(promisesArray).then(function()
+        {
+          ajaxDELETE_Account(curAccountIdent).then(function() {reloadDataAndRefreshDisplay();});
+        });
+      }
+    }
+  });
+
   onNavigationChange();
 };
 
