@@ -971,7 +971,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
 
 
       // Insert here booked? button code
-      if(this.name != "Income" && this.name != "Correction" && this.bookingType != "Redemption")
+      if(this.name != "Correction" && this.name != "Transfer")
       {
         tableContent += '<td class="transactionTableName">' + this.name + '</td>';
         tableContent += '<td>'
@@ -988,20 +988,30 @@ function populateTransactionTable(selectedMonth,selectedYear) {
       {
         var nameDisplay = this.name;
 
-        tableContent += '<td><div style="font-weight:bold;font-style:italic">' + nameDisplay;
+        
         if (this.name === "Correction")
         {
+          tableContent += '<td><div style="font-weight:bold;font-style:italic">' + nameDisplay;
           tableContent += "</div><div> (" + this.account +")";
+          tableContent += '</div></td>';
+          tableContent += '<td>'
+          tableContent += '<button type="button" class="btn btn-outline-success">Yes</button>';
         }
         else if (this.name == "Transfer")
         {
+          tableContent += '<td><div style="font-weight:bold">' + nameDisplay;
           tableContent += "</div><div> from " + this.account +" to " + this.targetAccount;
+          tableContent += '</div></td>';
+          tableContent += '<td>'
+          if(this.dateBooked == null)
+          {
+            tableContent += '<button type="button" class="btn btn-warning buttonIsTransactionBooked" rel="' + this._id + '">No</button>';
+          }
+          else
+          {
+            tableContent += '<button type="button" class="btn btn-success buttonIsTransactionBooked" rel="' + this._id + '">Yes</button>';
+          }
         }
-
-        tableContent += '</div></td>';
-        tableContent += '<td>'
-        tableContent += '<button type="button" class="btn btn-outline-success">Yes</button>';
-
       }
     
       tableContent +='</td>';
@@ -1026,8 +1036,8 @@ function populateCategoryTable() {
   var totalIncomeThisMonth = 0.0;
   for (var i = 0; i < transactionsData.length; i++)
   {
-    // Da Redemptions immer eine Category haben, werden Sie beim unallozierten Geld nicht einbezogen
-    if ((transactionsData[i].bookingType === "Income" || transactionsData[i].bookingType === "Correction" ) 
+    if (( (transactionsData[i].bookingType === "Payment" && getTotalCostsFromTransaction(transactionsData[i]) > 0.0 ) // is income
+      || transactionsData[i].bookingType === "Correction" ) 
       && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
       && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
     {
