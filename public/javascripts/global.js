@@ -497,6 +497,12 @@ function setButton_toggleTransactionListBookedStatus(event)
   }
 }
 
+///////////////////////////////////////
+//
+// A J A X
+//
+///////////////////////////////////////
+
 function ajaxPOST_Transaction(newTransactionObject)
 {
   // jQuery Deferred functionality via https://stackoverflow.com/questions/14377038/how-do-i-use-jquery-promise-deffered-in-a-custom-function
@@ -772,6 +778,12 @@ function ajaxDELETE_Account(item)
 
   return ajaxPromise;
 };
+
+///////////////////////////////////////
+//
+// F U N C T I O N A L I T Y
+//
+///////////////////////////////////////
 
 // Deletes a category, event musst have attribute "rel" with ID in it.
 function deleteCategory(event)
@@ -2082,9 +2094,9 @@ function showCategoryInfoModal(event) {
 
   if(thisUserObject != [])
   {
-    $(".modal-body #categoryInfoTransactions").parent().find("table").attr("style","display:block");
+    $(".modal-body #categoryInfoModalContent").find("table").attr("style","display:block");
 
-    $("#categoryModalTitle").html(thisUserObject.name);
+    $("#notificationModalTitle").html(thisUserObject.name);
 
 
     var oldestDateFound = new Date();
@@ -2121,7 +2133,7 @@ function showCategoryInfoModal(event) {
     htmlContent += parseFloat($(this).parent().parent().find("#categoryTotalAmount").attr("valCurrentBalance")).toFixed(2);
     htmlContent += "</div>";
     htmlContent += '<div class="m-2 p-2"><strong>Allocated (all months): </strong>' + allocatedInTotal.toFixed(2) + "</div>";
-    var whereToInsert = $(".modal-body #categoryInfoTransactions");
+    var whereToInsert = $(".modal-body #categoryInfoModalContent #categoryInfoTransactions");
     whereToInsert.html(htmlContent);
     // Debug Display disabled
     //whereToInsert.html(htmlString);
@@ -2156,27 +2168,27 @@ function showCategoryInfoModal(event) {
         }
       }
     }
-    whereToInsert = $(".modal-body #categoryInfoTransactions").parent().find("table tbody");
+    whereToInsert = $(".modal-body #categoryInfoModalContent").find("table tbody");
     whereToInsert.html(htmlContent);
 
 
     
     if(countEntries === 0)
     {
-      $("#noTransactions").css("display","block")
-      $("#categoryInfoTransactions").parent().find("table").css("display","none")
+      $("#notificationModalBottomText").html("No transactions found.");
+      $("#categoryInfoModalContent").find("table").css("display","none");
     }
     else
     {
-      $("#noTransactions").css("display","none")
-      $("#categoryInfoTransactions").parent().find("table").css("display","block")
+      $("#notificationModalBottomText").html("");
+      $("#categoryInfoModalContent").find("table").css("display","block");
     }
 
     if(!$("#buttonShowMoreTransactions").exists())
     {
       var div1 = $(document.createElement('div'));
       div1.attr("class","m-2 p-2");
-      $("#categoryInfoBottomText").append(div1)
+      $("#notificationModalBottomText").append(div1)
 
       var showMoreButton = $(document.createElement('button'));
       showMoreButton.attr("type","text");
@@ -2232,10 +2244,10 @@ function showCategoryInfoModal(event) {
         {
           for (var i = 0; i < additionalHtmlContent.length; i++)
           {
-            $(".modal-body #categoryInfoTransactions").parent().find("table tbody").html($(".modal-body #categoryInfoTransactions").parent().find("table tbody").html() + additionalHtmlContent[i]);
+            $(".modal-body #categoryInfoModalContent").find("table tbody").html($(".modal-body #categoryInfoModalContent").find("table tbody").html() + additionalHtmlContent[i]);
           }
-          $("#categoryInfoTransactions").parent().find("table").css("display","");
-          $("#noTransactions").css("display","none");
+          $("#categoryInfoModalContent").find("table").css("display","");
+          $("#notificationModalBottomText").html("");
         }
         $("#buttonShowMoreTransactions").attr("style","display:none");
       });
@@ -2247,7 +2259,7 @@ function showCategoryInfoModal(event) {
     }
       
 
-    $('#categoryModal').modal();
+    $('#notificationModal').modal();
   }
   
 };

@@ -11,7 +11,7 @@ html
 
   body
     div.container
-      #notificationModal.modal(tabindex="-1",role="dialog",aria-labelledby="exampleModalCenterTitle",aria-hidden="true")
+      #notificationModal.modal(tabindex="-1",role="dialog",aria-labelledby="Notification Modal",aria-hidden="true")
         .modal-dialog.modal-dialog-centered.modal-lg(role="document")
           .modal-content
             .modal-header
@@ -21,9 +21,17 @@ html
                  | &times;
             .modal-body.m-2.p-2
               #notificationModalContent
-            #notificationModalBottomText
-              #noTransactions.m-2.p-2
-               | No transactions found.
+              #categoryInfoModalContent
+                #categoryInfoTransactions
+                table.table.table-striped.table-responsive.m-2.p-2
+                  thead
+                    th Name
+                    th Date
+                    th Booked
+                    th Account
+                    th Amount
+                  tbody
+            #notificationModalBottomText.m-2.p-2
       h1= title
       h3
         #selectedMonthYear
@@ -170,27 +178,6 @@ html
                 th Modify?
                 th Delete?
               tbody
-          #categoryModal.modal(tabindex="-1",role="dialog",aria-labelledby="exampleModalCenterTitle",aria-hidden="true")
-            .modal-dialog.modal-dialog-centered.modal-lg(role="document")
-              .modal-content
-                .modal-header
-                  h5.modal-title#categoryModalTitle
-                  button.close(type="button",data-dismiss="modal",aria-label="Close")
-                    span(aria-hiden="true")
-                     | &times;
-                .modal-body.m-2.p-2
-                  #categoryInfoTransactions
-                  table.table.table-striped.table-responsive.m-2.p-2
-                    thead
-                      th Name
-                      th Date
-                      th Booked
-                      th Account
-                      th Amount
-                    tbody
-                #categoryInfoBottomText
-                  #noTransactions.m-2.p-2
-                   | No transactions found.
           #categoryUnallocatedMoney.m-2
           #categoryToBeAllocatedMoney.m-2
           #modifyDatabaseEntryCategory.my-4(style="display:none")
