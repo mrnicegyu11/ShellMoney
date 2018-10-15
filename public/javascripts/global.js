@@ -790,22 +790,23 @@ function deleteCategory(event)
 {
   event.preventDefault();
   ajaxDELETE_Category($(this).attr('rel')).then(function()
-    {
-      // Update the table
-      reloadDataAndRefreshDisplay();
-    });
+  {
+    // Update the table
+    reloadDataAndRefreshDisplay();
+  });
 }
 
 function reloadDataAndRefreshDisplay()
 {
   var reloadPromise = reloadData();
-  reloadPromise.then(function()
+  var renderPromise = reloadPromise.then(function()
   {
     populateTransactionTable(selectedMonth,selectedYear);
     populateAccountInformation();
     populateCategoryTable();
     onNavigationChange();
   });
+  return renderPromise;
   
 }
 
@@ -1953,11 +1954,18 @@ function populateAddTransactionView() {
 function showTransactionInfo(event) {
 
   // Prevent Link from Firing
-  event.preventDefault();
+  //event.preventDefault();
 
   // Retrieve username from link rel ibute
-  var thisID = $(this).attr('rel');
-  
+  var thisID = -1;
+  if(!isNaN(event))
+  {
+    thisID = event;
+  }
+  else
+  {
+    thisID = $(this).attr('rel');
+  }
   // Get our User Object
   var thisUserObject = [];
   for (var i=0; i < transactionsData.length; ++i)
@@ -1968,9 +1976,100 @@ function showTransactionInfo(event) {
       break;
     }
   }
+  
+  
+  //$(".modal-body #transactionInfoModalContent").find("table").attr("style","display:block");
+  $("#notificationModalTitle").html(thisUserObject.name);
+  $("#categoryInfoModalContent").css("display","none");
+  $("#transactionInfoModalContent").css("display","");
+  var newHTML = '<br><div id="transactionDetails" style="display:block">'
+  newHTML += "<strong>Name: </strong>";
+  newHTML += '<input type="text" value="' + thisUserObject.name + '"id="modifyTransactionInputName' + thisID + '">';
+  newHTML += "<br>"
+  newHTML += "<strong>Date Entered: </strong>";
+  newHTML += '<input type="text" id="modifyTransactionDatepicker' + thisID + '">';
+  //newHTML += new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10);
+  newHTML += "<br>"
+  newHTML += "<strong>Account: </strong>";
+  newHTML += '<input type="text" value="' + thisUserObject.account + '"id="modifyTransactionInputAccount' + thisID + '">';
+  newHTML += "<br>"
+  newHTML += "<strong>Booking Type: </strong>";
+  newHTML += thisUserObject.bookingType;
+  newHTML += "<br>"
+  if(thisUserObject.bookingType == "Transfer")
+  {
+    newHTML += "<strong>Target Account: </strong>";
+    //newHTML += thisUserObject.targetAccount;
+    newHTML += '<input type="text" value="' + thisUserObject.targetAccount + '"id="modifyTransactionInputTargetAccount' + thisID + '">';
+    newHTML += "<br>"
+  }
+  var totalAmount = 0.0;
+  var categoriesString = "";
+  for (var j=0; j < thisUserObject.amount.length; ++j)
+  {
+    totalAmount = totalAmount + parseFloat(thisUserObject.amount[j].amount);
+    categoriesString += '<div style="padding-left:5em">' + thisUserObject.amount[j].category.toString() + ": ";
+    categoriesString += '<input type="number" value="' + parseFloat(thisUserObject.amount[j].amount).toFixed(2) + '" id="modifyTransactionCategory' + j.toString() + '_' + thisID + '"></div>';
+  }
+  newHTML += categoriesString;
+  newHTML += "<strong>Total Amount: </strong>";
+  newHTML += totalAmount.toFixed(2);
+  newHTML += "<br>";
 
-  //perform error checking here.
+  newHTML += '<button type="text" id="'+ thisID +'" class="btn btn-success m-1 p-1 modifyTransactionButton" rel="' + thisUserObject._id + '">Update</button></div>'
+  
+  var whereToInsert = $(".modal-body #transactionInfoModalContent");
+  whereToInsert.html(newHTML);
 
+  $( '#modifyTransactionDatepicker' + thisID ).datepicker({
+    dateFormat: "yy-mm-dd"
+  });
+  $('#modifyTransactionDatepicker' + thisID ).val($.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(thisUserObject.dateEntered)) ));
+
+
+  $(".modifyTransactionButton").off("click");
+  $(".modifyTransactionButton").on("click",function()
+  {
+    var currentID = $(this).attr("rel");
+
+    // Get our User Object
+    var foundIter = null;
+    for (var i=0; i < transactionsData.length; ++i)
+    {
+      if(transactionsData[i]._id == currentID)
+      {
+        foundIter = i;
+        break;
+      }
+    }
+    if (foundIter != null)
+    {
+      transactionsData[foundIter].name = $(this).parent().find("#modifyTransactionInputName" + transactionsData[foundIter]._id).val();
+      transactionsData[foundIter].dateEntered = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val())).getTime();
+      transactionsData[foundIter].account = $(this).parent().find("#modifyTransactionInputAccount" + transactionsData[foundIter]._id).val();
+      if(transactionsData[foundIter].bookingType == "Transfer")
+      {
+        transactionsData[foundIter].targetAccount = $(this).parent().find("#modifyTransactionInputTargetAccount" + transactionsData[foundIter]._id).val();
+      }
+      for (var j = 0; j < transactionsData[foundIter].amount.length; j++)
+      {
+        transactionsData[foundIter].amount[j].amount = $(this).parent().find('#modifyTransactionCategory' + j.toString() + '_' + transactionsData[foundIter]._id).val();
+      }
+      ajaxPUT_Transaction(transactionsData[foundIter]).then(function()
+      {
+        $('#notificationModal').modal('toggle');
+        reloadDataAndRefreshDisplay().then(showTransactionInfo($(this)));
+      });
+    }
+    else
+    {
+      alert ("Something went wrong when updating the transaction.");
+    }
+  });
+
+  $('#notificationModal').modal();
+
+  /*
   $("#transactionList table tbody tr").each(function(i,obj)
   {
     if(thisID === $(obj).find("td")[0].childNodes[0].rel)
@@ -2072,12 +2171,13 @@ function showTransactionInfo(event) {
       });
     }
   })
+  */
 };
 
 function showCategoryInfoModal(event) {
 
   // Prevent Link from Firing
-  //event.preventDefault();
+  event.preventDefault();
 
   var thisID = $(this).attr('rel');
   
@@ -2095,7 +2195,8 @@ function showCategoryInfoModal(event) {
   if(thisUserObject != [])
   {
     $(".modal-body #categoryInfoModalContent").find("table").attr("style","display:block");
-
+    $("#categoryInfoModalContent").css("display","");
+    $("#transactionInfoModalContent").css("display","none");
     $("#notificationModalTitle").html(thisUserObject.name);
 
 
