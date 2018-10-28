@@ -114,29 +114,41 @@ html
                  | Account
                 .dropdown-menu
             #payment(style="display:none")
-              input(type="text",placeholder="Name",id="inputNamePayment").m-2.p-2.inputName
-              div
-              input(type="text",placeholder="Amount 1",id="inputAmount1",class="m-2 p-2").inputAmount
-              
-              .dropdown
-                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment1Button").category1Button
-                 | Pick Category 1
-                .dropdown-menu
-              input(type="text",placeholder="Amount 2",id="inputAmount2").m-2.p-2.inputAmount
-              .dropdown
-                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment2Button")
-                 | Pick Category 2
-                .dropdown-menu
-              input(type="text",placeholder="Amount 3",id="inputAmount3").m-2.p-2.inputAmount
-              .dropdown
-                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment3Button")
-                 | Pick Category 3
-                .dropdown-menu
-              input(type="text",placeholder="Amount 4",id="inputAmount4").m-2.p-2.inputAmount
-              .dropdown
-                button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment4Button")
-                 | Pick Category 4
-                .dropdown-menu
+              input(type="text",placeholder="Name",id="inputNamePayment",style="display:block").m-2.p-2.inputName
+              #paymentDiv1
+                input(type="text",placeholder="Amount",id="inputAmount1").inputAmount.m-2.p-2
+                .dropdown(style="display:inline")
+                  button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment1Button").category1Button
+                   | Pick Category
+                  .dropdown-menu
+                input(type="text",placeholder="Comment",id="inputCommentPayment").m-2.p-2.inputComment
+                button.btn.btn-info.m-2.p-2#addAnotherAmountPaymentTransactionButton
+                 | +
+              #paymentDiv2(style="display:none")
+                input(type="text",placeholder="Amount 2",id="inputAmount2").m-2.p-2.inputAmount(style="display:none")
+                .dropdown(style="display:none")
+                  button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment2Button")
+                   | Pick Category 2
+                  .dropdown-menu
+                input(type="text",placeholder="Comment",id="inputCommentPayment2").m-2.p-2.inputComment(style="display:none")
+                button.btn.btn-info.m-2.p-2#addAnotherAmountPaymentTransactionButton
+                 | +
+              #paymentDiv3(style="display:none")
+                input(type="text",placeholder="Amount 3",id="inputAmount3").m-2.p-2.inputAmount(style="display:none")
+                .dropdown(style="display:none")
+                  button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment3Button")
+                   | Pick Category 3
+                  .dropdown-menu
+                input(type="text",placeholder="Comment",id="inputCommentPayment3").m-2.p-2.inputComment(style="display:none")
+                button.btn.btn-info.m-2.p-2#addAnotherAmountPaymentTransactionButton
+                 | +
+              #paymentDiv4(style="display:none")
+                input(type="text",placeholder="Amount 4",id="inputAmount4").m-2.p-2.inputAmount(style="display:none")
+                .dropdown(style="display:none")
+                  button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment4Button")
+                   | Pick Category 4
+                  .dropdown-menu
+                input(type="text",placeholder="Comment",id="inputCommentPayment4").m-2.p-2.inputComment(style="display:none")
               #summedAmounts.m-2.p-2
               button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
                | Booked

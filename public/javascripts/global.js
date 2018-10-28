@@ -2014,6 +2014,32 @@ function populateAddTransactionView() {
     }
     $(this).val(math.eval($(this).val().replace(/,/g, '.')));
   });
+
+  $("#addAnotherAmountPaymentTransactionButton.btn").off();
+  $("#addAnotherAmountPaymentTransactionButton.btn").on("click",function()
+  {
+    for (var i = 2; i < 5; i++)
+    {
+      if($('#inputAmount' + i.toString()).exists())
+      {
+        if($('#inputAmount' + i.toString()).css('display') == "none")
+        {
+          $('#paymentDiv' + i.toString()).css("display","");
+          $('#inputAmount' + i.toString()).css('display',"");
+          $('#inputCommentPayment' + i.toString()).css('display',"");
+          $('#inputCategoryPayment'+ i.toString() +'Button').parent().css('display','inline');
+          //var brElement = $(document.createElement('br'));
+          //$('#inputCommentPayment'+ (i-1).toString()).append(brElement);
+          if(i < 4)
+          {
+            $('#paymentDiv' + i.toString() + ' addAnotherAmountPaymentTransactionButton').css('display','inline')
+          }
+          $('#paymentDiv' + (i-1).toString() + ' addAnotherAmountPaymentTransactionButton').css('display','none')
+          break;
+        }
+      }
+    }
+  });
 };
 
 // Show User Info
