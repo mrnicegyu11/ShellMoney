@@ -14,6 +14,20 @@ $.fn.exists = function () {
   // and: https://stackoverflow.com/questions/4186906/check-if-object-exists-in-javascript
 }
 
+// via https://memorynotfound.com/detect-enter-keypress-javascript-jquery/
+// write small plugin for keypress enter detection
+$.fn.enterKey = function (fnc) {
+  return this.each(function () {
+      $(this).keypress(function (e) {
+          var keycode = (e.keyCode ? e.keyCode : e.which);
+          if (keycode == '13') {
+              fnc.call(this, e);
+          }
+      })
+  })
+};
+
+
 // Stuff we use:
 // ".buttonIsTransactionBooked"
 // -> Has element "rel" which is ID
@@ -1382,6 +1396,7 @@ function populateCategoryTable() {
     }
     else
     {
+      $('#categoryDatabaseView table #summaryRow').css("display","none");
       $("#categoryDatabaseView table #summaryRow #0").html("");
       $("#categoryDatabaseView table #summaryRow #1").html("");
       $("#categoryDatabaseView table #summaryRow #2").html("");
@@ -1583,6 +1598,8 @@ function populateAccountInformation()
 };
 
 function populateAddTransactionView() {
+  $('.inputAmount').off();
+
   $( "#datepicker" ).datepicker({
     dateFormat: "yy-mm-dd"
   });
@@ -1690,6 +1707,19 @@ function populateAddTransactionView() {
         || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
         || $('#addTransaction '+ currentTransactionDivName +' .category1Button').html() == "" 
       )
+      {
+        errorSubmission = true
+      }
+      var foundMatchingAccount = -1;
+      for (var i = 0; i < accountData.length; ++i)
+      {
+        if(accountData[i].name === $('#addTransaction #general .inputAccount').html())
+        {
+          foundMatchingAccount = i;
+          break;
+        }
+      }
+      if (foundMatchingAccount == -1)
       {
         errorSubmission = true
       }
@@ -1958,6 +1988,32 @@ function populateAddTransactionView() {
 
     $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
   })
+
+  
+  $('.inputAmount').enterKey(function()
+  {
+    try
+    {
+      math.eval($(this).val().replace(/,/g, '.'));
+    }
+    catch(err)
+    {
+      return;
+    }
+    $(this).val(math.eval($(this).val().replace(/,/g, '.')));
+  });
+  $('.inputAmount').blur(function()
+  {
+    try
+    {
+      math.eval($(this).val().replace(/,/g, '.'));
+    }
+    catch(err)
+    {
+      return;
+    }
+    $(this).val(math.eval($(this).val().replace(/,/g, '.')));
+  });
 };
 
 // Show User Info
