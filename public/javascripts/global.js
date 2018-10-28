@@ -1804,7 +1804,8 @@ function populateAddTransactionView() {
         'amount' : [
           {
             "category" : $('#addTransaction ' + currentTransactionDivName + ' .category1Button').html(),
-            "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount1').val()) * -1.0).toString()
+            "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount1').val()) * -1.0).toString(),
+            "comment" : $('#addTransaction ' + currentTransactionDivName + ' #paymentDiv1 #inputCommentPayment').val()
           }
         ]
       }
@@ -1855,7 +1856,8 @@ function populateAddTransactionView() {
             newTransaction.amount.push(
               {
                 "category": $('#addTransaction ' + currentTransactionDivName + ' #inputCategoryPayment'+ (i+2).toString() + "Button").html() ,
-                "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val()) * -1.0).toString()
+                "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val()) * -1.0).toString(),
+                "comment" : $('#addTransaction ' + currentTransactionDivName + ' #inputCommentPayment'+ (i+2).toString()).val()
               });
           }
         }
@@ -1890,7 +1892,10 @@ function populateAddTransactionView() {
         summedVal = summedVal + parseFloat(obj.value);
       }
     });
-    $('#addTransaction #payment #summedAmounts').html("Summed Amount: " + summedVal.toFixed(2));
+    if($("#paymentDiv2").css("display") != "none")
+    {
+      $('#addTransaction #payment #summedAmounts').html("Summed Amount: " + summedVal.toFixed(2));
+    }
 
   });
 
@@ -2342,7 +2347,14 @@ function showCategoryInfoModal(event) {
           && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
         {
           var tableContent = '<tr>';
-          tableContent += '<td>'+ transactionsData[i].name +'</td>';
+
+          tableContent += '<td>'+ transactionsData[i].name 
+          if (transactionsData[i].amount[j].comment != null && transactionsData[i].amount[j].comment != "")
+          {
+            tableContent += ' - ' + transactionsData[i].amount[j].comment;
+          }
+          tableContent +='</td>';
+
           tableContent += '<td>'+ $.datepicker.formatDate( "yy-mm-dd", new Date(transactionsData[i].dateEntered)) +'</td>';
           if(transactionsData[i].dateBooked != null)
           {
