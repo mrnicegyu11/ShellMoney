@@ -1810,6 +1810,28 @@ function populateAddTransactionView() {
         ]
       }
 
+      // If entering transaction from today, keep time in minutes (due to possible confilgts with corrections)
+      if(new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getDay() == new Date().getDay()
+      && new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getMonth() == new Date().getMonth()
+      && new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getFullYear() == new Date().getFullYear())
+      {
+        var currentDate = new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val()));
+        currentDate.setHours((new Date()).getHours());
+        currentDate.setMinutes((new Date()).getMinutes());
+        currentDate.setSeconds((new Date()).getSeconds());
+        currentDate.setMilliseconds((new Date()).getMilliseconds());
+        newTransaction.dateEntered = currentDate.getTime();
+      }
+      else if (currentTransactionKind == "Correction")
+      {
+        var currentDate = new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val()));
+        currentDate.setHours(23);
+        currentDate.setMinutes(59);
+        currentDate.setSeconds(59);
+        currentDate.setMilliseconds(1);
+        newTransaction.dateEntered = currentDate.getTime();
+      }
+
       // Modifications of the generic object based on its type
       if(currentTransactionKind == "Income") 
       {
@@ -2142,7 +2164,15 @@ function showTransactionInfo(event) {
     if (foundIter != null)
     {
       transactionsData[foundIter].name = $(this).parent().find("#modifyTransactionInputName" + transactionsData[foundIter]._id).val();
-      transactionsData[foundIter].dateEntered = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val())).getTime();
+      
+      var currentDate = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val()));
+      currentDate.setHours((new Date()).getHours());
+      currentDate.setMinutes((new Date()).getMinutes());
+      currentDate.setSeconds((new Date()).getSeconds());
+      currentDate.setMilliseconds((new Date()).getMilliseconds());
+      transactionsData[foundIter].dateEntered = currentDate.getTime();
+      //transactionsData[foundIter].dateEntered = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val())).getTime();
+
       transactionsData[foundIter].account = $(this).parent().find("#modifyTransactionInputAccount" + transactionsData[foundIter]._id).val();
       if(transactionsData[foundIter].bookingType == "Transfer")
       {
@@ -2165,110 +2195,6 @@ function showTransactionInfo(event) {
   });
 
   $('#notificationModal').modal();
-
-  /*
-  $("#transactionList table tbody tr").each(function(i,obj)
-  {
-    if(thisID === $(obj).find("td")[0].childNodes[0].rel)
-    {
-      var newHTML = '<br><div id="transactionDetails" style="display:block">'
-      newHTML += "<strong>Name: </strong>";
-      newHTML += '<input type="text" value="' + thisUserObject.name + '"id="modifyTransactionInputName' + thisID + '">';
-      newHTML += "<br>"
-      newHTML += "<strong>Date Entered: </strong>";
-      newHTML += '<input type="text" id="modifyTransactionDatepicker' + thisID + '">';
-      //newHTML += new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10);
-      newHTML += "<br>"
-      newHTML += "<strong>Account: </strong>";
-      newHTML += '<input type="text" value="' + thisUserObject.account + '"id="modifyTransactionInputAccount' + thisID + '">';
-      newHTML += "<br>"
-      newHTML += "<strong>Booking Type: </strong>";
-      newHTML += thisUserObject.bookingType;
-      newHTML += "<br>"
-      if(thisUserObject.bookingType == "Transfer")
-      {
-        newHTML += "<strong>Target Account: </strong>";
-        //newHTML += thisUserObject.targetAccount;
-        newHTML += '<input type="text" value="' + thisUserObject.targetAccount + '"id="modifyTransactionInputTargetAccount' + thisID + '">';
-        newHTML += "<br>"
-      }
-      var totalAmount = 0.0;
-      var categoriesString = "";
-      for (var j=0; j < thisUserObject.amount.length; ++j)
-      {
-        totalAmount = totalAmount + parseFloat(thisUserObject.amount[j].amount);
-        categoriesString += '<div style="padding-left:5em">' + thisUserObject.amount[j].category.toString() + ": ";
-        categoriesString += '<input type="number" value="' + parseFloat(thisUserObject.amount[j].amount).toFixed(2) + '" id="modifyTransactionCategory' + j.toString() + '_' + thisID + '"></div>';
-      }
-      newHTML += categoriesString;
-      newHTML += "<strong>Total Amount: </strong>";
-      newHTML += totalAmount.toFixed(2);
-      newHTML += "<br>";
-
-      newHTML += '<button type="text" id="'+ thisID +'" class="btn btn-success m-1 p-1 modifyTransactionButton" rel="' + thisUserObject._id + '">Update</button></div>'
-      if($(obj).find(".transactionTableName #transactionDetails").exists())
-      {
-        if($(obj).find(".transactionTableName #transactionDetails").attr("style") === "display:none")
-        {
-          $(obj).find(".transactionTableName #transactionDetails").attr("style","display:block")
-        }
-        else
-        {
-          $(obj).find(".transactionTableName #transactionDetails").attr("style","display:none");
-        }
-      }
-      else
-      {
-        $(obj).find(".transactionTableName").html($(obj).find(".transactionTableName").html() + newHTML);
-      }
-
-      $( '#modifyTransactionDatepicker' + thisID ).datepicker({
-        dateFormat: "yy-mm-dd"
-      });
-      $('#modifyTransactionDatepicker' + thisID ).val($.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(thisUserObject.dateEntered)) ));
-
-    
-      $(".modifyTransactionButton").off("click");
-      $(".modifyTransactionButton").on("click",function()
-      {
-        var currentID = $(this).attr("rel");
-
-        // Get our User Object
-        var foundIter = null;
-        for (var i=0; i < transactionsData.length; ++i)
-        {
-          if(transactionsData[i]._id == currentID)
-          {
-            foundIter = i;
-            break;
-          }
-        }
-        if (foundIter != null)
-        {
-          transactionsData[foundIter].name = $(this).parent().find("#modifyTransactionInputName" + transactionsData[foundIter]._id).val();
-          transactionsData[foundIter].dateEntered = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val())).getTime();
-          transactionsData[foundIter].account = $(this).parent().find("#modifyTransactionInputAccount" + transactionsData[foundIter]._id).val();
-          if(transactionsData[foundIter].bookingType == "Transfer")
-          {
-            transactionsData[foundIter].targetAccount = $(this).parent().find("#modifyTransactionInputTargetAccount" + transactionsData[foundIter]._id).val();
-          }
-          for (var j = 0; j < transactionsData[foundIter].amount.length; j++)
-          {
-            transactionsData[foundIter].amount[j].amount = $(this).parent().find('#modifyTransactionCategory' + j.toString() + '_' + transactionsData[foundIter]._id).val();
-          }
-          ajaxPUT_Transaction(transactionsData[foundIter]).then(function()
-          {
-            reloadDataAndRefreshDisplay();
-          });
-        }
-        else
-        {
-          alert ("Something went wrong when updating the transaction.");
-        }
-      });
-    }
-  })
-  */
 };
 
 function showCategoryInfoModal(event) {
