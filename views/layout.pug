@@ -22,6 +22,52 @@ html
             .modal-body.m-2.p-2
               #notificationModalContent
               #transactionInfoModalContent
+                #Name.m-2.p-2(style="display:inline")
+                 | Name:
+                input(type="text",placeholder="Name",style="display:inline").m-2.p-2
+                #Date.m-2.p-2(style="display:inline")
+                 | Date:
+                input(type="text",placeholder="Date",id="datepicker",style="display:inline").m-2.p-2.datepicker
+                #Account.m-2.p-2
+                 | Account:
+                .dropdown(style="display:inline")
+                  button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="accountDropdown")
+                   | Pick Account
+                .dropdown-menu
+                #BookingType.m-2.p-2
+                 | Booking Type:
+                #TotalAmount.m-2.p-2
+                 | Total Amount:
+                #amount1
+                  input(type="text",placeholder="Amount").m-2.p-2
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
+                     | Pick Account
+                  .dropdown-menu
+                  input(type="text",placeholder="Comment",style="display:inline").m-2.p-2 
+                #amount2
+                  input(type="text",placeholder="Amount 2").m-2.p-2
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
+                     | Pick Account
+                  .dropdown-menu
+                  input(type="text",placeholder="Comment 2",style="display:inline").m-2.p-2 
+                #amount3
+                  input(type="text",placeholder="Amount 3").m-2.p-2
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
+                     | Pick Account
+                  .dropdown-menu
+                  input(type="text",placeholder="Comment 3",style="display:inline").m-2.p-2 
+                #amount4
+                  input(type="text",placeholder="Amount 4").m-2.p-2
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
+                     | Pick Account
+                  .dropdown-menu
+                  input(type="text",placeholder="Comment 4",style="display:inline").m-2.p-2 
+                button(type="button",class="btn btn-primary",id="update").m-2.p-2
+                 | Update
               #categoryInfoModalContent
                 #categoryInfoTransactions
                 table.table.table-striped.table-responsive.m-2.p-2

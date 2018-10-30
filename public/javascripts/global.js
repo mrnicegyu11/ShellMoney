@@ -2138,7 +2138,7 @@ function showTransactionInfo(event) {
   newHTML += '<button type="text" id="'+ thisID +'" class="btn btn-success m-1 p-1 modifyTransactionButton" rel="' + thisUserObject._id + '">Update</button></div>'
   
   var whereToInsert = $(".modal-body #transactionInfoModalContent");
-  whereToInsert.html(newHTML);
+  //whereToInsert.html(newHTML);
 
   $( '#modifyTransactionDatepicker' + thisID ).datepicker({
     dateFormat: "yy-mm-dd"
