@@ -7,6 +7,11 @@ html
     // via https://stackoverflow.com/questions/12978254/twitter-bootstrap-datepicker-within-modal-window
     style(type="text/css").
       .datepicker{z-index:1151 !important;}
+    // via https://stackoverflow.com/questions/11899870/bootstrap-in-a-modal-dialog-how-do-i-make-the-dropdown-menu-expand-outside-the
+    style(type="text/css").
+      .modal { overflow: visible; }
+    style(type="text/css").
+      .modal-body { overflow-y: visible; }
     //
     link(rel="stylesheet", href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css")
     link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css')
@@ -27,49 +32,58 @@ html
               #transactionInfoModalContent
                 #Name.m-2.p-2(style="display:inline")
                  | Name:
-                input(type="text",placeholder="Name",style="display:inline").m-2.p-2
+                input(type="text",placeholder="Name",style="display:inline").m-2.p-2#nameField
                 #Date.m-2.p-2(style="display:inline")
                  | Date:
                 input(type="text",placeholder="Date",id="transactionInfoModalDatepicker",style="display:inline").m-2.p-2.datepicker
                 #Account.m-2.p-2
-                 | Account:
-                .dropdown(style="display:inline")
-                  button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="accountDropdown")
-                   | Pick Account
-                .dropdown-menu
+                  span
+                    | Account:
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button")
+                     | Pick Account
+                    .dropdown-menu
                 #BookingType.m-2.p-2
                  | Booking Type:
                 #TotalAmount.m-2.p-2
                  | Total Amount:
+                #TargetAccount.m-2.p-2
+                  | Target Account:
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button")
+                     | Pick Account
+                    .dropdown-menu
                 #amount1
-                  input(type="text",placeholder="Amount").m-2.p-2
+                  input(type="text",placeholder="Amount").m-2.p-2.amount
                   .dropdown(style="display:inline")
                     button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
-                     | Pick Account
-                  .dropdown-menu
-                  input(type="text",placeholder="Comment",style="display:inline").m-2.p-2 
+                     | Pick Category
+                    .dropdown-menu
+                  input(type="text",placeholder="Comment",style="display:inline").m-2.p-2.comment
                 #amount2
-                  input(type="text",placeholder="Amount 2").m-2.p-2
+                  input(type="text",placeholder="Amount 2").m-2.p-2.amount
                   .dropdown(style="display:inline")
                     button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
-                     | Pick Account
-                  .dropdown-menu
-                  input(type="text",placeholder="Comment 2",style="display:inline").m-2.p-2 
+                     | Pick Category
+                    .dropdown-menu
+                  input(type="text",placeholder="Comment 2",style="display:inline").m-2.p-2.comment
                 #amount3
-                  input(type="text",placeholder="Amount 3").m-2.p-2
+                  input(type="text",placeholder="Amount 3").m-2.p-2.amount
                   .dropdown(style="display:inline")
                     button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
-                     | Pick Account
-                  .dropdown-menu
-                  input(type="text",placeholder="Comment 3",style="display:inline").m-2.p-2 
+                     | Pick Category
+                    .dropdown-menu
+                  input(type="text",placeholder="Comment 3",style="display:inline").m-2.p-2.comment
                 #amount4
-                  input(type="text",placeholder="Amount 4").m-2.p-2
+                  input(type="text",placeholder="Amount 4").m-2.p-2.amount
                   .dropdown(style="display:inline")
                     button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
-                     | Pick Account
-                  .dropdown-menu
-                  input(type="text",placeholder="Comment 4",style="display:inline").m-2.p-2 
-                button(type="button",class="btn btn-primary",id="update").m-2.p-2
+                     | Pick Category
+                    .dropdown-menu
+                  input(type="text",placeholder="Comment 4",style="display:inline").m-2.p-2.comment
+                button(type="button",class="btn btn-primary",id="addAmount").m-2.p-2
+                 | +
+                button(type="button",class="btn btn-primary",id="updateButton",style="display:block").m-2.p-2
                  | Update
               #categoryInfoModalContent
                 #categoryInfoTransactions
@@ -267,10 +281,10 @@ html
                | Cancel
 
 
-    script(src='https://code.jquery.com/jquery-3.3.1.min.js') 
+    script(src='https://code.jquery.com/jquery-3.3.1.js') 
     // Dont use the slim version here, this will cause calls to fail.
     script(src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js')
-    script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js')
+    script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js')
     script(src='https://code.jquery.com/ui/1.12.0/jquery-ui.min.js')
     script(src='https://unpkg.com/mathjs@5.2.2/dist/math.min.js')
     script(src='javascripts/global.js')

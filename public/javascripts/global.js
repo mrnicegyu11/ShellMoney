@@ -2077,7 +2077,7 @@ function showTransactionInfo(event) {
 
   // Retrieve username from link rel ibute
   var thisID = -1;
-  if(!isNaN(event))
+  if(typeof event === 'string')
   {
     thisID = event;
   }
@@ -2096,53 +2096,178 @@ function showTransactionInfo(event) {
     }
   }
   
-  
-  //$(".modal-body #transactionInfoModalContent").find("table").attr("style","display:block");
+
   $("#notificationModalTitle").html(thisUserObject.name);
+
+  $('#nameField').val(thisUserObject.name);
+  $('#BookingType').html("Booking Type: " + thisUserObject.bookingType);
+  $( '#transactionInfoModalDatepicker' ).datepicker({
+    dateFormat: "yy-mm-dd"
+  });
+  $('#transactionInfoModalDatepicker').val($.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(thisUserObject.dateEntered)) ));
+  if ($("#transactionInfoModalContent #Account .dropdown .dropdown-menu").children().length === 0)
+  {
+    for (var i = 0; i < accountData.length; ++i)
+    {
+      var dropdownEntry = $(document.createElement('a'));
+      dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-AccountSelection");
+      dropdownEntry.attr("href", "#");
+      dropdownEntry.html(accountData[i].name);
+      dropdownEntry.appendTo($("#transactionInfoModalContent #Account .dropdown-menu"));
+    }
+  }
+  if ($("#transactionInfoModalContent #TargetAccount .dropdown .dropdown-menu").children().length === 0)
+  {
+    for (var i = 0; i < accountData.length; ++i)
+    {
+      var dropdownEntry = $(document.createElement('a'));
+      dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-AccountSelection");
+      dropdownEntry.attr("href", "#");
+      dropdownEntry.html(accountData[i].name);
+      dropdownEntry.appendTo($("#transactionInfoModalContent #TargetAccount .dropdown-menu"));
+    }
+  }
+  $('.dropdown-item-transactionInfoModal-AccountSelection').off('click');
+  $('.dropdown-item-transactionInfoModal-AccountSelection').on('click', function(event)
+  {
+    // Prevent Link from Firing
+    event.preventDefault();
+    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
+  })
+  $("#transactionInfoModalContent #Account .dropdown .dropdown-toggle").html(thisUserObject.account);
+
+  if(thisUserObject.bookingType === "Transfer")
+  {
+    $("#transactionInfoModalContent #TargetAccount").css("display","");
+    $("#transactionInfoModalContent #TargetAccount .dropdown .dropdown-toggle").html(thisUserObject.targetAccount);
+    $('#transactionInfoModalContent #amount1 .comment').css("display","none");
+    $('#transactionInfoModalContent #amount1 .dropdown').css("display","none");
+    $('#transactionInfoModalContent #Account span').html("From Account: ");
+    $('#transactionInfoModalContent #TotalAmount').css("display","none");
+    $('#transactionInfoModalContent #addAmount').css("display","none");
+    $('#transactionInfoModalContent #Name').css("display","none");
+    $('#transactionInfoModalContent #nameField').css("display","none");
+  }
+  else if(thisUserObject.bookingType === "Payment")
+  {
+    $("#transactionInfoModalContent #TargetAccount").css("display","none");
+    $('#transactionInfoModalContent #amount1 .comment').css("display","inline");
+    $('#transactionInfoModalContent #amount1 .dropdown').css("display","inline");
+    $('#transactionInfoModalContent #Account span').html("Account: ");
+    $('#transactionInfoModalContent #TotalAmount').css("display","");
+    $('#transactionInfoModalContent #addAmount').css("display","");
+    $('#transactionInfoModalContent #Name').css("display","inline");
+    $('#transactionInfoModalContent #nameField').css("display","inline");
+  }
+  else if(thisUserObject.bookingType === "Income" )
+  {
+    $("#transactionInfoModalContent #TargetAccount").css("display","none");
+    $('#transactionInfoModalContent #amount1 .comment').css("display","none");
+    $('#transactionInfoModalContent #amount1 .dropdown').css("display","inline");
+    $('#transactionInfoModalContent #Account span').html("Account: ");
+    $('#transactionInfoModalContent #TotalAmount').css("display","none");
+    $('#transactionInfoModalContent #addAmount').css("display","none");
+    $('#transactionInfoModalContent #Name').css("display","inline");
+    $('#transactionInfoModalContent #nameField').css("display","inline");
+  }
+  else if(thisUserObject.bookingType === "Correction")
+  {
+    $("#transactionInfoModalContent #TargetAccount").css("display","none");
+    $('#transactionInfoModalContent #amount1 .comment').css("display","none");
+    $('#transactionInfoModalContent #amount1 .dropdown').css("display","inline");
+    $('#transactionInfoModalContent #Account span').html("Account: ");
+    $('#transactionInfoModalContent #TotalAmount').css("display","none");
+    $('#transactionInfoModalContent #addAmount').css("display","none");
+    $('#transactionInfoModalContent #Name').css("display","none");
+    $('#transactionInfoModalContent #nameField').css("display","none");
+  }
+
+
+
+  for(var i = 1; i < 5; i++)
+  {
+    for (var j = 0; j < categoryData.length; ++j)
+    {
+      var dropdownEntry = $(document.createElement('a'));
+      dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-CategorySelection");
+      dropdownEntry.attr("href", "#");
+      dropdownEntry.html(categoryData[j].name);
+      dropdownEntry.appendTo($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
+    }
+    if(thisUserObject.amount.length >= i)
+    {
+      if ($('#transactionInfoModalContent #amount' + i.toString()).exists)
+      {
+        $('#transactionInfoModalContent #amount' + i.toString()).css("display","");
+        $('#transactionInfoModalContent #amount' + i.toString() + ' .amount').val(parseFloat(thisUserObject.amount[i-1].amount).toFixed(2));
+        if(thisUserObject.bookingType === "Payment" || thisUserObject.bookingType === "Transfer")
+        {
+          $('#transactionInfoModalContent #amount' + i.toString() + ' .amount').val((parseFloat(thisUserObject.amount[i-1].amount) * -1.0).toFixed(2));
+        }
+        $('#transactionInfoModalContent #amount' + i.toString() + ' .comment').val(thisUserObject.amount[i-1].comment);
+        $('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-toggle').html(thisUserObject.amount[i-1].category);
+      }
+      if(i === 1)
+      {    
+        if (thisUserObject.bookingType === "Income" || thisUserObject.bookingType === "Correction")
+        {
+          var dropdownEntry = $(document.createElement('a'));
+          dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-CategorySelection");
+          dropdownEntry.attr("href", "#");
+          dropdownEntry.html("None");
+          dropdownEntry.appendTo($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
+        }
+      }
+      if(i === 4)
+      {
+        $('#transactionInfoModalContent #addAmount').css("display","none");
+      }
+      if(thisUserObject.amount.length === i)
+      {
+        $('#transactionInfoModalContent #amount' + i.toString()).css("display","inline");
+      }
+    }
+    else
+    {
+      $('#transactionInfoModalContent #amount' + i.toString()).css("display","none");
+    }
+  }
+  $('.dropdown-item-transactionInfoModal-CategorySelection').on('click', function(event)
+  {
+    // Prevent Link from Firing
+    event.preventDefault();
+    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
+  })
+  if (thisUserObject.bookingType === "Payment" || thisUserObject.bookingType === "Transfer")
+  {
+    $('#transactionInfoModalContent #TotalAmount').html("Total Amount: " + (-1.0*getTotalCostsFromTransaction(thisUserObject)).toFixed(2));
+  }
+  else
+  {
+    $('#transactionInfoModalContent #TotalAmount').html("Total Amount: " + (getTotalCostsFromTransaction(thisUserObject)).toFixed(2));
+  }
+
+
+  if (thisUserObject.bookingType === "Income" || thisUserObject.bookingType === "Correction")
+  {
+    if($('#transactionInfoModalContent #amount1 .dropdown .dropdown-toggle').html() === "Income")
+    {
+      $('#transactionInfoModalContent #amount1 .dropdown .dropdown-toggle').html("None");
+    }
+    else if ($('#transactionInfoModalContent #amount1 .dropdown .dropdown-toggle').html() === "Correction")
+    {
+      $('#transactionInfoModalContent #amount1 .dropdown .dropdown-toggle').html("None");
+    }
+  }
+
+
   $("#categoryInfoModalContent").css("display","none");
   $("#transactionInfoModalContent").css("display","");
-  var newHTML = '<br><div id="transactionDetails" style="display:block">'
-  newHTML += "<strong>Name: </strong>";
-  newHTML += '<input type="text" value="' + thisUserObject.name + '"id="modifyTransactionInputName' + thisID + '">';
-  newHTML += "<br>"
-  newHTML += "<strong>Date Entered: </strong>";
-  newHTML += '<input type="text" id="modifyTransactionDatepicker' + thisID + '">';
-  //newHTML += new Date(parseInt(thisUserObject.dateEntered)).toISOString().substring(0, 10);
-  newHTML += "<br>"
-  newHTML += "<strong>Account: </strong>";
-  newHTML += '<input type="text" value="' + thisUserObject.account + '"id="modifyTransactionInputAccount' + thisID + '">';
-  newHTML += "<br>"
-  newHTML += "<strong>Booking Type: </strong>";
-  newHTML += thisUserObject.bookingType;
-  newHTML += "<br>"
-  if(thisUserObject.bookingType == "Transfer")
-  {
-    newHTML += "<strong>Target Account: </strong>";
-    //newHTML += thisUserObject.targetAccount;
-    newHTML += '<input type="text" value="' + thisUserObject.targetAccount + '"id="modifyTransactionInputTargetAccount' + thisID + '">';
-    newHTML += "<br>"
-  }
-  var totalAmount = 0.0;
-  var categoriesString = "";
-  for (var j=0; j < thisUserObject.amount.length; ++j)
-  {
-    totalAmount = totalAmount + parseFloat(thisUserObject.amount[j].amount);
-    categoriesString += '<div style="padding-left:5em">' + thisUserObject.amount[j].category.toString() + ": ";
-    categoriesString += '<input type="number" value="' + parseFloat(thisUserObject.amount[j].amount).toFixed(2) + '" id="modifyTransactionCategory' + j.toString() + '_' + thisID + '"></div>';
-  }
-  newHTML += categoriesString;
-  newHTML += "<strong>Total Amount: </strong>";
-  newHTML += totalAmount.toFixed(2);
-  newHTML += "<br>";
 
-  newHTML += '<button type="text" id="'+ thisID +'" class="btn btn-success m-1 p-1 modifyTransactionButton" rel="' + thisUserObject._id + '">Update</button></div>'
-  
-  var whereToInsert = $(".modal-body #transactionInfoModalContent");
-  //whereToInsert.html(newHTML);
+  $("#transactionInfoModalContent #updateButton").attr('rel',thisID);
 
-
-  $(".modifyTransactionButton").off("click");
-  $(".modifyTransactionButton").on("click",function()
+  $("#transactionInfoModalContent #updateButton").off("click");
+  $("#transactionInfoModalContent #updateButton").on("click",function()
   {
     var currentID = $(this).attr("rel");
 
@@ -2158,29 +2283,63 @@ function showTransactionInfo(event) {
     }
     if (foundIter != null)
     {
-      transactionsData[foundIter].name = $(this).parent().find("#modifyTransactionInputName" + transactionsData[foundIter]._id).val();
+      transactionsData[foundIter].name = $(this).parent().find("#nameField").val();
       
-      var currentDate = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val()));
+      var currentDate = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#transactionInfoModalDatepicker").val()));
       currentDate.setHours((new Date()).getHours());
       currentDate.setMinutes((new Date()).getMinutes());
       currentDate.setSeconds((new Date()).getSeconds());
       currentDate.setMilliseconds((new Date()).getMilliseconds());
       transactionsData[foundIter].dateEntered = currentDate.getTime();
-      //transactionsData[foundIter].dateEntered = new Date($.datepicker.parseDate( "yy-mm-dd",$(this).parent().find("#modifyTransactionDatepicker" + transactionsData[foundIter]._id).val())).getTime();
 
-      transactionsData[foundIter].account = $(this).parent().find("#modifyTransactionInputAccount" + transactionsData[foundIter]._id).val();
-      if(transactionsData[foundIter].bookingType == "Transfer")
+      transactionsData[foundIter].account = $("#transactionInfoModalContent #Account .dropdown .dropdown-toggle").html();
+      if(transactionsData[foundIter].bookingType == "Payment")
       {
-        transactionsData[foundIter].targetAccount = $(this).parent().find("#modifyTransactionInputTargetAccount" + transactionsData[foundIter]._id).val();
+        for (var i = 0; i < 4; i++)
+        {
+          if($('#transactionInfoModalContent #amount' + (i+1).toString()).css("display") != "none")
+          {
+            var newData = transactionsData[foundIter].amount[i];
+            newData.amount = (parseFloat($('#transactionInfoModalContent #amount' + (i+1).toString() + ' .amount').val())*-1.0).toFixed(2);
+            newData.comment = $('#transactionInfoModalContent #amount' + (i+1).toString() + ' .comment').val();
+            newData.category = $('#transactionInfoModalContent #amount' + (i+1).toString() + ' .dropdown .dropdown-toggle').html();
+            if(transactionsData[foundIter].amount.length < i + 1)
+            {
+              transactionsData[foundIter].amount.push(newData);
+            }
+            else
+            {
+              transactionsData[foundIter].amount[i] = newData;
+            }
+          }
+        }
       }
-      for (var j = 0; j < transactionsData[foundIter].amount.length; j++)
+      else if(transactionsData[foundIter].bookingType == "Transfer")
       {
-        transactionsData[foundIter].amount[j].amount = $(this).parent().find('#modifyTransactionCategory' + j.toString() + '_' + transactionsData[foundIter]._id).val();
+        transactionsData[foundIter].amount[0].amount = (parseFloat($('#transactionInfoModalContent #amount' + (1).toString() + ' .amount').val())*-1.0).toFixed(2);
+        transactionsData[foundIter].targetAccount = $("#transactionInfoModalContent #TargetAccount .dropdown .dropdown-toggle").html();
+      }
+      else if(transactionsData[foundIter].bookingType == "Income")
+      {
+        transactionsData[foundIter].amount[0].amount = (parseFloat($('#transactionInfoModalContent #amount' + (1).toString() + ' .amount').val())).toFixed(2);
+        transactionsData[foundIter].amount[0].category = $('#transactionInfoModalContent #amount1 .dropdown .dropdown-toggle').html();
+        if(transactionsData[foundIter].amount[0].category === "None")
+        {
+          transactionsData[foundIter].amount[0].category = "Income";
+        }
+      }
+      else if(transactionsData[foundIter].bookingType == "Correction")
+      {
+        transactionsData[foundIter].amount[0].amount = (parseFloat($('#transactionInfoModalContent #amount' + (1).toString() + ' .amount').val())).toFixed(2);
+        transactionsData[foundIter].amount[0].category = $('#transactionInfoModalContent #amount1 .dropdown .dropdown-toggle').html();
+        if(transactionsData[foundIter].amount[0].category === "None")
+        {
+          transactionsData[foundIter].amount[0].category = "Correction";
+        }
       }
       ajaxPUT_Transaction(transactionsData[foundIter]).then(function()
       {
-        $('#notificationModal').modal('toggle');
-        reloadDataAndRefreshDisplay().then(showTransactionInfo($(this)));
+        reloadDataAndRefreshDisplay().then(showTransactionInfo(currentID));
       });
     }
     else
@@ -2188,9 +2347,8 @@ function showTransactionInfo(event) {
       alert ("Something went wrong when updating the transaction.");
     }
   });
-  $( '#transactionInfoModalDatepicker' ).datepicker({
-    dateFormat: "yy-mm-dd"
-  });
+
+
 
   $('#notificationModal').modal();
 
