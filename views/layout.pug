@@ -4,7 +4,10 @@ html
     title= title
     meta(charset="utf-8")
     meta(name="viewport",content="width=device-width, initial-scale=1, shrink-to-fit=no")
-    // link(rel='stylesheet', href='/stylesheets/style.css')
+    // via https://stackoverflow.com/questions/12978254/twitter-bootstrap-datepicker-within-modal-window
+    style(type="text/css").
+      .datepicker{z-index:1151 !important;}
+    //
     link(rel="stylesheet", href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css")
     link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css')
     
@@ -27,7 +30,7 @@ html
                 input(type="text",placeholder="Name",style="display:inline").m-2.p-2
                 #Date.m-2.p-2(style="display:inline")
                  | Date:
-                input(type="text",placeholder="Date",id="datepicker",style="display:inline").m-2.p-2.datepicker
+                input(type="text",placeholder="Date",id="transactionInfoModalDatepicker",style="display:inline").m-2.p-2.datepicker
                 #Account.m-2.p-2
                  | Account:
                 .dropdown(style="display:inline")

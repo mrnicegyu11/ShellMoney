@@ -2140,11 +2140,6 @@ function showTransactionInfo(event) {
   var whereToInsert = $(".modal-body #transactionInfoModalContent");
   //whereToInsert.html(newHTML);
 
-  $( '#modifyTransactionDatepicker' + thisID ).datepicker({
-    dateFormat: "yy-mm-dd"
-  });
-  $('#modifyTransactionDatepicker' + thisID ).val($.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(thisUserObject.dateEntered)) ));
-
 
   $(".modifyTransactionButton").off("click");
   $(".modifyTransactionButton").on("click",function()
@@ -2193,8 +2188,12 @@ function showTransactionInfo(event) {
       alert ("Something went wrong when updating the transaction.");
     }
   });
+  $( '#transactionInfoModalDatepicker' ).datepicker({
+    dateFormat: "yy-mm-dd"
+  });
 
   $('#notificationModal').modal();
+
 };
 
 function showCategoryInfoModal(event) {
