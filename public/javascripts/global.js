@@ -2186,13 +2186,16 @@ function showTransactionInfo(event) {
 
   for(var i = 1; i < 5; i++)
   {
-    for (var j = 0; j < categoryData.length; ++j)
+    if ($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu').children().length === 0)
     {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-CategorySelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(categoryData[j].name);
-      dropdownEntry.appendTo($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
+      for (var j = 0; j < categoryData.length; ++j)
+      {
+        var dropdownEntry = $(document.createElement('a'));
+        dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-CategorySelection");
+        dropdownEntry.attr("href", "#");
+        dropdownEntry.html(categoryData[j].name);
+        dropdownEntry.appendTo($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
+      }
     }
     if(thisUserObject.amount.length >= i)
     {
@@ -2211,11 +2214,14 @@ function showTransactionInfo(event) {
       {    
         if (thisUserObject.bookingType === "Income" || thisUserObject.bookingType === "Correction")
         {
-          var dropdownEntry = $(document.createElement('a'));
-          dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-CategorySelection");
-          dropdownEntry.attr("href", "#");
-          dropdownEntry.html("None");
-          dropdownEntry.appendTo($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
+          if ($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu').children().length <= categoryData.length)
+          {
+            var dropdownEntry = $(document.createElement('a'));
+            dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-CategorySelection");
+            dropdownEntry.attr("href", "#");
+            dropdownEntry.html("None");
+            dropdownEntry.appendTo($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
+          }
         }
       }
       if(i === 4)
@@ -2299,10 +2305,18 @@ function showTransactionInfo(event) {
         {
           if($('#transactionInfoModalContent #amount' + (i+1).toString()).css("display") != "none")
           {
-            var newData = transactionsData[foundIter].amount[i];
+            //var newData = transactionsData[foundIter].amount[i];
+            var newData = { "amount": null, "comment":null, "category":null };
+            if (i < transactionsData[foundIter].amount.length)
+            {
+              newData.amount = transactionsData[foundIter].amount[i].amount;
+              newData.comment = transactionsData[foundIter].amount[i].comment;
+              newData.category = transactionsData[foundIter].amount[i].category;
+            }
             newData.amount = (parseFloat($('#transactionInfoModalContent #amount' + (i+1).toString() + ' .amount').val())*-1.0).toFixed(2);
             newData.comment = $('#transactionInfoModalContent #amount' + (i+1).toString() + ' .comment').val();
             newData.category = $('#transactionInfoModalContent #amount' + (i+1).toString() + ' .dropdown .dropdown-toggle').html();
+
             if(transactionsData[foundIter].amount.length < i + 1)
             {
               transactionsData[foundIter].amount.push(newData);
@@ -2311,6 +2325,13 @@ function showTransactionInfo(event) {
             {
               transactionsData[foundIter].amount[i] = newData;
             }
+          }
+        }
+        for (var i = transactionsData[foundIter].amount.length - 1; i > 0; i--)
+        {
+          if (transactionsData[foundIter].amount[i].amount.toString() === "0.00" || transactionsData[foundIter].amount[i].amount.toString() === "NaN")
+          {
+            transactionsData[foundIter].amount.splice(i,1);
           }
         }
       }
@@ -2348,7 +2369,22 @@ function showTransactionInfo(event) {
     }
   });
 
-
+  $('#transactionInfoModalContent #addAmount').off("click");
+  $('#transactionInfoModalContent #addAmount').on("click",function()
+  {
+    for (var i = 0; i < 4; i++)
+    {
+      if($('#transactionInfoModalContent #amount' + (i+1).toString()).css("display") === "none")
+      {
+        $('#transactionInfoModalContent #amount' + (i+1).toString()).css("display","");
+        if(i === 3)
+        {
+          $('#transactionInfoModalContent #addAmount').css("display","none");
+        }
+        break;
+      }
+    }
+  })
 
   $('#notificationModal').modal();
 
