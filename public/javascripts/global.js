@@ -1276,21 +1276,7 @@ function populateCategoryTable() {
 
 
     var amountSpentDisplayText = "";
-    if (parseFloat((virtualSpendingThisMonth).toFixed(2)) < 0.0
-       && (virtualSpendingThisMonth).toFixed(2) != "0.00")
-    {
-      amountSpentDisplayText += '<font color="red">'
-    }
     amountSpentDisplayText += parseFloat(virtualSpendingThisMonth).toFixed(2);
-    if (parseFloat((virtualSpendingThisMonth).toFixed(2))  < 0.0
-       && (virtualSpendingThisMonth).toFixed(2) != "0.00")
-    {
-      amountSpentDisplayText += '</font>'
-    }
-    //if (parseFloat(virtualSpendingThisMonth).toFixed(2) != parseFloat(actualSpendingThisMonth).toFixed(2))  
-    //{
-    //  amountSpentDisplayText += ' (<font color="orange">'+ parseFloat(actualSpendingThisMonth).toFixed(2) + '</font>)';
-    //}  
     tableContent += '<td id="categorySpentThisMonth" val="' + parseFloat(virtualSpendingThisMonth).toFixed(2);
     tableContent += '" valClearedThisMonth="' + parseFloat(actualSpendingThisMonth).toFixed(2) + '">' + amountSpentDisplayText + '</td>';
 
@@ -2021,25 +2007,35 @@ function populateAddTransactionView() {
   {
     try
     {
-      math.eval($(this).val().replace(/,/g, '.'));
+      math.eval($(this).val().replace(/,/g, '.').replace(/=/g,''));
     }
     catch(err)
     {
       return;
     }
-    $(this).val(math.eval($(this).val().replace(/,/g, '.')));
+    $(this).val(math.eval($(this).val().replace(/,/g, '.').replace(/=/g,'')));
+    if(!(parseFloat($(this).val()) !== parseFloat($(this).val()))) // if isnt NaN
+    {
+      $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
+    $(this).keyup();
   });
   $('.inputAmount').blur(function()
   {
     try
     {
-      math.eval($(this).val().replace(/,/g, '.'));
+      math.eval($(this).val().replace(/,/g, '.').replace(/=/g,''));
     }
     catch(err)
     {
       return;
     }
-    $(this).val(math.eval($(this).val().replace(/,/g, '.')));
+    $(this).val(math.eval($(this).val().replace(/,/g, '.').replace(/=/g,'')));
+    if(!(parseFloat($(this).val()) !== parseFloat($(this).val()))) // if isnt NaN
+    {
+      $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
+    $(this).keyup();
   });
 
   $("#addAnotherAmountPaymentTransactionButton.btn").off();
@@ -2299,6 +2295,9 @@ function showTransactionInfo(event) {
       transactionsData[foundIter].dateEntered = currentDate.getTime();
 
       transactionsData[foundIter].account = $("#transactionInfoModalContent #Account .dropdown .dropdown-toggle").html();
+
+      var dataSubmissionError = "";
+
       if(transactionsData[foundIter].bookingType == "Payment")
       {
         for (var i = 0; i < 4; i++)
@@ -2327,11 +2326,29 @@ function showTransactionInfo(event) {
             }
           }
         }
-        for (var i = transactionsData[foundIter].amount.length - 1; i > 0; i--)
+        for (var i = transactionsData[foundIter].amount.length - 1; i >= 0; i--)
         {
           if (transactionsData[foundIter].amount[i].amount.toString() === "0.00" || transactionsData[foundIter].amount[i].amount.toString() === "NaN")
           {
-            transactionsData[foundIter].amount.splice(i,1);
+            if (i > 0)
+            {
+              transactionsData[foundIter].amount.splice(i,1);
+            }
+            else
+            {
+              dataSubmissionError = "Error. Submission of transaction with amount zero."
+            }
+          }
+          else
+          {
+            if(transactionsData[foundIter].amount[i].category === "Pick Category")
+            {
+              dataSubmissionError = "Error. Please select category for sub-item " + i.toString() + ".";
+            }
+            else if(parseFloat(transactionsData[foundIter].amount[i].amount) > 0.00001 )
+            {
+              dataSubmissionError = "Error. Please enter positive numbers only.";
+            }
           }
         }
       }
@@ -2339,6 +2356,10 @@ function showTransactionInfo(event) {
       {
         transactionsData[foundIter].amount[0].amount = (parseFloat($('#transactionInfoModalContent #amount' + (1).toString() + ' .amount').val())*-1.0).toFixed(2);
         transactionsData[foundIter].targetAccount = $("#transactionInfoModalContent #TargetAccount .dropdown .dropdown-toggle").html();
+        if(parseFloat(transactionsData[foundIter].amount[0].amount) < -0.00001 )
+        {
+          dataSubmissionError = "Error. Please enter positive numbers only.";
+        }
       }
       else if(transactionsData[foundIter].bookingType == "Income")
       {
@@ -2358,10 +2379,21 @@ function showTransactionInfo(event) {
           transactionsData[foundIter].amount[0].category = "Correction";
         }
       }
-      ajaxPUT_Transaction(transactionsData[foundIter]).then(function()
+      if(dataSubmissionError === "")
       {
-        reloadDataAndRefreshDisplay().then(showTransactionInfo(currentID));
-      });
+        ajaxPUT_Transaction(transactionsData[foundIter]).then(function()
+        {
+          reloadDataAndRefreshDisplay().then(function()
+          {
+            showTransactionInfo(currentID);
+            $('#notificationModal').modal('hide');
+          });
+        });
+      }
+      else
+      {
+        alert(dataSubmissionError);
+      }
     }
     else
     {
@@ -2385,6 +2417,57 @@ function showTransactionInfo(event) {
       }
     }
   })
+
+  $('#transactionInfoModalContent .amountDiv .amount').keyup(function () {
+    var summedVal = 0.0;
+    $('#transactionInfoModalContent .amountDiv .amount').each(function(i,obj)
+    {
+      if(parseFloat(obj.value) != NaN && obj.value != "")
+      {
+        summedVal = summedVal + parseFloat(obj.value);
+      }
+    });
+    if($("#TotalAmount").css("display") != "none")
+    {
+      $('#TotalAmount').html("Total Amount: " + summedVal.toFixed(2));
+    }
+
+  });
+
+  $('#transactionInfoModalContent .amountDiv .amount').enterKey(function()
+  {
+    try
+    {
+      math.eval($(this).val().replace(/,/g, '.').replace(/=/g,''));
+    }
+    catch(err)
+    {
+      return;
+    }
+    $(this).val(math.eval($(this).val().replace(/,/g, '.').replace(/=/g,'')));
+    if(!(parseFloat($(this).val()) !== parseFloat($(this).val()))) // if isnt NaN
+    {
+      $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
+    $(this).keyup();
+  });
+  $('#transactionInfoModalContent .amountDiv .amount').blur(function()
+  {
+    try
+    {
+      math.eval($(this).val().replace(/,/g, '.').replace(/=/g,''));
+    }
+    catch(err)
+    {
+      return;
+    }
+    $(this).val(math.eval($(this).val().replace(/,/g, '.').replace(/=/g,'')));
+    if(!(parseFloat($(this).val()) !== parseFloat($(this).val()))) // if isnt NaN
+    {
+      $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
+    $(this).keyup();
+  });
 
   $('#notificationModal').modal();
 
