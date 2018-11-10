@@ -213,7 +213,7 @@ $(document).ready(function() {
                 // Clear the form inputs
                 $('#addCategory input').val('');
                 $('#addCategory').css("display", "none");
-                $('#addCategoryButton').css("display", "block");
+                $('#addCategoryButton').css("display", "");
   
                 reloadDataAndRefreshDisplay();
   
@@ -243,7 +243,7 @@ $(document).ready(function() {
       $('#addCategoryButtonCancel').on('click', function()
       {
         $('#addCategory').css("display", "none");
-        $('#addCategoryButton').css("display", "block");
+        $('#addCategoryButton').css("display", "");
         $('#addCategory input').val('');
         $('#addCategoryButtonAdd').off("click");
       });
