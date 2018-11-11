@@ -41,7 +41,7 @@ $.fn.enterKey = function (fnc) {
 // Therefore amounts of transactions are always simply summed, never subtracted.
 
 // Wechselkurse nur relevant für Zukünftige Transaktionen, 
-// denn es wird über irgendwann aktuell die Zahlung getätigt.
+// denn es wird immer irgendwann aktuell die Zahlung getätigt.
 
 
 
@@ -460,7 +460,7 @@ function getTotalCostsFromTransaction(transaction)
 }
 
 // Helper Function: getIteratorFromAllocatedSinceReferenceArray
-function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
+function getIteratorFromAllocatedSinceReferenceArray(allocatedSinceReferenceArray,yearQuery,monthQuery)
 {
   // Catch some easy out-of-bound stuff. 
   // Deliberatly not properly taking care of this as months should when possible be between 1 and 12
@@ -474,9 +474,6 @@ function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
     yearQuery += 1;
     monthQuery -= 12;
   }
-
-
-  var allocatedSinceReferenceArray = array;
 
   var found = -1;
   for (var i = 0; i < allocatedSinceReferenceArray.length; i++)
@@ -495,6 +492,239 @@ function getIteratorFromAllocatedSinceReferenceArray(array,yearQuery,monthQuery)
   {
     return null;
   }
+}
+
+// Returns truncated transactionData array only containing those transactions
+// where the desired category occurs. Transactions remain unchanged.
+function getTransactionsOfGivenCategory(input,nameOfDesiredCategory)
+{
+  trunactedTransactionData = [];
+  for (var i = 0; i < input.length; i++)
+  {
+    var found = false;
+    for (var j = 0; j < input[i].amount.length; j++)
+    {
+      if(input[i].amount[j].category === nameOfDesiredCategory )
+      {
+        found = true;
+        break;
+      }
+    }
+    if (found)
+    {
+      trunactedTransactionData.push(input[i]);
+    }
+  }
+  return trunactedTransactionData;
+}
+
+// Input: transactionData-Style array and category (not name but full category)
+function getCategorySummary(transactionDataInput,category = null)
+{
+  if(category === null)
+  {
+    category = transactionDataInput[0].amount[0].category;
+  }
+
+
+  ////
+  ///
+  /// Iterates all previous and current month
+  
+  // 1. Find oldest Date in Transactions
+  var oldestDateFound = new Date();
+  for(var i=0; i < transactionDataInput.length; i++)
+  {
+    var thisDate = new Date(transactionDataInput[i].dateEntered);
+    if (dates.compare(thisDate,oldestDateFound) === -1)
+    {
+      oldestDateFound = thisDate;
+    }
+  }
+
+  // Evaluate total allocated amount for all months
+  var allocatedInTotal = 0.0;
+  for (var countYear = oldestDateFound.getFullYear(); countYear <= selectedYear; countYear++)
+  {
+    for (var countMonth = oldestDateFound.getMonth() + 1;
+    countMonth < 13 && (countMonth <= selectedMonth || countYear != selectedYear);
+    countMonth++)
+    {
+      if (getIteratorFromAllocatedSinceReferenceArray(category.allocatedSinceReference,countYear,countMonth) != null)
+      {
+        allocatedInTotal += parseFloat(category.allocatedSinceReference[getIteratorFromAllocatedSinceReferenceArray(category.allocatedSinceReference,countYear,countMonth)].amount);
+      }
+    }
+  }
+
+  // For every category:
+    // Summiere transactionen bis selected Month / Year
+
+    // Wir sind schon in einer each Schleife
+      // Start with month of oldest date and then for every month
+        // calculate total and move on to next month up to selected month
+
+        // if selected Month is now, check if reference amount of category and date is fitting
+        // if not, update
+        
+        // This.reference Amount = Last Total Amount
+        // This Total Amount = reference + allocated + spending
+        // reference in first month is always 0
+  
+
+  // Hier wird alles AUSSER dem aktuellen Monat durchgezählt
+  var virtualAllMonthsPrior = 0.0;
+  var actualAllMonthsPrior = 0.0;
+  for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
+  {
+    for (var countMonth = oldestDateFound.getMonth() + 1;
+    countMonth < 13 && (countMonth < selectedMonth || countYear != selectedYear);
+    countMonth++)
+    {
+      var virtualSpendingThisMonth = 0.0;
+      var actualSpendingThisMonth = 0.0;
+      // For every Transaction
+      for(var i=0; i < transactionDataInput.length; i++)
+      {
+        if(
+            new Date(transactionDataInput[i].dateEntered).getMonth() + 1 == countMonth
+            && new Date(transactionDataInput[i].dateEntered).getFullYear() == countYear
+          )
+        {
+          // For every category in this transaction
+          for(var j = 0; j < transactionDataInput[i].amount.length;j++)
+          {
+            // If category and selectedDate matches 
+            if(transactionDataInput[i].amount[j].category === category.name)
+            {
+              if(transactionDataInput[i].bookingType === "Payment")
+              {
+                if (transactionDataInput[i].dateBooked != null)
+                {
+                  actualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
+                }
+
+                // just add the amount.
+                virtualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
+              }
+              else if(transactionDataInput[i].bookingType === "Correction")
+              {
+                actualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
+
+                // If just add the amount.
+                virtualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
+              }
+              else if(transactionDataInput[i].bookingType === "Income")
+              {
+                actualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
+  
+                // If no systems, just add the amount.
+                virtualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
+              }
+            }
+          }
+        }
+      }
+
+      
+      var found = getIteratorFromAllocatedSinceReferenceArray(category.allocatedSinceReference,countYear,countMonth);
+      var allocatedThisMonth = 0.0;
+      if (found != null)
+      {
+        allocatedThisMonth = category.allocatedSinceReference[found].amount;
+      }
+
+
+      // Changed this to +=, might be wrong.
+      virtualAllMonthsPrior += /**/ parseFloat(allocatedThisMonth) + virtualSpendingThisMonth;
+      actualAllMonthsPrior += /**/ parseFloat(allocatedThisMonth) + actualSpendingThisMonth;
+    }
+  }
+
+
+  //
+  //
+  // Hier wird der aktuelle Monat durchgezählt
+  var found = getIteratorFromAllocatedSinceReferenceArray(category.allocatedSinceReference,selectedYear,selectedMonth);
+  var allocatedThisMonth = 0.0;
+  if (found != null)
+  {
+    allocatedThisMonth = parseFloat(category.allocatedSinceReference[found].amount);
+  }
+
+  var virtualSpendingThisMonth = 0.0;   
+  var actualSpendingThisMonth = 0.0;
+  for(var i=0; i < transactionsData.length; i++)
+  {
+    for(var j = 0; j < transactionsData[i].amount.length;j++)
+    {
+      if(transactionsData[i].amount[j].category === this.name
+        && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
+        && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
+      {
+        if (transactionsData[i].bookingType === "Payment")
+        {
+          if (transactionsData[i].dateBooked != null)
+          {
+            actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+          }
+
+          virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+        }
+        else if (transactionsData[i].bookingType === "Correction")
+        {
+          // Corrections are always applied immedeatly, they thus have no date by convention
+          actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+
+          virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+        }
+        else if (transactionsData[i].bookingType === "Income")
+        {
+          // We exclude income that is unbooked and transactions that take place in the future
+          // For the calculation of the actual money
+          if (transactionsData[i].dateBooked != null )
+          {
+            actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+          }
+          virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
+        }
+      }
+    }
+  }
+  
+  var virtualTotalFloat =  (parseFloat(virtualAllMonthsPrior) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth);
+
+
+
+  // Uncleared Transactions all month = val - valCurrentBalance
+  var unclearedTransactionsAllMonths = virtualTotalFloat - actualAllMonthsPrior - (allocatedThisMonth + actualSpendingThisMonth);
+  //Cleared Transaction Amount this month:
+  var clearedTransactionsThisMonth = actualSpendingThisMonth;
+  // Current Daily Total Balance
+  var currentDailyTotalBalance = actualAllMonthsPrior + allocatedThisMonth + actualSpendingThisMonth;
+  // Allocated in Total for all months
+  var allocatedInTotalAllMonths = allocatedInTotal;
+
+  var toBeReturned = { 
+    "unclearedTransactionsAllMonths":unclearedTransactionsAllMonths.toFixed(2),
+    "clearedTransactionsThisMonth":clearedTransactionsThisMonth.toFixed(2),
+    "currentDailyTotalBalance":currentDailyTotalBalance.toFixed(2),
+    "allocatedInTotalAllMonths":allocatedInTotalAllMonths.toFixed(2),
+  };
+  return toBeReturned;
+}
+
+function getMostRecentTransaction(input)
+{
+  var mostRecentTransaction = input[0];
+  for (var i = 1; i < input.length; i++)
+  {
+    if(dates.compare(mostRecentTransaction, new Date(input[i].dateEntered)) === -1)
+    {
+      mostRecentTransaction = input[i];
+    }
+  }
+  return mostRecentTransaction;
 }
 
 // Called once toggleBookedStatusButton are renderd to set the button action
@@ -2103,6 +2333,7 @@ function populateAddTransactionView() {
 // Show User Info
 function showTransactionInfo(event) {
 
+  $("#notificationModalBottomText").html("");
   // Prevent Link from Firing
   //event.preventDefault();
 
@@ -2126,6 +2357,8 @@ function showTransactionInfo(event) {
       break;
     }
   }
+
+  $("#hideUnhideDeleteCategoryButton").css("display","none");
   
 
   $("#notificationModalTitle").html(thisUserObject.name);
@@ -2533,45 +2766,22 @@ function showCategoryInfoModal(event) {
     $("#transactionInfoModalContent").css("display","none");
     $("#notificationModalTitle").html(thisUserObject.name);
 
-
-    var oldestDateFound = new Date();
-    for(var i=0; i < transactionsData.length; i++)
-    {
-      var thisDate = new Date(transactionsData[i].dateEntered);
-      if (dates.compare(thisDate,oldestDateFound) === -1)
-      {
-        oldestDateFound = thisDate;
-      }
-    }
     var htmlContent = "";
-    var allocatedInTotal = 0.0;
-    for (var countYear = oldestDateFound.getFullYear(); countYear <= selectedYear; countYear++)
-    {
-      for (var countMonth = oldestDateFound.getMonth() + 1;
-      countMonth < 13 && (countMonth <= selectedMonth || countYear != selectedYear);
-      countMonth++)
-      {
-        if (getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,countYear,countMonth) != null)
-        {
-          allocatedInTotal += parseFloat(thisUserObject.allocatedSinceReference[getIteratorFromAllocatedSinceReferenceArray(thisUserObject.allocatedSinceReference,countYear,countMonth)].amount);
-        }
-      }
-    }
+
+    var categoryInfoData = getCategorySummary(transactionsData,thisUserObject);
     
     htmlContent += '<div class="m-2 p-2"><strong>Uncleared Transactions (all months): </strong>'
-    htmlContent += (parseFloat($(this).parent().parent().find("#categoryTotalAmount").attr("val")) - parseFloat($(this).parent().parent().find("#categoryTotalAmount").attr("valCurrentBalance")) ).toFixed(2);
+    htmlContent += categoryInfoData.unclearedTransactionsAllMonths;
     htmlContent += "</div>";
     htmlContent += '<div class="m-2 p-2"><strong>Cleared Transaction Amount (this month): </strong>'
-    htmlContent += parseFloat($(this).parent().parent().find("#categorySpentThisMonth").attr("valClearedThisMonth")).toFixed(2);
+    htmlContent += categoryInfoData.clearedTransactionsThisMonth;
     htmlContent += "</div>";
     htmlContent += '<div class="m-2 p-2"><strong>Current Daily Total Balance: </strong>'
-    htmlContent += parseFloat($(this).parent().parent().find("#categoryTotalAmount").attr("valCurrentBalance")).toFixed(2);
+    htmlContent += categoryInfoData.currentDailyTotalBalance;
     htmlContent += "</div>";
-    htmlContent += '<div class="m-2 p-2"><strong>Allocated (all months): </strong>' + allocatedInTotal.toFixed(2) + "</div>";
+    htmlContent += '<div class="m-2 p-2"><strong>Allocated (all months): </strong>' + categoryInfoData.allocatedInTotalAllMonths + "</div>";
     var whereToInsert = $(".modal-body #categoryInfoModalContent #categoryInfoTransactions");
     whereToInsert.html(htmlContent);
-    // Debug Display disabled
-    //whereToInsert.html(htmlString);
 
     htmlContent = "";
     var countEntries = 0;
@@ -2633,18 +2843,28 @@ function showCategoryInfoModal(event) {
 
     }
 
+    var balance = getCategorySummary(transactionsData,thisUserObject);
+    $("#hideUnhideDeleteCategoryButton").css("display","none");
     if(!hasAnyTransactions)
     {
       $("#hideUnhideDeleteCategoryButton").html("Delete Category");
+      $("#hideUnhideDeleteCategoryButton").css("display","");
     }
     else if(thisUserObject.hideDate != null)
     {
       //hidden
       $("#hideUnhideDeleteCategoryButton").html("Restore hidden category");
+      $("#hideUnhideDeleteCategoryButton").css("display","");
+    }
+    else if(balance.unclearedTransactionsAllMonths != "0.00" || balance.currentDailyTotalBalance != "0.00")
+    {
+      // Cant hide cause category is unbalanced
+      $("#hideUnhideDeleteCategoryButton").css("display","none");
     }
     else
     {
       $("#hideUnhideDeleteCategoryButton").html("Hide Category");
+      $("#hideUnhideDeleteCategoryButton").css("display","");
     }
 
     if(!$("#buttonShowMoreTransactions").exists())
@@ -2740,16 +2960,22 @@ function showCategoryInfoModal(event) {
       }
       else if ($("#hideUnhideDeleteCategoryButton").html() === "Hide Category")
       {
-        thisUserObject.hideDate = new Date();
-        thisUserObject.hideDate.setMonth(selectedMonth - 1);
-        thisUserObject.hideDate.setFullYear(selectedYear);
+        var truncatedTransactionsList = getTransactionsOfGivenCategory(transactionsData,thisUserObject.name);
+        var mostRecentTransaction = getMostRecentTransaction(truncatedTransactionsList);
+        thisUserObject.hideDate = new Date(mostRecentTransaction.dateEntered);
         var curAjaxPromise = ajaxPUT_Category(thisUserObject);
         $.when(curAjaxPromise).then(function()
         {
           reloadDataAndRefreshDisplay().then(function(){
             $('#notificationModal').modal('hide');
           });
-          alert("The category will be hidden starting next month.");
+          var transList = getTransactionsOfGivenCategory(transactionsData,thisUserObject.name);
+          var transRecent = getMostRecentTransaction(transList);
+          alert
+          ("The category will be hidden. The last transaction was booked on " 
+          + $.datepicker.formatDate( "yy-mm-dd", new Date(transRecent.dateEntered))
+          + "."
+          );
         });
       }
       else if ($("#hideUnhideDeleteCategoryButton").html() === "Restore hidden category")
@@ -2767,6 +2993,7 @@ function showCategoryInfoModal(event) {
       {
         alert("A critical error occured.");
       }
+      $("#hideUnhideDeleteCategoryButton").css("display","none");
     });
 
     $('#notificationModal').modal();
