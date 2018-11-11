@@ -193,22 +193,54 @@ $(document).ready(function() {
         $('#addCategoryButtonAdd').on('click', function()
         {
           event.preventDefault();
-  
-        
-          // Check for empty submission
-          if($('#addCategory input#inputCategoryName').val() != '') {
+          var ajaxPromise = null;
           
+          // Check for empty submission
+          if($('#addCategory input#inputCategoryName').val() != '') 
+          {
+          
+            var errorSubmission = false;
+            for (var i = 0; i < categoryData.length; i++)
+            {
+              if($('#addCategory input#inputCategoryName').val() == categoryData[i].name)
+              {
+                errorSubmission = true;
+
+                if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
+                {
+                  alert("A category with this name already exists. ERROR.");
+                  return;
+                }
+                else
+                {
+                  var confirmation = confirm("A category with this name already exists but is hidden. Should we unhide it?");
+                  if(confirmation)
+                  {
+                    categoryData[i].hideDate = null;
+                    ajaxPromise = ajaxPUT_Category(categoryData[i]);
+                  }
+                  else
+                  {
+                    return;
+                  }
+                }
+              }
+            }
             var newCategory = {
               'name': $('#addCategory input#inputCategoryName').val(),
               'systems': null,
               "referenceDate" : Date.now(),
+              "hideDate": null,
               "referenceAmount" : 0.0,
               "associatedTransactions" : null,
               "allocatedSinceReference" : 0.0
             }
   
-            // Use AJAX to post the object to our adduser service
-            ajaxPOST_Category(newCategory).then(function() {
+            if (!errorSubmission)
+            {
+              ajaxPromise = ajaxPOST_Category(newCategory)
+            }
+            ajaxPromise.then(function() {
           
                 // Clear the form inputs
                 $('#addCategory input').val('');
@@ -226,8 +258,6 @@ $(document).ready(function() {
               
               }
             );
-  
-            
           }
           else {
             // If errorCount is more than 0, error out
@@ -640,7 +670,7 @@ function ajaxPUT_Category(item,optionalID = null)
     else {
 
       // If something goes wrong, alert the error message that our service returned
-      alert('Error: ' + response.msg);
+      alert('Something went wrong when updating a category. Error: ' + response.msg);
 
     } 
   },function(response)
@@ -686,7 +716,7 @@ function ajaxDELETE_Category(item)
   var thisID = 0;
   if(typeof item._id != "undefined")
   {
-    thisUD = item._id;
+    thisID = item._id;
   }
   else
   {
@@ -723,7 +753,7 @@ function ajaxDELETE_Transaction(item)
   var thisID = 0;
   if(typeof item._id != "undefined")
   {
-    thisUD = item._id;
+    thisID = item._id;
   }
   else
   {
@@ -1088,7 +1118,6 @@ function populateCategoryTable() {
     {
       for (var i = 0; i < transactionsData.length; i++)
       {
-        // Da Redemptions immer eine Category haben, werden Sie beim unallozierten Geld nicht einbezogen
         if ((transactionsData[i].bookingType === "Income" || transactionsData[i].bookingType === "Correction" ) 
           && new Date(transactionsData[i].dateEntered).getMonth() + 1 == countMonth
           && new Date(transactionsData[i].dateEntered).getFullYear() == countYear)
@@ -1127,7 +1156,21 @@ function populateCategoryTable() {
 
 
   // For each item in our JSON, add a table row and cells to the content string
-  $.each(categoryData, function(){
+  $.each(categoryData, function()
+  {
+    if(this.hideDate != null)
+    {
+      if(new Date(this.hideDate).getFullYear() < selectedYear
+      || (new Date(this.hideDate).getFullYear() === selectedYear && new Date(this.hideDate).getMonth() + 1 < selectedMonth))
+      {
+        // category is hidden
+        return true;
+        // means "continue" in this context
+        // see https://stackoverflow.com/questions/481601/how-to-skip-to-next-iteration-in-jquery-each-util
+      }
+    }
+
+
     tableContent += '<tr class="clickable-row">';
 
     tableContent += '<td><a href="#" class="linkshowcategory" rel="' + this._id + '">' + this.name + '</a></td>';
@@ -1215,10 +1258,7 @@ function populateCategoryTable() {
     }
 
     var amountSavedDisplayText = parseFloat(virtualCurrentMonthTotal).toFixed(2);
-    //if (parseFloat(virtualCurrentMonthTotal).toFixed(2) != parseFloat(actualCurrentMonthTotal).toFixed(2))  
-    //{
-    //  amountSavedDisplayText += ' (<font color="orange">'+ parseFloat(actualCurrentMonthTotal).toFixed(2) + '</font>)';
-    //}  
+
     tableContent += '<td id="categoryAmountSaved" val="' + amountSavedDisplayText + '" valActualSavings="' + virtualCurrentMonthTotal.toFixed(2) + '">' + amountSavedDisplayText + '</td>';
 
 
@@ -1299,15 +1339,12 @@ function populateCategoryTable() {
     }
 
     tableContent += '</td>';
-
-    tableContent += '<td><a href="#" class="linkmodcategory" rel="' + this._id + '">' + "Modify" + '</a></td>';
-    tableContent += '<td><a href="#" class="linkdeletecategory" rel="' + this._id + '">delete</a></td>';
     tableContent += '</tr>';
   });
 
   tableContent += '<tr id="summaryRow" class="table-success" style="display:none">'
   tableContent += '<td>Marked Rows</td>';
-  for (var i = 0; i < 6; i++)
+  for (var i = 0; i < 4; i++)
   {
     tableContent += '<td id="' + i.toString() + '"></td>'
   }
@@ -1387,8 +1424,6 @@ function populateCategoryTable() {
       $("#categoryDatabaseView table #summaryRow #1").html("");
       $("#categoryDatabaseView table #summaryRow #2").html("");
       $("#categoryDatabaseView table #summaryRow #3").html("");
-      //$("#categoryDatabaseView table #summaryRow").attr("style","display:none");
-      //$('#categoryDatabaseView table #summaryRow').css("display","none");
     }
 
   });
@@ -1538,7 +1573,7 @@ function populateAccountInformation()
 
     if(i === -1 )
     {
-      alert("Something went wrong!");
+      alert("ong!");
     }
     else if (parseFloat(Math.abs(accountData[foundID].totalCurrent).toFixed(2)) != 0.00 
               || parseFloat(Math.abs(accountData[foundID].totalVirtual).toFixed(2)) != 0.0)
@@ -2540,6 +2575,7 @@ function showCategoryInfoModal(event) {
 
     htmlContent = "";
     var countEntries = 0;
+    var hasAnyTransactions = false;
     for (var i=0; i < transactionsData.length; ++i)
     {
       for(var j = 0; j < transactionsData[i].amount.length;j++)
@@ -2573,6 +2609,10 @@ function showCategoryInfoModal(event) {
 
           countEntries++;
         }
+        if(transactionsData[i].amount[j].category === thisUserObject.name)
+        {
+          hasAnyTransactions = true;
+        }
       }
     }
     whereToInsert = $(".modal-body #categoryInfoModalContent").find("table tbody");
@@ -2582,13 +2622,29 @@ function showCategoryInfoModal(event) {
     
     if(countEntries === 0)
     {
-      $("#notificationModalBottomText").html("No transactions found.");
+      $("#notificationModalBottomText").html('<div class="m-2 p-2">No transactions in current month.</div>');
       $("#categoryInfoModalContent").find("table").css("display","none");
+      
     }
     else
     {
       $("#notificationModalBottomText").html("");
       $("#categoryInfoModalContent").find("table").css("display","block");
+
+    }
+
+    if(!hasAnyTransactions)
+    {
+      $("#hideUnhideDeleteCategoryButton").html("Delete Category");
+    }
+    else if(thisUserObject.hideDate != null)
+    {
+      //hidden
+      $("#hideUnhideDeleteCategoryButton").html("Restore hidden category");
+    }
+    else
+    {
+      $("#hideUnhideDeleteCategoryButton").html("Hide Category");
     }
 
     if(!$("#buttonShowMoreTransactions").exists())
@@ -2599,10 +2655,10 @@ function showCategoryInfoModal(event) {
 
       var showMoreButton = $(document.createElement('button'));
       showMoreButton.attr("type","text");
-      showMoreButton.attr("placeholder","Show more")
+      showMoreButton.attr("class","btn btn-info");
       showMoreButton.attr("id","buttonShowMoreTransactions");
       showMoreButton.attr("rel",$(this).attr('rel'));
-      showMoreButton.html("Show more");
+      showMoreButton.html("Show all transactions");
       div1.append(showMoreButton);
 
       $("#buttonShowMoreTransactions").off("click");
@@ -2656,6 +2712,10 @@ function showCategoryInfoModal(event) {
           $("#categoryInfoModalContent").find("table").css("display","");
           $("#notificationModalBottomText").html("");
         }
+        else
+        {
+          $("#notificationModalBottomText").html('<div class="m-2 p-2">No transactions booked in this category.</div>');
+        }
         $("#buttonShowMoreTransactions").attr("style","display:none");
       });
     }
@@ -2664,11 +2724,53 @@ function showCategoryInfoModal(event) {
       $("#buttonShowMoreTransactions").attr("style","display:block");
       $("#buttonShowMoreTransactions").attr("rel",$(this).attr('rel'));
     }
-      
+
+    $("#hideUnhideDeleteCategoryButton").off("click");
+    $("#hideUnhideDeleteCategoryButton").on("click", function()
+    { 
+      if ($("#hideUnhideDeleteCategoryButton").html() === "Delete Category")
+      {
+        var curAjaxPromise = ajaxDELETE_Category(thisUserObject);
+        $.when(curAjaxPromise).then(function()
+        {
+          reloadDataAndRefreshDisplay().then(function(){
+            $('#notificationModal').modal('hide');
+          });
+        });
+      }
+      else if ($("#hideUnhideDeleteCategoryButton").html() === "Hide Category")
+      {
+        thisUserObject.hideDate = new Date();
+        thisUserObject.hideDate.setMonth(selectedMonth - 1);
+        thisUserObject.hideDate.setFullYear(selectedYear);
+        var curAjaxPromise = ajaxPUT_Category(thisUserObject);
+        $.when(curAjaxPromise).then(function()
+        {
+          reloadDataAndRefreshDisplay().then(function(){
+            $('#notificationModal').modal('hide');
+          });
+          alert("The category will be hidden starting next month.");
+        });
+      }
+      else if ($("#hideUnhideDeleteCategoryButton").html() === "Restore hidden category")
+      {
+        thisUserObject.hideDate = null;
+        var curAjaxPromise = ajaxPUT_Category(thisUserObject);
+        $.when(curAjaxPromise).then(function()
+        {
+          reloadDataAndRefreshDisplay().then(function(){
+            $('#notificationModal').modal('hide');
+          });
+        });
+      }
+      else
+      {
+        alert("A critical error occured.");
+      }
+    });
 
     $('#notificationModal').modal();
   }
-  
 };
 
 function modifyCategory(event)
@@ -2737,12 +2839,26 @@ function modifyCategory(event)
         "allocatedSinceReference" : thisUserObject.allocatedSinceReference
       }
 
-      // Use AJAX to post the object to our adduser service
-      ajaxPUT_Category(newCategory,thisUserObject._id).done(function()
+      var errorSubmission = false;
+      // Check if a category with this name already exists:
+      for (var i=0; i < categoryData.length; ++i)
       {
-        $('#modifyDatabaseEntryCategory input').val('');
-        reloadDataAndRefreshDisplay();
-      });
+        if(categoryData[i].name == $('#modifyDatabaseEntryCategory input#changeCategoryName').val())
+        {
+          alert("A category with this name already exists. Error.");
+          errorSubmission =true;
+        }
+      }
+
+      // Use AJAX to post the object to our adduser service
+      if(!errorSubmission)
+      {
+        ajaxPUT_Category(newCategory,thisUserObject._id).done(function()
+        {
+          $('#modifyDatabaseEntryCategory input').val('');
+          reloadDataAndRefreshDisplay();
+        });
+      }
 
       for (var i=0; i < transactionsData.length; ++i)
       {

@@ -23,7 +23,9 @@ html
         .modal-dialog.modal-dialog-centered.modal-lg(role="document")
           .modal-content
             .modal-header
-              h5.modal-title#notificationModalTitle
+              h5.modal-title
+                #notificationModalTitle.m-2(style="display:inline")
+                button(type="button")#hideUnhideDeleteCategoryButton.m-2.btn-warning.btn
               button.close(type="button",data-dismiss="modal",aria-label="Close")
                 span(aria-hiden="true")
                  | &times;
@@ -96,15 +98,15 @@ html
                     th Amount
                   tbody
             #notificationModalBottomText.m-2.p-2
-      h1= title
+      h1="Shell🐚Money"
       h3
         #selectedMonthYear
-        button(type="button",class="btn btn-primary",id="monthUp")
+        button(type="button",class="btn btn-primary",id="monthUp").m-2
           | +
-        button(type="button",class="btn btn-primary",id="monthDown")
+        button(type="button",class="btn btn-primary",id="monthDown").m-2
           | -
-      button(type="button",class="btn btn-primary",id="buttonShowAccounts")
-        | Show Accounts
+        button(type="button",class="btn btn-primary",id="buttonShowAccounts").m-2
+          | Show Accounts
       block accounts
         #accountOverview(style="display:none").m-2.p-2
           button(type="button",class="btn btn-primary",id="buttonAddAccount")
@@ -251,8 +253,6 @@ html
                   | )
                 th Changes this month
                 th Total
-                th Modify?
-                th Delete?
               tbody
           #categoryUnallocatedMoney.m-2
           #categoryToBeAllocatedMoney.m-2
