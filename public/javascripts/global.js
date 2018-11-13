@@ -727,6 +727,33 @@ function getMostRecentTransaction(input)
   return mostRecentTransaction;
 }
 
+// Returns array [month,year]
+function getMostRecentAllocation(category)
+{
+  var mostRecentYear = 0;
+  var mostRecentMonth = 0;
+  for(var i = 0; i < category.allocatedSinceReference.length; i++)
+  {
+    if(parseFloat(category.allocatedSinceReference[i].amount).toFixed(2) != "0.00")
+    {
+      if(category.allocatedSinceReference[i].year > mostRecentYear)
+      {
+        mostRecentYear = category.allocatedSinceReference[i].year
+        if (mostRecentMonth < category.allocatedSinceReference[i].month )
+        {
+          mostRecentMonth = category.allocatedSinceReference[i].month;
+        }
+      }
+      else if (mostRecentYear === category.allocatedSinceReference[i].year 
+      && mostRecentMonth < category.allocatedSinceReference[i].month )
+      {
+        mostRecentMonth = category.allocatedSinceReference[i].month;
+      }
+    }
+  }
+  return [mostRecentMonth,mostRecentYear];
+}
+
 // Called once toggleBookedStatusButton are renderd to set the button action
 function setButton_toggleTransactionListBookedStatus(event)
 {
@@ -2963,6 +2990,17 @@ function showCategoryInfoModal(event) {
         var truncatedTransactionsList = getTransactionsOfGivenCategory(transactionsData,thisUserObject.name);
         var mostRecentTransaction = getMostRecentTransaction(truncatedTransactionsList);
         thisUserObject.hideDate = new Date(mostRecentTransaction.dateEntered);
+
+        var mostRecentAllocation = getMostRecentAllocation(thisUserObject);
+        var mostRecentAllocationDate =  new Date(mostRecentTransaction.dateEntered);
+        mostRecentAllocationDate.setMonth(mostRecentAllocation[0] -1);
+        mostRecentAllocationDate.setFullYear(mostRecentAllocation[1]);
+        if (dates.compare(thisUserObject.hideDate,mostRecentAllocationDate) === -1)
+        {
+          thisUserObject.hideDate = mostRecentAllocationDate;
+        }
+
+
         var curAjaxPromise = ajaxPUT_Category(thisUserObject);
         $.when(curAjaxPromise).then(function()
         {
@@ -2971,9 +3009,15 @@ function showCategoryInfoModal(event) {
           });
           var transList = getTransactionsOfGivenCategory(transactionsData,thisUserObject.name);
           var transRecent = getMostRecentTransaction(transList);
+          var mostRecentAllocation = getMostRecentAllocation(thisUserObject);
+          var mostRecentAllocationDate =  new Date(mostRecentTransaction.dateEntered);
+          mostRecentAllocationDate.setMonth(mostRecentAllocation[0] -1);
+          mostRecentAllocationDate.setFullYear(mostRecentAllocation[1]);
           alert
           ("The category will be hidden. The last transaction was booked on " 
           + $.datepicker.formatDate( "yy-mm-dd", new Date(transRecent.dateEntered))
+          + ". The most recent allocation was in " 
+          + $.datepicker.formatDate( "mm/yy", mostRecentAllocationDate)
           + "."
           );
         });
