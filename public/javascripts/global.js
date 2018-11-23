@@ -1526,7 +1526,7 @@ function populateCategoryTable() {
     {
       allocatedThisMonth = parseFloat(this.allocatedSinceReference[found].amount);
     }
-    tableContent += '<td><input type="number" class="m.1" rel="' + this._id + '" value="' + allocatedThisMonth + '" id="categoryAllocated">' + '</td>';
+    tableContent += '<td><input type="text" class="m.1" rel="' + this._id + '" value="' + allocatedThisMonth.toFixed(2) + '" id="categoryAllocated">' + '</td>';
 
 
 
@@ -1701,17 +1701,34 @@ function populateCategoryTable() {
   });
 
   $('#categoryDatabaseView table tbody input').off("blur");
-  $('#categoryDatabaseView table tbody input').blur(function(event)
+
+  var blurFunction = function(event)
   {
     event.preventDefault();
 
     $(this).tooltip("close");
 
+    //
+    try
+    {
+      math.eval($(this).val().replace(/,/g, '.').replace(/=/g,''));
+    }
+    catch(err)
+    {
+      return;
+    }
+    $(this).val(math.eval($(this).val().replace(/,/g, '.').replace(/=/g,'')));
+    if(!(parseFloat($(this).val()) !== parseFloat($(this).val()))) // if isnt NaN
+    {
+      $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
+    //
     var newVal = $(this).val();
     if(newVal === "")
     {
       newVal = "0";
     }
+
     var thisID = $(this).attr('rel');
 
      // Get our User Object
@@ -1765,7 +1782,11 @@ function populateCategoryTable() {
   
   
 
-  });
+  }
+
+  $('#categoryDatabaseView table tbody input').blur(blurFunction);
+
+  $('#categoryDatabaseView table tbody input').enterKey(blurFunction);
 };
 
 function populateAccountInformation() 
