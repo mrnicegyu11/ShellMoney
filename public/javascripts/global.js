@@ -586,10 +586,8 @@ function getCategorySummary(transactionDataInput,category = null)
       // For every Transaction
       for(var i=0; i < transactionDataInput.length; i++)
       {
-        if(
-            new Date(transactionDataInput[i].dateEntered).getMonth() + 1 == countMonth
-            && new Date(transactionDataInput[i].dateEntered).getFullYear() == countYear
-          )
+        if(new Date(transactionDataInput[i].dateEntered).getMonth() + 1 == countMonth
+           && new Date(transactionDataInput[i].dateEntered).getFullYear() == countYear)
         {
           // For every category in this transaction
           for(var j = 0; j < transactionDataInput[i].amount.length;j++)
@@ -597,7 +595,7 @@ function getCategorySummary(transactionDataInput,category = null)
             // If category and selectedDate matches 
             if(transactionDataInput[i].amount[j].category === category.name)
             {
-              if(transactionDataInput[i].bookingType === "Payment")
+              if(transactionDataInput[i].bookingType === "Payment" || transactionDataInput[i].bookingType === "Income")
               {
                 if (transactionDataInput[i].dateBooked != null)
                 {
@@ -612,13 +610,6 @@ function getCategorySummary(transactionDataInput,category = null)
                 actualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
 
                 // If just add the amount.
-                virtualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
-              }
-              else if(transactionDataInput[i].bookingType === "Income")
-              {
-                actualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
-  
-                // If no systems, just add the amount.
                 virtualSpendingThisMonth += parseFloat(transactionDataInput[i].amount[j].amount);
               }
             }
@@ -654,11 +645,13 @@ function getCategorySummary(transactionDataInput,category = null)
 
   var virtualSpendingThisMonth = 0.0;   
   var actualSpendingThisMonth = 0.0;
+  var onlyPaymentsThisMonthVirtual = 0.0;
+  var onlyIncomeThisMonthVirtual = 0.0;
   for(var i=0; i < transactionsData.length; i++)
   {
     for(var j = 0; j < transactionsData[i].amount.length;j++)
     {
-      if(transactionsData[i].amount[j].category === this.name
+      if(transactionsData[i].amount[j].category === category.name
         && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
         && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
       {
@@ -668,7 +661,7 @@ function getCategorySummary(transactionDataInput,category = null)
           {
             actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
           }
-
+          onlyPaymentsThisMonthVirtual += parseFloat(transactionsData[i].amount[j].amount);
           virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
         }
         else if (transactionsData[i].bookingType === "Correction")
@@ -686,6 +679,7 @@ function getCategorySummary(transactionDataInput,category = null)
           {
             actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
           }
+          onlyIncomeThisMonthVirtual += parseFloat(transactionsData[i].amount[j].amount);
           virtualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
         }
       }
@@ -693,11 +687,15 @@ function getCategorySummary(transactionDataInput,category = null)
   }
   
   var virtualTotalFloat =  (parseFloat(virtualAllMonthsPrior) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth);
+  var actualTotalFloat =  (parseFloat(actualAllMonthsPrior) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth);
 
 
 
   // Uncleared Transactions all month = val - valCurrentBalance
-  var unclearedTransactionsAllMonths = virtualTotalFloat - actualAllMonthsPrior - (allocatedThisMonth + actualSpendingThisMonth);
+  // virtual - actual
+  var unclearedTransactionsAllMonths = virtualTotalFloat - actualTotalFloat;
+
+
   //Cleared Transaction Amount this month:
   var clearedTransactionsThisMonth = actualSpendingThisMonth;
   // Current Daily Total Balance
@@ -710,6 +708,8 @@ function getCategorySummary(transactionDataInput,category = null)
     "clearedTransactionsThisMonth":clearedTransactionsThisMonth.toFixed(2),
     "currentDailyTotalBalance":currentDailyTotalBalance.toFixed(2),
     "allocatedInTotalAllMonths":allocatedInTotalAllMonths.toFixed(2),
+    "onlyPaymentsThisMonthVirtual":onlyPaymentsThisMonthVirtual.toFixed(2),
+    "onlyIncomeThisMonthVirtual":onlyIncomeThisMonthVirtual.toFixed(2)
   };
   return toBeReturned;
 }
@@ -2799,6 +2799,12 @@ function showCategoryInfoModal(event) {
     
     htmlContent += '<div class="m-2 p-2"><strong>Uncleared Transactions (all months): </strong>'
     htmlContent += categoryInfoData.unclearedTransactionsAllMonths;
+    htmlContent += "</div>";
+    htmlContent += '<div class="m-2 p-2"><strong>Total Payments this month: </strong>'
+    htmlContent += categoryInfoData.onlyPaymentsThisMonthVirtual;
+    htmlContent += "</div>";
+    htmlContent += '<div class="m-2 p-2"><strong>Total Income this month: </strong>'
+    htmlContent += categoryInfoData.onlyIncomeThisMonthVirtual;
     htmlContent += "</div>";
     htmlContent += '<div class="m-2 p-2"><strong>Cleared Transaction Amount (this month): </strong>'
     htmlContent += categoryInfoData.clearedTransactionsThisMonth;
