@@ -4,7 +4,15 @@ html
     title= title
     meta(charset="utf-8")
     meta(name="viewport",content="width=device-width, initial-scale=1, shrink-to-fit=no")
-    // link(rel='stylesheet', href='/stylesheets/style.css')
+    // via https://stackoverflow.com/questions/12978254/twitter-bootstrap-datepicker-within-modal-window
+    style(type="text/css").
+      .datepicker{z-index:1151 !important;}
+    // via https://stackoverflow.com/questions/11899870/bootstrap-in-a-modal-dialog-how-do-i-make-the-dropdown-menu-expand-outside-the
+    style(type="text/css").
+      .modal { overflow: visible; }
+    style(type="text/css").
+      .modal-body { overflow-y: visible; }
+    //
     link(rel="stylesheet", href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css")
     link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css')
     
@@ -15,13 +23,70 @@ html
         .modal-dialog.modal-dialog-centered.modal-lg(role="document")
           .modal-content
             .modal-header
-              h5.modal-title#notificationModalTitle
+              h5.modal-title
+                #notificationModalTitle.m-2(style="display:inline")
+                button(type="button",style="display:none")#hideUnhideDeleteCategoryButton.m-2.btn-warning.btn
               button.close(type="button",data-dismiss="modal",aria-label="Close")
                 span(aria-hiden="true")
                  | &times;
             .modal-body.m-2.p-2
               #notificationModalContent
               #transactionInfoModalContent
+                #Name.m-2.p-2(style="display:inline")
+                 | Name:
+                input(type="text",placeholder="Name",style="display:inline").m-2.p-2#nameField
+                #Date.m-2.p-2(style="display:inline")
+                 | Date:
+                input(type="text",placeholder="Date",id="transactionInfoModalDatepicker",style="display:inline").m-2.p-2.datepicker
+                #Account.m-2.p-2
+                  span
+                    | Account:
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button")
+                     | Pick Account
+                    .dropdown-menu
+                #BookingType.m-2.p-2
+                 | Booking Type:
+                #TotalAmount.m-2.p-2
+                 | Total Amount:
+                #TargetAccount.m-2.p-2
+                  | Target Account:
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button")
+                     | Pick Account
+                    .dropdown-menu
+                #amount1.amountDiv
+                  input(type="text",placeholder="Amount").m-2.p-2.amount
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
+                     | Pick Category
+                    .dropdown-menu
+                  input(type="text",placeholder="Comment",style="display:inline").m-2.p-2.comment
+                #amount2.amountDiv
+                  input(type="text",placeholder="Amount 2").m-2.p-2.amount
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
+                     | Pick Category
+                    .dropdown-menu
+                  input(type="text",placeholder="Comment 2",style="display:inline").m-2.p-2.comment
+                #amount3.amountDiv
+                  input(type="text",placeholder="Amount 3").m-2.p-2.amount
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
+                     | Pick Category
+                    .dropdown-menu
+                  input(type="text",placeholder="Comment 3",style="display:inline").m-2.p-2.comment
+                #amount4.amountDiv
+                  input(type="text",placeholder="Amount 4").m-2.p-2.amount
+                  .dropdown(style="display:inline")
+                    button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="categoryDropdown")
+                     | Pick Category
+                    .dropdown-menu
+                  input(type="text",placeholder="Comment 4",style="display:inline").m-2.p-2.comment
+                button(type="button",class="btn btn-primary",id="addAmount").m-2.p-2
+                 | +
+                button(type="button",class="btn btn-primary",id="updateButton",style="display:block").m-2.p-2
+                 | Update
               #categoryInfoModalContent
                 #categoryInfoTransactions
                 table.table.table-striped.table-responsive.m-2.p-2
@@ -33,15 +98,15 @@ html
                     th Amount
                   tbody
             #notificationModalBottomText.m-2.p-2
-      h1= title
+      h1="Shell🐚Money"
       h3
         #selectedMonthYear
-        button(type="button",class="btn btn-primary",id="monthUp")
+        button(type="button",class="btn btn-primary",id="monthUp").m-2
           | +
-        button(type="button",class="btn btn-primary",id="monthDown")
+        button(type="button",class="btn btn-primary",id="monthDown").m-2
           | -
-      button(type="button",class="btn btn-primary",id="buttonShowAccounts")
-        | Show Accounts
+        button(type="button",class="btn btn-primary",id="buttonShowAccounts").m-2
+          | Show Accounts
       block accounts
         #accountOverview(style="display:none").m-2.p-2
           button(type="button",class="btn btn-primary",id="buttonAddAccount")
@@ -128,7 +193,7 @@ html
                 input(type="text",placeholder="Amount 2",id="inputAmount2").m-2.p-2.inputAmount(style="display:none")
                 .dropdown(style="display:none")
                   button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment2Button")
-                   | Pick Category 2
+                   | Pick Category
                   .dropdown-menu
                 input(type="text",placeholder="Comment",id="inputCommentPayment2").m-2.p-2.inputComment(style="display:none")
                 button.btn.btn-info.m-2.p-2#addAnotherAmountPaymentTransactionButton
@@ -137,7 +202,7 @@ html
                 input(type="text",placeholder="Amount 3",id="inputAmount3").m-2.p-2.inputAmount(style="display:none")
                 .dropdown(style="display:none")
                   button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment3Button")
-                   | Pick Category 3
+                   | Pick Category
                   .dropdown-menu
                 input(type="text",placeholder="Comment",id="inputCommentPayment3").m-2.p-2.inputComment(style="display:none")
                 button.btn.btn-info.m-2.p-2#addAnotherAmountPaymentTransactionButton
@@ -146,7 +211,7 @@ html
                 input(type="text",placeholder="Amount 4",id="inputAmount4").m-2.p-2.inputAmount(style="display:none")
                 .dropdown(style="display:none")
                   button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment4Button")
-                   | Pick Category 4
+                   | Pick Category
                   .dropdown-menu
                 input(type="text",placeholder="Comment",id="inputCommentPayment4").m-2.p-2.inputComment(style="display:none")
               #summedAmounts.m-2.p-2
@@ -188,8 +253,6 @@ html
                   | )
                 th Changes this month
                 th Total
-                th Modify?
-                th Delete?
               tbody
           #categoryUnallocatedMoney.m-2
           #categoryToBeAllocatedMoney.m-2
@@ -218,10 +281,10 @@ html
                | Cancel
 
 
-    script(src='https://code.jquery.com/jquery-3.3.1.min.js') 
+    script(src='https://code.jquery.com/jquery-3.3.1.js') 
     // Dont use the slim version here, this will cause calls to fail.
     script(src='https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js')
-    script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js')
+    script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js')
     script(src='https://code.jquery.com/ui/1.12.0/jquery-ui.min.js')
     script(src='https://unpkg.com/mathjs@5.2.2/dist/math.min.js')
     script(src='javascripts/global.js')
