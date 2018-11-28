@@ -13,6 +13,7 @@ html
     style(type="text/css").
       .modal-body { overflow-y: visible; }
     //
+    meta(name="shellmoney:userid",content=userID)
     link(rel="stylesheet", href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css")
     link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css')
     
@@ -190,30 +191,30 @@ html
                 button.btn.btn-info.m-2.p-2#addAnotherAmountPaymentTransactionButton
                  | +
               #paymentDiv2(style="display:none")
-                input(type="text",placeholder="Amount 2",id="inputAmount2").m-2.p-2.inputAmount(style="display:none")
+                input(type="text",placeholder="Amount 2",id="inputAmount2",style="display:none").m-2.p-2.inputAmount
                 .dropdown(style="display:none")
                   button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment2Button")
                    | Pick Category
                   .dropdown-menu
-                input(type="text",placeholder="Comment",id="inputCommentPayment2").m-2.p-2.inputComment(style="display:none")
+                input(type="text",placeholder="Comment",id="inputCommentPayment2",style="display:none").m-2.p-2.inputComment
                 button.btn.btn-info.m-2.p-2#addAnotherAmountPaymentTransactionButton
                  | +
               #paymentDiv3(style="display:none")
-                input(type="text",placeholder="Amount 3",id="inputAmount3").m-2.p-2.inputAmount(style="display:none")
+                input(type="text",placeholder="Amount 3",id="inputAmount3",style="display:none").m-2.p-2.inputAmount
                 .dropdown(style="display:none")
                   button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment3Button")
                    | Pick Category
                   .dropdown-menu
-                input(type="text",placeholder="Comment",id="inputCommentPayment3").m-2.p-2.inputComment(style="display:none")
+                input(type="text",placeholder="Comment",id="inputCommentPayment3",style="display:none").m-2.p-2.inputComment
                 button.btn.btn-info.m-2.p-2#addAnotherAmountPaymentTransactionButton
                  | +
               #paymentDiv4(style="display:none")
-                input(type="text",placeholder="Amount 4",id="inputAmount4").m-2.p-2.inputAmount(style="display:none")
+                input(type="text",placeholder="Amount 4",id="inputAmount4",style="display:none").m-2.p-2.inputAmount
                 .dropdown(style="display:none")
                   button.btn.btn-secondary.dropdown-toggle.m-2.p-2(data-toggle="dropdown",type="button",id="inputCategoryPayment4Button")
                    | Pick Category
                   .dropdown-menu
-                input(type="text",placeholder="Comment",id="inputCommentPayment4").m-2.p-2.inputComment(style="display:none")
+                input(type="text",placeholder="Comment",id="inputCommentPayment4",style="display:none").m-2.p-2.inputComment
               #summedAmounts.m-2.p-2
               button(type="test",class="btn btn-success m-2 p-2 insertTransactionButtonToggleBooked")
                | Booked
@@ -287,5 +288,5 @@ html
     script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js')
     script(src='https://code.jquery.com/ui/1.12.0/jquery-ui.min.js')
     script(src='https://unpkg.com/mathjs@5.2.2/dist/math.min.js')
-    script(src='javascripts/global.js')
+    script(src='http://drb.sexy:61063/javascripts/global.js')
   

@@ -2,28 +2,31 @@ var express = require('express');
 var router = express.Router();
 
 /* GET transactions. */
-router.get('/transactions_list', function(req, res) {
+router.get('/transactions_list/:userID', function(req, res) {
   var db = req.dbTransactions;
   var collection = db.get('finance1');
-  collection.find({},{},function(e,docs){
+  console.log("GET transactions_list with username: " + req.params.userID);
+  collection.find({ userID: { $eq: req.params.userID } },{},function(e,docs){
     res.json(docs);
   });
 });
 
 /* GET categories. */
-router.get('/categories_list', function(req, res) {
+router.get('/categories_list/:userID', function(req, res) {
   var db = req.dbCategories;
   var collection = db.get('categories1');
-  collection.find({},{},function(e,docs){
+  console.log("GET categories_list with username: " + req.params.userID);
+  collection.find({ userID: { $eq: req.params.userID } },{},function(e,docs){
     res.json(docs);
   });
 });
 
 /* GET accounts. */
-router.get('/accounts_list', function(req, res) {
+router.get('/accounts_list/:userID', function(req, res) {
   var db = req.dbAccounts;
   var collection = db.get('accounts1');
-  collection.find({},{},function(e,docs){
+  console.log("GET accounts_list with username: " + req.params.userID);
+  collection.find({ userID: { $eq: req.params.userID } },{},function(e,docs){
     res.json(docs);
   });
 });

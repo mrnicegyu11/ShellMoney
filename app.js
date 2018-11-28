@@ -13,6 +13,7 @@ var dbAccounts = monk('nodejsUser:Toj3jaiHir@localhost:62946/accounts');
 
 var indexRouter = require('./routes/index');
 var dbRouter = require('./routes/db');
+//var userRouter = require('./routes/users');
 
 var app = express();
 
@@ -33,9 +34,11 @@ app.use(function(req,res,next){
   req.dbAccounts = dbAccounts;
   next();
 });
-
 app.use('/', indexRouter);
 app.use('/db', dbRouter);
+//app.use('/user', userRouter); 
+
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

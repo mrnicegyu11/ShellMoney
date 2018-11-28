@@ -2,6 +2,7 @@
 var transactionsData = [];
 var categoryData = [];
 var accountData = [];
+var username = null;
 
 var selectedMonth = new Date().getMonth() + 1;
 var selectedYear = new Date().getFullYear();
@@ -50,6 +51,8 @@ $(document).ready(function() {
   // Set initial month for display as current month
   selectedMonth = new Date().getMonth() + 1;
   selectedYear = new Date().getFullYear();
+
+  username = $('meta[name="shellmoney:userid"]').attr("content");
 
   // Write Month/Date to div
 
@@ -101,7 +104,7 @@ $(document).ready(function() {
     {
       if(transactionsData.length === 0)
       {
-        alert("This should not have happened, performing unnecessary reload.");
+        //alert("This should not have happened, performing unnecessary reload.");
         reloadData();
       }
       populateAccountInformation();
@@ -131,7 +134,8 @@ $(document).ready(function() {
         var newAccount = {
           name : $("#accountsAdd input").val(),
           totalCurrent : 0.0,
-          totalVirtual : 0.0
+          totalVirtual : 0.0,
+          userID: username
         };
         var curAjaxPromise = ajaxPOST_Account(newAccount);
 
@@ -233,7 +237,8 @@ $(document).ready(function() {
               "hideDate": null,
               "referenceAmount" : 0.0,
               "associatedTransactions" : null,
-              "allocatedSinceReference" : 0.0
+              "allocatedSinceReference" : 0.0,
+              "userID": username
             }
   
             if (!errorSubmission)
@@ -307,7 +312,8 @@ $(document).ready(function() {
                 "referenceDate" : thisUserObject.referenceDate,
                 "referenceAmount" : thisUserObject.referenceAmount,
                 "associatedTransactions" : thisUserObject.associatedTransactions,
-                "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+                "allocatedSinceReference" : categoryData[i].allocatedSinceReference,
+                "userID" : username
               }
             
               var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
@@ -354,7 +360,8 @@ $(document).ready(function() {
                 "referenceDate" : categoryData[i].referenceDate,
                 "referenceAmount" : categoryData[i].referenceAmount,
                 "associatedTransactions" : categoryData[i].associatedTransactions,
-                "allocatedSinceReference" : categoryData[i].allocatedSinceReference
+                "allocatedSinceReference" : categoryData[i].allocatedSinceReference,
+                "userID" : username
               }
   
               var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
@@ -1114,7 +1121,7 @@ function reloadDataAndRefreshDisplay()
 // Reloads data from mongoDB and populates tables accordingly.
 function reloadData()
 {
-  var ajaxPromise1 = $.getJSON('db/transactions_list').then(function( data ) 
+  var ajaxPromise1 = $.getJSON('db/transactions_list/' + (username === null ? "" : username)).then(function( data ) 
   {
     transactionsData = data;
 
@@ -1132,7 +1139,7 @@ function reloadData()
 
   });
 
-  var ajaxPromise2 = $.getJSON('db/categories_list').then(function( data ) 
+  var ajaxPromise2 = $.getJSON('db/categories_list/' + (username === null ? "" : username)).then(function( data ) 
   {
     categoryData = data;
 
@@ -1150,7 +1157,7 @@ function reloadData()
 
   });
 
-  var ajaxPromise3 = $.getJSON('db/accounts_list').then(function( data, ajaxPromise1 ) 
+  var ajaxPromise3 = $.getJSON('db/accounts_list/' + (username === null ? "" : username)).then(function( data ) 
   {
     accountData = data;
 
@@ -1249,7 +1256,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
 
   if(transactionsData.length === 0)
   {
-    alert("This should not have happend, unnecessary reload.")
+    //alert("This should not have happend, unnecessary reload.")
     reloadData();
   }
 
@@ -1770,7 +1777,8 @@ function populateCategoryTable() {
         "referenceDate" : thisUserObject.referenceDate,
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
-        "allocatedSinceReference" : allocatedSinceReferenceArray
+        "allocatedSinceReference" : allocatedSinceReferenceArray,
+        "userID" : username
       }
 
       ajaxPUT_Category(category,thisID).done(function()
@@ -2161,6 +2169,7 @@ function populateAddTransactionView() {
 
         var correctionAmount = (parseFloat($('#addTransaction #correction .inputAmount').val()) - parseFloat(accountData[foundMatchingAccount].totalCurrent))
         newTransaction.dateBooked = new Date().getTime();
+        newTransaction.userID = username;
         newTransaction.name = "Correction";
         if (($("#inputCategoryCorrectionButton").html() == "None" || $("#inputCategoryCorrectionButton").html() == "Pick Category (optional)"))
         {
@@ -3134,7 +3143,8 @@ function modifyCategory(event)
         "referenceDate" : thisUserObject.referenceDate,
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
-        "allocatedSinceReference" : thisUserObject.allocatedSinceReference
+        "allocatedSinceReference" : thisUserObject.allocatedSinceReference,
+        "userID" : username
       }
 
       var errorSubmission = false;
@@ -3234,6 +3244,7 @@ function modifyAccount(event)
       newAccount.name = $("#accountsModify input").val();
       newAccount.totalCurrent = 0.0;
       newAccount.totalVirtual = 0.0;
+      newAccount.userID = thisUserObject.userID;
 
       var ajaxPromises = []
       var ajaxPromise1 = ajaxPUT_Account(newAccount,thisID);
