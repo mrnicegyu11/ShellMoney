@@ -2388,6 +2388,7 @@ function populateAddTransactionView() {
         }
       }
     }
+    $(this).css("display","none");
   });
 };
 
