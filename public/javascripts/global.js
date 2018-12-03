@@ -166,8 +166,9 @@ $(document).ready(function() {
     $('#navigation').on('click', 'div.btn-class > button ,#DisplayAdd', function()
     {
       onNavigationChange()
-  
+
       populateAddTransactionView();
+      resetPaymentAmountView();
       $('#databaseView').css("display", "none");
       $('#addTransactionView').css("display", "block");
       $('#categoriesView').css("display", "none");
@@ -2246,6 +2247,7 @@ function populateAddTransactionView() {
     $("#addTransaction #general").attr("style","display:block");
 	  if (thisID === "Payment")
 	  {
+      resetPaymentAmountView();
       if($("#addTransaction #payment").attr("style") == "display:block")
       {
         $('#addTransaction ' + "#payment" + ' input').val('');
@@ -2391,6 +2393,23 @@ function populateAddTransactionView() {
     $(this).css("display","none");
   });
 };
+
+function resetPaymentAmountView()
+{
+  $("#paymentDiv1 #addAnotherAmountPaymentTransactionButton").css("display","");
+  for (var i = 2; i < 5; i++)
+  {
+    if($('#inputAmount' + i.toString()).exists())
+    {
+      $('#inputAmount' + i.toString()).css('display',"none");
+      $('#paymentDiv' + i.toString()).css("display","none");
+      $('#inputAmount' + i.toString()).css('display',"none");
+      $('#inputCommentPayment' + i.toString()).css('display',"none");
+      $('#inputCategoryPayment'+ i.toString() +'Button').parent().css('display','none');
+      $('#paymentDiv' + (i).toString() + ' #addAnotherAmountPaymentTransactionButton').css('display','')
+    }
+  }
+}
 
 // Show User Info
 function showTransactionInfo(event) {
