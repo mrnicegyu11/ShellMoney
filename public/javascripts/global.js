@@ -34,7 +34,6 @@ $.fn.enterKey = function (fnc) {
 // -> Has element "rel" which is ID
 // -> Should ID always be rel?
 // ".datepicker"
-// ".dropdown-item-paymentTypeSelection"
 
 // Conventions:
 // INCOME has positive numbers
@@ -233,7 +232,6 @@ $(document).ready(function() {
             }
             var newCategory = {
               'name': $('#addCategory input#inputCategoryName').val().trim(),
-              'systems': null,
               "referenceDate" : Date.now(),
               "hideDate": null,
               "referenceAmount" : 0.0,
@@ -1117,6 +1115,15 @@ function reloadDataAndRefreshDisplay()
     populateAccountInformation();
     populateCategoryTable();
     onNavigationChange();
+    
+    appendCurrentCategoriesToDropdown($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"),true);
+    appendCurrentCategoriesToDropdown($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"),true);
+    for(var i = 1; i < 5; i++)
+    {
+      appendCurrentCategoriesToDropdown($("#paymentDiv" + i.toString() + " .dropdown .dropdown-menu"));
+    }
+    appendCurrentAccountsToDropdown($("#inputAccount").parent().find(".dropdown-menu"));
+    appendCurrentAccountsToDropdown($("#targetAccount").parent().find(".dropdown-menu"));
   });
   return renderPromise;
   
@@ -1927,44 +1934,18 @@ function populateAddTransactionView() {
   
 
 
-  if ($("#inputCategoryPayment1Button").parent().find(".dropdown-menu").children().length == 0)
-  {
-    // Extra None Entry:
-    var dropdownEntryNone = $(document.createElement('a'));
-    dropdownEntryNone.attr("class", "dropdown-item dropdown-item-categorySelection");
-    dropdownEntryNone.attr("href", "#");
-    dropdownEntryNone.html("None");
-    dropdownEntryNone.appendTo($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"));
-    dropdownEntryNone.clone().appendTo($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"));
-    //
-    for (var i = 0; i < categoryData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-categorySelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(categoryData[i].name);
-      dropdownEntry.appendTo($("#inputCategoryPayment1Button").parent().find(".dropdown-menu"));
-      dropdownEntry.clone().appendTo($("#inputCategoryPayment2Button").parent().find(".dropdown-menu"));
-      dropdownEntry.clone().appendTo($("#inputCategoryPayment3Button").parent().find(".dropdown-menu"));
-      dropdownEntry.clone().appendTo($("#inputCategoryPayment4Button").parent().find(".dropdown-menu"));
 
-      dropdownEntry.clone().appendTo($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"));
-      dropdownEntry.clone().appendTo($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"));
-    }
+  appendCurrentCategoriesToDropdown($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"),true);
+  appendCurrentCategoriesToDropdown($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"),true);
+
+  for(var i = 1; i < 5; i++)
+  {
+    appendCurrentCategoriesToDropdown($("#paymentDiv" + i.toString() + " .dropdown .dropdown-menu"));
   }
 
-  if ($("#inputAccount").parent().find(".dropdown-menu").children().length == 0)
-  {
-    for (var i = 0; i < accountData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-accountSelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(accountData[i].name);
-      dropdownEntry.appendTo($("#inputAccount").parent().find(".dropdown-menu"));
-      dropdownEntry.clone().appendTo($("#targetAccount").parent().find(".dropdown-menu"));
-    }
-  }
+  appendCurrentAccountsToDropdown($("#inputAccount").parent().find(".dropdown-menu"));
+  appendCurrentAccountsToDropdown($("#targetAccount").parent().find(".dropdown-menu"));
+
 
   $('.insertTransactionButtonToggleBooked').off("click");
   $('.insertTransactionButtonToggleBooked').on("click", function()
@@ -2235,8 +2216,8 @@ function populateAddTransactionView() {
   });
 
 
-  $('.dropdown-item-paymentTypeSelection').off("click");
-  $('.dropdown-item-paymentTypeSelection').on('click', function(event)
+  $('.dropdown-menu-paymentTypeSelection .dropdown-item').off("click");
+  $('.dropdown-menu-paymentTypeSelection .dropdown-item').on('click', function(event)
   {
     $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
     // Prevent Link from Firing
@@ -2310,24 +2291,6 @@ function populateAddTransactionView() {
         $("#addTransaction #transfer").attr("style","display:none");
       }
 	  }
-  })
-  
-  $('.dropdown-item-categorySelection').off("click");
-  $('.dropdown-item-categorySelection').on('click', function(event)
-  {
-    // Prevent Link from Firing
-    event.preventDefault();
-
-    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
-  })
-
-  $('.dropdown-item-accountSelection').off("click");
-  $('.dropdown-item-accountSelection').on('click', function(event)
-  {
-    // Prevent Link from Firing
-    event.preventDefault();
-
-    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
   })
 
   
@@ -2450,35 +2413,10 @@ function showTransactionInfo(event) {
     dateFormat: "yy-mm-dd"
   });
   $('#transactionInfoModalDatepicker').val($.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(thisUserObject.dateEntered)) ));
-  if ($("#transactionInfoModalContent #Account .dropdown .dropdown-menu").children().length === 0)
-  {
-    for (var i = 0; i < accountData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-AccountSelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(accountData[i].name);
-      dropdownEntry.appendTo($("#transactionInfoModalContent #Account .dropdown-menu"));
-    }
-  }
-  if ($("#transactionInfoModalContent #TargetAccount .dropdown .dropdown-menu").children().length === 0)
-  {
-    for (var i = 0; i < accountData.length; ++i)
-    {
-      var dropdownEntry = $(document.createElement('a'));
-      dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-AccountSelection");
-      dropdownEntry.attr("href", "#");
-      dropdownEntry.html(accountData[i].name);
-      dropdownEntry.appendTo($("#transactionInfoModalContent #TargetAccount .dropdown-menu"));
-    }
-  }
-  $('.dropdown-item-transactionInfoModal-AccountSelection').off('click');
-  $('.dropdown-item-transactionInfoModal-AccountSelection').on('click', function(event)
-  {
-    // Prevent Link from Firing
-    event.preventDefault();
-    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
-  })
+
+  appendCurrentAccountsToDropdown($("#transactionInfoModalContent #Account .dropdown .dropdown-menu"));
+  appendCurrentAccountsToDropdown($("#transactionInfoModalContent #TargetAccount .dropdown .dropdown-menu"));
+
   $("#transactionInfoModalContent #Account .dropdown .dropdown-toggle").html(thisUserObject.account);
 
   if(thisUserObject.bookingType === "Transfer")
@@ -2531,17 +2469,8 @@ function showTransactionInfo(event) {
 
   for(var i = 1; i < 5; i++)
   {
-    if ($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu').children().length === 0)
-    {
-      for (var j = 0; j < categoryData.length; ++j)
-      {
-        var dropdownEntry = $(document.createElement('a'));
-        dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-CategorySelection");
-        dropdownEntry.attr("href", "#");
-        dropdownEntry.html(categoryData[j].name);
-        dropdownEntry.appendTo($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
-      }
-    }
+    appendCurrentCategoriesToDropdown($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
+    
     if(thisUserObject.amount.length >= i)
     {
       if ($('#transactionInfoModalContent #amount' + i.toString()).exists)
@@ -2559,14 +2488,7 @@ function showTransactionInfo(event) {
       {    
         if (thisUserObject.bookingType === "Income" || thisUserObject.bookingType === "Correction")
         {
-          if ($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu').children().length <= categoryData.length)
-          {
-            var dropdownEntry = $(document.createElement('a'));
-            dropdownEntry.attr("class", "dropdown-item dropdown-item-transactionInfoModal-CategorySelection");
-            dropdownEntry.attr("href", "#");
-            dropdownEntry.html("None");
-            dropdownEntry.appendTo($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'));
-          }
+          appendCurrentCategoriesToDropdown($('#transactionInfoModalContent #amount' + i.toString() + ' .dropdown .dropdown-menu'),true);
         }
       }
       if(i === 4)
@@ -2583,12 +2505,7 @@ function showTransactionInfo(event) {
       $('#transactionInfoModalContent #amount' + i.toString()).css("display","none");
     }
   }
-  $('.dropdown-item-transactionInfoModal-CategorySelection').on('click', function(event)
-  {
-    // Prevent Link from Firing
-    event.preventDefault();
-    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
-  })
+
   if (thisUserObject.bookingType === "Payment" || thisUserObject.bookingType === "Transfer")
   {
     $('#transactionInfoModalContent #TotalAmount').html("Total Amount: " + (-1.0*getTotalCostsFromTransaction(thisUserObject)).toFixed(2));
@@ -3359,3 +3276,58 @@ function onNavigationChange()
 };
 
 
+function appendCurrentCategoriesToDropdown(dropdown_menu,addNone=false)
+{
+  if ($(dropdown_menu).children().length != 0)
+  {
+    $(dropdown_menu).empty();
+  }
+  for (var j = 0; j < categoryData.length; ++j)
+  {
+    var dropdownEntry = $(document.createElement('a'));
+    dropdownEntry.attr("class", "dropdown-item");
+    dropdownEntry.attr("href", "#");
+    dropdownEntry.html(categoryData[j].name);
+    dropdownEntry.appendTo($(dropdown_menu));
+  }
+  if(addNone)
+  {
+    var dropdownEntry = $(document.createElement('a'));
+    dropdownEntry.attr("class", "dropdown-item");
+    dropdownEntry.attr("href", "#");
+    dropdownEntry.html("None");
+    dropdownEntry.appendTo($(dropdown_menu));
+  }
+  $('.dropdown-item').off("click");
+  $('.dropdown-item').on('click', function(event)
+  {
+    // Prevent Link from Firing
+    event.preventDefault();
+
+    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
+  })
+}
+
+function appendCurrentAccountsToDropdown(dropdown_menu)
+{
+  if ($(dropdown_menu).children().length != 0)
+  {
+    $(dropdown_menu).empty();
+  }
+  for (var j = 0; j < accountData.length; ++j)
+  {
+    var dropdownEntry = $(document.createElement('a'));
+    dropdownEntry.attr("class", "dropdown-item");
+    dropdownEntry.attr("href", "#");
+    dropdownEntry.html(accountData[j].name);
+    dropdownEntry.appendTo($(dropdown_menu));
+  }
+  $('.dropdown-item').off("click");
+  $('.dropdown-item').on('click', function(event)
+  {
+    // Prevent Link from Firing
+    event.preventDefault();
+
+    $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
+  })
+}
