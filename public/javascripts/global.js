@@ -2685,7 +2685,7 @@ function showTransactionInfo(event) {
       {
         transactionsData[foundIter].amount[0].amount = (parseFloat($('#transactionInfoModalContent #amount' + (1).toString() + ' .amount').val())*-1.0).toFixed(2);
         transactionsData[foundIter].targetAccount = $("#transactionInfoModalContent #TargetAccount .dropdown .dropdown-toggle").html();
-        if(parseFloat(transactionsData[foundIter].amount[0].amount) < -0.00001 )
+        if(parseFloat(transactionsData[foundIter].amount[0].amount) * -1.0 < -0.00001 )
         {
           dataSubmissionError = "Error. Please enter positive numbers only.";
         }
