@@ -231,7 +231,7 @@ $(document).ready(function() {
               }
             }
             var newCategory = {
-              'name': $('#addCategory input#inputCategoryName').val(),
+              'name': $('#addCategory input#inputCategoryName').val().trim(),
               'systems': null,
               "referenceDate" : Date.now(),
               "hideDate": null,
