@@ -741,6 +741,12 @@ function getMostRecentAllocation(category)
 {
   var mostRecentYear = 0;
   var mostRecentMonth = 0;
+
+  if(category.allocatedSinceReference.length === 0)
+  {
+    return null;
+  }
+
   for(var i = 0; i < category.allocatedSinceReference.length; i++)
   {
     if(parseFloat(category.allocatedSinceReference[i].amount).toFixed(2) != "0.00")
@@ -1115,7 +1121,7 @@ function reloadDataAndRefreshDisplay()
     populateAccountInformation();
     populateCategoryTable();
     onNavigationChange();
-    
+
     appendCurrentCategoriesToDropdown($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"),true);
     appendCurrentCategoriesToDropdown($("#inputCategoryCorrectionButton").parent().find(".dropdown-menu"),true);
     for(var i = 1; i < 5; i++)
@@ -2988,16 +2994,26 @@ function showCategoryInfoModal(event) {
           var transList = getTransactionsOfGivenCategory(transactionsData,thisUserObject.name);
           var transRecent = getMostRecentTransaction(transList);
           var mostRecentAllocation = getMostRecentAllocation(thisUserObject);
-          var mostRecentAllocationDate =  new Date(mostRecentTransaction.dateEntered);
-          mostRecentAllocationDate.setMonth(mostRecentAllocation[0] -1);
-          mostRecentAllocationDate.setFullYear(mostRecentAllocation[1]);
-          alert
-          ("The category will be hidden. The last transaction was booked on " 
-          + $.datepicker.formatDate( "yy-mm-dd", new Date(transRecent.dateEntered))
-          + ". The most recent allocation was in " 
-          + $.datepicker.formatDate( "mm/yy", mostRecentAllocationDate)
-          + "."
-          );
+          if (mostRecentAllocation === null)
+          {
+            alert
+            ("The category will be hidden. The last transaction was booked on " 
+            + $.datepicker.formatDate( "yy-mm-dd", new Date(transRecent.dateEntered))
+            + ".");
+          }
+          else
+          {
+            var mostRecentAllocationDate =  new Date(mostRecentTransaction.dateEntered);
+            mostRecentAllocationDate.setMonth(mostRecentAllocation[0] -1);
+            mostRecentAllocationDate.setFullYear(mostRecentAllocation[1]);
+            alert
+            ("The category will be hidden. The last transaction was booked on " 
+            + $.datepicker.formatDate( "yy-mm-dd", new Date(transRecent.dateEntered))
+            + ". The most recent allocation was in " 
+            + $.datepicker.formatDate( "mm/yy", mostRecentAllocationDate)
+            + "."
+            );
+          }
         });
       }
       else if ($("#hideUnhideDeleteCategoryButton").html() === "Restore hidden category")
@@ -3284,6 +3300,13 @@ function appendCurrentCategoriesToDropdown(dropdown_menu,addNone=false)
   }
   for (var j = 0; j < categoryData.length; ++j)
   {
+    if(categoryData[j].hasOwnProperty('hideDate'))
+    {
+      if(categoryData[j].hideDate != null)
+      {
+        continue;
+      }
+    }
     var dropdownEntry = $(document.createElement('a'));
     dropdownEntry.attr("class", "dropdown-item");
     dropdownEntry.attr("href", "#");
