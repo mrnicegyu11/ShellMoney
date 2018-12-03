@@ -41,7 +41,8 @@ router.post('/transactions_add', function(req, res) {
     res.send(
       (err === null) ? { msg: '' } : { msg: err }
     );
-
+    console.log("Post transaction with following username: " + req.body.data.username)
+    console.log(req.body.data)
   });
 });
 

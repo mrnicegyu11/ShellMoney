@@ -654,6 +654,7 @@ function getCategorySummary(transactionDataInput,category = null)
   var actualSpendingThisMonth = 0.0;
   var onlyPaymentsThisMonthVirtual = 0.0;
   var onlyIncomeThisMonthVirtual = 0.0;
+  var numberOfIncomeTransactions = 0;
   for(var i=0; i < transactionsData.length; i++)
   {
     for(var j = 0; j < transactionsData[i].amount.length;j++)
@@ -682,6 +683,7 @@ function getCategorySummary(transactionDataInput,category = null)
         {
           // We exclude income that is unbooked and transactions that take place in the future
           // For the calculation of the actual money
+          numberOfIncomeTransactions += 1;
           if (transactionsData[i].dateBooked != null )
           {
             actualSpendingThisMonth += parseFloat(transactionsData[i].amount[j].amount);
@@ -716,7 +718,8 @@ function getCategorySummary(transactionDataInput,category = null)
     "currentDailyTotalBalance":currentDailyTotalBalance.toFixed(2),
     "allocatedInTotalAllMonths":allocatedInTotalAllMonths.toFixed(2),
     "onlyPaymentsThisMonthVirtual":onlyPaymentsThisMonthVirtual.toFixed(2),
-    "onlyIncomeThisMonthVirtual":onlyIncomeThisMonthVirtual.toFixed(2)
+    "onlyIncomeThisMonthVirtual":onlyIncomeThisMonthVirtual.toFixed(2),
+    "numberOfIncomeTransactions":numberOfIncomeTransactions
   };
   return toBeReturned;
 }
@@ -2108,6 +2111,7 @@ function populateAddTransactionView() {
         'bookingType': currentTransactionKind,
         'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getTime(),
         'dateBooked': $.trim($('#addTransaction ' + currentTransactionDivName + ' .insertTransactionButtonToggleBooked').html()) === "Booked" ? Date.now() : null,
+        'userID' : username,
         'amount' : [
           {
             "category" : $('#addTransaction ' + currentTransactionDivName + ' .category1Button').html(),
@@ -2835,6 +2839,7 @@ function showCategoryInfoModal(event) {
     htmlContent += "</div>";
     htmlContent += '<div class="m-2 p-2"><strong>Total Income this month: </strong>'
     htmlContent += categoryInfoData.onlyIncomeThisMonthVirtual;
+    htmlContent += ' (in ' + categoryInfoData.numberOfIncomeTransactions+ ' transactions)';
     htmlContent += "</div>";
     htmlContent += '<div class="m-2 p-2"><strong>Cleared Transaction Amount (this month): </strong>'
     htmlContent += categoryInfoData.clearedTransactionsThisMonth;
