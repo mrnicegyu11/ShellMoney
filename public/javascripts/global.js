@@ -2973,15 +2973,20 @@ function showCategoryInfoModal(event) {
       {
         var truncatedTransactionsList = getTransactionsOfGivenCategory(transactionsData,thisUserObject.name);
         var mostRecentTransaction = getMostRecentTransaction(truncatedTransactionsList);
+        // Set hideDate as date of most recent transaction
         thisUserObject.hideDate = new Date(mostRecentTransaction.dateEntered);
 
+        // Also consider allocations (if there are any)
         var mostRecentAllocation = getMostRecentAllocation(thisUserObject);
         var mostRecentAllocationDate =  new Date(mostRecentTransaction.dateEntered);
-        mostRecentAllocationDate.setMonth(mostRecentAllocation[0] -1);
-        mostRecentAllocationDate.setFullYear(mostRecentAllocation[1]);
-        if (dates.compare(thisUserObject.hideDate,mostRecentAllocationDate) === -1)
+        if (mostRecentAllocation != null)
         {
-          thisUserObject.hideDate = mostRecentAllocationDate;
+          mostRecentAllocationDate.setMonth(mostRecentAllocation[0] -1);
+          mostRecentAllocationDate.setFullYear(mostRecentAllocation[1]);
+          if (dates.compare(thisUserObject.hideDate,mostRecentAllocationDate) === -1)
+          {
+            thisUserObject.hideDate = mostRecentAllocationDate;
+          }
         }
 
 
