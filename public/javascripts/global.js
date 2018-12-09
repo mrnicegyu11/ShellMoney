@@ -1938,7 +1938,8 @@ function populateAddTransactionView() {
     $("#datepicker").val($.datepicker.formatDate( "yy-mm-dd", new Date() ));
   }
   
-
+  // Hide Summed Amount Display 
+  $('#addTransaction #payment #summedAmounts').html("");
 
 
   appendCurrentCategoriesToDropdown($("#inputCategoryIncomeButton").parent().find(".dropdown-menu"),true);
