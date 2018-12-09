@@ -448,6 +448,17 @@ var dates = {
   }
 }
 
+// via https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser
+function downloadObjectAsJson(exportObj, exportName){
+  var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+  var downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href",     dataStr);
+  downloadAnchorNode.setAttribute("download", exportName + ".json");
+  document.body.appendChild(downloadAnchorNode); // required for firefox
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+}
+
 
 ///////////////////////////////////////
 //
@@ -896,6 +907,33 @@ function ajaxPOST_Account(newAccountObject)
     }
   },function( response ) {
     alert("Posting a new transaction failed.");
+  });
+
+  // return promise so that outside code cannot reject/resolve the deferred
+  return ajaxPromise;
+};
+
+function ajaxPOST_Import(newObject)
+{
+  var ajaxPromise = $.ajax({
+    type: 'POST',
+    data: {data : newObject === null ? JSON.stringify([username.toString()]) : JSON.stringify(newObject) },
+    url: '/db/import',
+    dataType: 'JSON'
+  }).then(function( response ) {
+
+    // Check for successful (blank) response
+    if (response.msg === '') {
+      // Here we could optimize by not reloading thw hole database but keeping track ourselves
+    }
+    else {
+
+      // If something goes wrong, alert the error message that our service returned
+      alert('Error: ' + response.msg);
+
+    }
+  },function( response ) {
+    alert("Uploading new imported data failed.");
   });
 
   // return promise so that outside code cannot reject/resolve the deferred
@@ -1354,6 +1392,66 @@ function populateTransactionTable(selectedMonth,selectedYear) {
   $('#transactionList table tbody').off();
   $('#transactionList table tbody').on('click', 'td a.linkshowtransaction', showTransactionInfo);
   $('#transactionList table tbody').on('click', 'td a.linkdeletetransaction', deleteTransaction);
+
+  $("#ExportDatabaseButton").off();
+  $("#ExportDatabaseButton").on("click", function()
+  {
+    var exportObj = [username,transactionsData,categoryData,accountData];
+    downloadObjectAsJson(exportObj, "ShellMoney_Database_" + (new Date(Date.now()).toDateString()));
+  })
+
+  $("#ImportDatabaseButton").off();
+  $("#ImportDatabaseButton").on("click", function()
+  {
+    //ajaxDELETE_DeleteAll();
+    // via https://abandon.ie/notebook/simple-file-uploads-using-jquery-ajax
+
+    var inputElement = $(document.createElement('input'));
+
+    inputElement.attr("type","file");
+
+    $("#notificationModalContent").append(inputElement);
+    $('input[type=file]').on('change', function (event)
+    {
+      event.preventDefault();
+
+      var input = this.files[0];
+
+      var reader = new FileReader();
+
+
+      reader.onload = function() {
+        jsonFromFile = JSON.parse(reader.result);
+        ajaxPOST_Import(jsonFromFile).then(function(){reloadDataAndRefreshDisplay();});
+        transactionsData = jsonFromFile[1];
+        categoryData = jsonFromFile[2];
+        accountData = jsonFromFile[3];
+        username = jsonFromFile[0];
+        $('input[type=file]').off();
+        $('#notificationModal').modal('hide');
+      };
+      reader.readAsText(input);
+    });
+    $("#notificationModalContent").css("display","");
+    $("#transactionInfoModalContent").css("display","none");
+    $("#categoryInfoModalContent").css("display","none");
+    $('#notificationModal').modal();
+  })
+
+  $("#ResetDatabaseButton").off();
+  $("#ResetDatabaseButton").on("click", function()
+  {
+    var confirmation = confirm("Are you sure you want to delete ALL DATA?");
+    if(confirmation)
+    {
+      event.preventDefault();
+      ajaxPOST_Import(null).then(function() {reloadDataAndRefreshDisplay();});
+      transactionsData = [];
+      categoryData = [];
+      accountData = [];
+    }
+  })
+
 };
 
 function populateCategoryTable() {

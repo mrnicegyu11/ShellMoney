@@ -157,6 +157,12 @@ html
                 th Booked?
                 th Delete?
               tbody
+          button(type="button",class="btn btn-primary",id="ExportDatabaseButton").m-2.p-2
+            | Export Database
+          button(type="button",class="btn btn-primary",id="ImportDatabaseButton").m-2.p-2
+            | Import Database
+          button(type="button",class="btn btn-danger",id="ResetDatabaseButton").m-2.p-2
+            | Reset
           // /TRANSACTION LIST
           // ADD TRANSACTION
         #addTransactionView(style="display:none")

@@ -68,6 +68,57 @@ router.post('/accounts_add', function(req, res) {
   });
 });
 
+/* POST entire database. */
+router.post('/import', function(req, res) {
+
+  var jsonFile = JSON.parse(req.body.data);
+
+  var db = req.dbAccounts;
+  var collection = db.get('accounts1');
+  collection.remove({ 'userID' : jsonFile[0] });
+
+  db = req.dbCategories;
+  collection = db.get('categories1');
+  collection.remove({ 'userID' : jsonFile[0] });
+
+  db = req.dbTransactions;
+  collection = db.get('finance1');
+  collection.remove({ 'userID' : jsonFile[0] });
+
+  console.log("DELETED all data of user: " + jsonFile[0]);
+  //var db = req.dbAccounts;
+
+  if(jsonFile.length > 1)
+  {
+    db = req.dbTransactions;
+    collection = db.get('finance1');
+    for (var i = 0; i < jsonFile[1].length; i++)
+    {
+      collection.insert(jsonFile[1][i]);
+    }
+
+    db = req.dbCategories;
+    collection = db.get('categories1');
+    for (var i = 0; i < jsonFile[2].length; i++)
+    {
+      collection.insert(jsonFile[2][i]);
+    }
+
+    db = req.dbAccounts;
+    collection = db.get('accounts1');
+    for (var i = 0; i < jsonFile[3].length; i++)
+    {
+      collection.insert(jsonFile[3][i]);
+    }
+
+    console.log("Inserted New Database.")
+  }
+  var err = null;
+  res.send((err === null) ? { msg: '' } : { msg:'error: ' + err });
+});
+
+
+
 /* MODIFY categories. */
 router.put('/categories_modify/:id', function(req, res) {
   var db = req.dbCategories;
@@ -136,7 +187,6 @@ router.put('/accounts_modify/:id', function(req, res) {
     }
   });
 });
-
 
 /* DELETE to transactions. */
 router.delete('/transactions_delete/:id', function(req, res) {
