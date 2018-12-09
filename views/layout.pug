@@ -89,6 +89,8 @@ html
                 button(type="button",class="btn btn-primary",id="updateButton",style="display:block").m-2.p-2
                  | Update
               #categoryInfoModalContent
+                .form-group
+                  textarea(rows="3",placeholder="Enter a comment here",onkeyup="updateCategoryComment()",id="").form-control.form-control-sm
                 #categoryInfoTransactions
                 table.table.table-striped.table-responsive.m-2.p-2
                   thead

@@ -1712,7 +1712,7 @@ function populateCategoryTable() {
 
   $('#categoryDatabaseView table tbody input').each(function()
   {
-    var displayString = parseFloat($('#categoryUnallocatedMoney').attr("val")).toFixed(2);
+    var displayString = parseFloat(parseFloat($('#categoryUnallocatedMoney').attr("val")).toFixed(2)).toFixed(2);
     $(this).attr("title", "Unallocated: " + displayString);
     $(this).tooltip();
     $(this).tooltip("enable");
@@ -2755,6 +2755,22 @@ function showTransactionInfo(event) {
 
 };
 
+function updateCategoryComment()
+{
+  var curCategoryID = $('#categoryInfoModalContent .form-group .form-control').attr("id");
+  var targetCategory = null;
+  for (var i = 0; i < categoryData.length; i++)
+  {
+    if (categoryData[i]._id === curCategoryID)
+    {
+      targetCategory = categoryData[i];
+      break;
+    }
+  }
+  targetCategory.comment = $("#categoryInfoModalContent .form-group .form-control").val();
+  ajaxPUT_Category(targetCategory);
+}
+
 function showCategoryInfoModal(event) {
 
   // Prevent Link from Firing
@@ -2780,6 +2796,15 @@ function showCategoryInfoModal(event) {
     $("#transactionInfoModalContent").css("display","none");
     $("#notificationModalTitle").html(thisUserObject.name);
 
+    $("#categoryInfoModalContent .form-group .form-control").val("");
+    $("#categoryInfoModalContent .form-group .form-control").attr("id",thisUserObject._id);
+    $("#categoryInfoModalContent .form-group .form-control").html("");
+    if (thisUserObject.hasOwnProperty("comment"))
+    {
+      $("#categoryInfoModalContent .form-group .form-control").val(thisUserObject.comment);
+    }
+
+
     var htmlContent = "";
 
     var categoryInfoData = getCategorySummary(transactionsData,thisUserObject);
@@ -2794,9 +2819,9 @@ function showCategoryInfoModal(event) {
     htmlContent += categoryInfoData.onlyIncomeThisMonthVirtual;
     htmlContent += ' (in ' + categoryInfoData.numberOfIncomeTransactions+ ' transactions)';
     htmlContent += "</div>";
-    htmlContent += '<div class="m-2 p-2"><strong>Cleared Transaction Amount (this month): </strong>'
-    htmlContent += categoryInfoData.clearedTransactionsThisMonth;
-    htmlContent += "</div>";
+    //htmlContent += '<div class="m-2 p-2"><strong>Cleared Transaction Amount (this month): </strong>'
+    //htmlContent += categoryInfoData.clearedTransactionsThisMonth;
+    //htmlContent += "</div>";
     htmlContent += '<div class="m-2 p-2"><strong>Current Daily Total Balance: </strong>'
     htmlContent += categoryInfoData.currentDailyTotalBalance;
     htmlContent += "</div>";
