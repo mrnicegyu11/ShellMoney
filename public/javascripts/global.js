@@ -1362,7 +1362,7 @@ function populateCategoryTable() {
   for (var i = 0; i < transactionsData.length; i++)
   {
     if (( (transactionsData[i].bookingType === "Payment" && getTotalCostsFromTransaction(transactionsData[i]) > 0.0 ) // is income
-      || transactionsData[i].bookingType === "Correction" ) 
+      || transactionsData[i].bookingType === "Correction" || transactionsData[i].bookingType === "Income") 
       && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
       && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
     {
@@ -1424,7 +1424,7 @@ function populateCategoryTable() {
       }
     }
   }
-  $('#categoryUnallocatedMoney').html("<strong>Unallocated Amount: </strong>"+ unallocatedAmount.toFixed(2));
+  $('#categoryUnallocatedMoney').html("<strong>Unallocated Amount: </strong>" + parseFloat(unallocatedAmount.toFixed(2)).toFixed(2));
   $('#categoryUnallocatedMoney').attr("val",unallocatedAmount.toFixed(2))
   ///
   //
