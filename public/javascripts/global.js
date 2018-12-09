@@ -2087,6 +2087,15 @@ function populateAddTransactionView() {
       }
     }
 
+    for (var i = 1; i < 5; ++i)
+    {
+      if (isNaN(parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val()))
+      && $('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val() != "")
+      {
+        errorSubmission = true;
+      }
+    }
+
     // Check and make sure errorCount's still at zero
     if(! errorSubmission) {
   
@@ -2185,7 +2194,7 @@ function populateAddTransactionView() {
           }
         }
       }
-  
+
       ajaxPOST_Transaction(newTransaction).then(function()
         {
           $('#addTransaction ' + currentTransactionDivName + ' input').val('');
@@ -3296,7 +3305,6 @@ function onNavigationChange()
   $('.accountsTableModifyButton').off();
   $('.accountsTableModifyButton').on("click",modifyAccount);
 };
-
 
 function appendCurrentCategoriesToDropdown(dropdown_menu,addNone=false)
 {
