@@ -2187,8 +2187,14 @@ function populateAddTransactionView() {
 
     for (var i = 1; i < 5; ++i)
     {
-      if (isNaN(parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val()))
-      && $('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val() != "")
+      if (
+        isNaN(parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val()))
+        && (
+           $('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val() === ""
+           && (i === 1 || currentTransactionKind === "Payment")
+           && $("#paymentDiv" + i.toString()).css("display") != "none"
+        )
+      )
       {
         errorSubmission = true;
       }
