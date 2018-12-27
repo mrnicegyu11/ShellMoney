@@ -7,9 +7,16 @@ var logger = require('morgan');
 // Database
 var mongo = require('mongodb');
 var monk = require('monk');
-var dbTransactions = monk('nodejsUser:Toj3jaiHir@localhost:62946/finance');
-var dbCategories = monk('nodejsUser:Toj3jaiHir@localhost:62946/categories1');
-var dbAccounts = monk('nodejsUser:Toj3jaiHir@localhost:62946/accounts');
+
+
+// Parse CMD line argument to get MongoDB Path:
+var mongoDB_accessPath = process.env.SHELLMONEY_MONGODB_ACCESS
+console.log(mongoDB_accessPath)
+//nodejsUser:Toj3jaiHir@localhost:62946
+
+var dbTransactions = monk(mongoDB_accessPath + '/finance');
+var dbCategories = monk(mongoDB_accessPath + '/categories1');
+var dbAccounts = monk(mongoDB_accessPath + '/accounts');
 
 var indexRouter = require('./routes/index');
 var dbRouter = require('./routes/db');
@@ -22,6 +29,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 app.use(logger('dev'));
+
+// Fix to upload existing JSON-DB, which may be too big for node.js default settings
 app.use(express.json({"limit":"16mb", extended: true}));
 app.use(express.urlencoded({"limit":"16mb", extended: true }));
 app.use(cookieParser());
