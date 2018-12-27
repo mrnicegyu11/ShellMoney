@@ -1893,7 +1893,8 @@ function populateCategoryTable() {
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
         "allocatedSinceReference" : allocatedSinceReferenceArray,
-        "userID" : username
+        "userID" : username,
+        "comment" : thisUserObject.comment
       }
 
       ajaxPUT_Category(category,thisID).done(function()
@@ -1974,7 +1975,7 @@ function populateAccountInformation()
 
     if(i === -1 )
     {
-      alert("ong!");
+      alert("ERROR!");
     }
     else if (parseFloat(Math.abs(accountData[foundID].totalCurrent).toFixed(2)) != 0.00 
               || parseFloat(Math.abs(accountData[foundID].totalVirtual).toFixed(2)) != 0.0)
