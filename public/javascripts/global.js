@@ -561,9 +561,10 @@ function getCategorySummary(transactionDataInput,category = null)
 
   // Evaluate total allocated amount for all months
   var allocatedInTotal = 0.0;
-  for (var countYear = oldestDateFound.getFullYear(); countYear <= selectedYear; countYear++)
+  var countMonth = oldestDateFound.getMonth() + 1
+  for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
   {
-    for (var countMonth = oldestDateFound.getMonth() + 1;
+    for (;
     countMonth < 13 && (countMonth <= selectedMonth || countYear != selectedYear);
     countMonth++)
     {
@@ -572,6 +573,7 @@ function getCategorySummary(transactionDataInput,category = null)
         allocatedInTotal += parseFloat(category.allocatedSinceReference[getIteratorFromAllocatedSinceReferenceArray(category.allocatedSinceReference,countYear,countMonth)].amount);
       }
     }
+    countMonth = 1;
   }
 
   // For every category:
@@ -592,9 +594,10 @@ function getCategorySummary(transactionDataInput,category = null)
   // Hier wird alles AUSSER dem aktuellen Monat durchgezählt
   var virtualAllMonthsPrior = 0.0;
   var actualAllMonthsPrior = 0.0;
+  var countMonth = oldestDateFound.getMonth() + 1
   for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
   {
-    for (var countMonth = oldestDateFound.getMonth() + 1;
+    for (;
     countMonth < 13 && (countMonth < selectedMonth || countYear != selectedYear);
     countMonth++)
     {
@@ -647,6 +650,7 @@ function getCategorySummary(transactionDataInput,category = null)
       virtualAllMonthsPrior += /**/ parseFloat(allocatedThisMonth) + virtualSpendingThisMonth;
       actualAllMonthsPrior += /**/ parseFloat(allocatedThisMonth) + actualSpendingThisMonth;
     }
+    countMonth = 1;
   }
 
 
@@ -1262,35 +1266,40 @@ function reloadData()
       // If yes... (the account is known)
       if(found != -1)
       {
-        var totalAmountVirtual = getTotalCostsFromTransaction(this);
-        var totalAmount = this.dateBooked != null ? getTotalCostsFromTransaction(this) : 0.0;
-        if (this.bookingType === "Transfer")
+        if ( (new Date(parseInt(this.dateEntered)).getMonth() + 1 <= selectedMonth || new Date(parseInt(this.dateEntered)).getFullYear() != selectedYear)
+        && new Date(parseInt(this.dateEntered)).getFullYear() <= selectedYear )
+          //If This transaction is not in the future with respect to reference system)
         {
-          accountData[found].totalCurrent += totalAmount;
-          accountData[found].totalVirtual += totalAmountVirtual;
-          var found2 = -1;
-          for (var j = 0; j < accountData.length; j++)
+          var totalAmountVirtual = getTotalCostsFromTransaction(this);
+          var totalAmount = this.dateBooked != null ? getTotalCostsFromTransaction(this) : 0.0;
+          if (this.bookingType === "Transfer")
           {
-            if(accountData[j].name === this.targetAccount)
+            accountData[found].totalCurrent += totalAmount;
+            accountData[found].totalVirtual += totalAmountVirtual;
+            var found2 = -1;
+            for (var j = 0; j < accountData.length; j++)
             {
-              found2 = j;
-              break;
+              if(accountData[j].name === this.targetAccount)
+              {
+                found2 = j;
+                break;
+              }
+            }
+            if(found2 != -1)
+            {
+              accountData[found2].totalCurrent -= totalAmount;
+              accountData[found2].totalVirtual -= totalAmountVirtual;
+            }
+            else if (this.targetAccount != "Deleted Account")
+            {
+              alert("Error! We found a transaction where we do not know which account it belongs to.");
             }
           }
-          if(found2 != -1)
+          else
           {
-            accountData[found2].totalCurrent -= totalAmount;
-            accountData[found2].totalVirtual -= totalAmountVirtual;
+            accountData[found].totalCurrent += totalAmount;
+            accountData[found].totalVirtual += totalAmountVirtual;
           }
-          else if (this.targetAccount != "Deleted Account")
-          {
-            alert("Error! We found a transaction where we do not know which account it belongs to.");
-          }
-        }
-        else
-        {
-          accountData[found].totalCurrent += totalAmount;
-          accountData[found].totalVirtual += totalAmountVirtual;
         }
       }
       else if (this.account != "Deleted Account") // add this new account to out list
@@ -1489,9 +1498,11 @@ function populateCategoryTable() {
       oldestDateFound = thisDate;
     }
   }
+
+  var countMonth = oldestDateFound.getMonth() + 1
   for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
   {
-    for (var countMonth = oldestDateFound.getMonth() + 1;
+    for (;
     countMonth < 13 && (countMonth <= selectedMonth || countYear != selectedYear);
     countMonth++)
     {
@@ -1520,7 +1531,10 @@ function populateCategoryTable() {
         }
         unallocatedAmount -= parseFloat(allocatedThisMonth);
       }
+
+      var debug = 0.8;
     }
+    countMonth = 1;
   }
   $('#categoryUnallocatedMoney').html("<strong>Unallocated Amount: </strong>" + parseFloat(unallocatedAmount.toFixed(2)).toFixed(2));
   $('#categoryUnallocatedMoney').attr("val",unallocatedAmount.toFixed(2))
@@ -1572,9 +1586,10 @@ function populateCategoryTable() {
     // Hier wird alles AUSSER dem aktuellen Monat durchgezählt
     var virtualCurrentMonthTotal = 0.0;
     var actualCurrentMonthTotal = 0.0;
+    var countMonth = oldestDateFound.getMonth() + 1
     for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
     {
-      for (var countMonth = oldestDateFound.getMonth() + 1;
+      for (;
       countMonth < 13 && (countMonth < selectedMonth || countYear != selectedYear);
       countMonth++)
       {
@@ -1634,6 +1649,7 @@ function populateCategoryTable() {
         virtualCurrentMonthTotal = parseFloat(virtualCurrentMonthTotal) + /**/ parseFloat(allocatedThisMonth) + virtualSpendingThisMonth;
         actualCurrentMonthTotal = parseFloat(actualCurrentMonthTotal) + /**/ parseFloat(allocatedThisMonth) + actualSpendingThisMonth;
       }
+      countMonth = 1;
     }
 
     var amountSavedDisplayText = parseFloat(virtualCurrentMonthTotal).toFixed(2);
