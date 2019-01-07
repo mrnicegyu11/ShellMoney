@@ -1725,12 +1725,16 @@ function populateCategoryTable() {
       &&(virtualTotalFloat).toFixed(2) != "0.00")
     {
       tableContent += '<font color="red">'; 
-      tableContent += (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
+       
+      var tempString = (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
+      tableContent += parseFloat(tempString).toFixed(2);
       tableContent += "</font>"
     }
     else
     {
-      tableContent += (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
+      var tempString = (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth).toFixed(2);
+      // This avoids that "-0.00" is displayed
+      tableContent += parseFloat(tempString).toFixed(2);
     }
 
     tableContent += '</td>';
