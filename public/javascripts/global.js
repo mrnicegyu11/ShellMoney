@@ -1664,7 +1664,7 @@ function populateCategoryTable() {
     {
       allocatedThisMonth = parseFloat(this.allocatedSinceReference[found].amount);
     }
-    tableContent += '<td><input type="text" class="m.1" rel="' + this._id + '" value="' + allocatedThisMonth.toFixed(2) + '" id="categoryAllocated">' + '</td>';
+    tableContent += '<td><input type="text" class="m.1" rel="' + this._id + '" value="' + allocatedThisMonth.toFixed(2) + '" id="categoryAllocated" autocomplete="off">' + '</td>';
 
 
 
