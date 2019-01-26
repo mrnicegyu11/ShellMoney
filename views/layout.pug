@@ -16,8 +16,7 @@ html
     meta(name="shellmoney:userid",content=userID)
     link(rel="stylesheet", href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css")
     link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css')
-    
-
+    link(rel='stylesheet', type='text/css', href='http://drb.sexy:61063/stylesheets/style.css')
   body
     div.container
       #notificationModal.modal(tabindex="-1",role="dialog",aria-labelledby="Notification Modal",aria-hidden="true")
@@ -148,7 +147,7 @@ html
         #databaseView(style="display:none")
           #transactionList
             h2 Transaction List
-            table.table.my-2.flex.table-striped.table-bordered.mx-auto.p-auto(width="100%",cellspacing="0",cellpadding="0")
+            table.table.my-2.flex.table-bordered.mx-auto.p-auto(width="100%",cellspacing="0",cellpadding="0")
               thead
                 th Amount
                 th Date

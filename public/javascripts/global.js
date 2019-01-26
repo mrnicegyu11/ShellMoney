@@ -1324,12 +1324,94 @@ function populateTransactionTable(selectedMonth,selectedYear) {
     reloadData();
   }
 
+  var keepLastShade = "light";
+
   // For each item in our JSON, add a table row and cells to the content string
   $.each(transactionsData, function(){
     if (selectedMonth === new Date(parseInt(this.dateEntered)).getMonth() + 1
         && selectedYear === new Date(parseInt(this.dateEntered)).getFullYear() )
     {
-      tableContent += '<tr>';
+      //new Date(parseInt(this.dateEntered))
+      tableContent += '<tr';
+      var dayOfTheWeek_currentTransaction = (new Date(parseInt(this.dateEntered))).getDay();
+      if (dayOfTheWeek_currentTransaction == 0) // Sunday
+      {
+        if (keepLastShade === "light")
+        {
+          tableContent += ' style="background-color:hsl(172, 59%, 93%);"';
+        }
+        else
+        {
+          tableContent += ' style="background-color:hsl(172, 59%, 97%);"';
+        }
+      }
+      else if (dayOfTheWeek_currentTransaction == 1) // Monday
+      {
+        if (keepLastShade === "light")
+        {
+          tableContent += ' style="background-color:hsl(92, 59%, 93%);"';
+        }
+        else
+        {
+          tableContent += ' style="background-color:hsl(92, 59%, 97%);"';
+        }
+      }
+      else if (dayOfTheWeek_currentTransaction == 2) // Tuesday
+      {
+        if (keepLastShade === "light")
+        {
+          tableContent += ' style="background-color:hsl(192, 59%, 93%);"';
+        }
+        else
+        {
+          tableContent += ' style="background-color:hsl(192, 59%, 97%);"';
+        }
+      }
+      else if (dayOfTheWeek_currentTransaction == 3) // Wednesday
+      {
+        if (keepLastShade === "light")
+        {
+          tableContent += ' style="background-color:hsl(122, 59%, 93%);"';
+        }
+        else
+        {
+          tableContent += ' style="background-color:hsl(122, 59%, 97%);"';
+        }
+      }
+      else if (dayOfTheWeek_currentTransaction == 4) // Thursday
+      {
+        if (keepLastShade === "light")
+        {
+          tableContent += ' style="background-color:hsl(182, 59%, 93%);"';
+        }
+        else
+        {
+          tableContent += ' style="background-color:hsl(182, 59%, 97%);"';
+        }
+      }
+      else if (dayOfTheWeek_currentTransaction == 5) // Friday
+      {
+        if (keepLastShade === "light")
+        {
+          tableContent += ' style="background-color:hsl(102, 59%, 93%);"';
+        }
+        else
+        {
+          tableContent += ' style="background-color:hsl(102, 59%, 97%);"';
+        }
+      }
+      else //if (dayOfTheWeek_currentTransaction == 6) // Saturday
+      {
+        if (keepLastShade === "light")
+        {
+          tableContent += ' style="background-color:hsl(242, 45%, 93%);"';
+        }
+        else
+        {
+          tableContent += ' style="background-color:hsl(242, 45%, 97%);"';
+        }
+      }
+      tableContent += '>';
       tableContent += '<td><a href="#" class="linkshowtransaction" rel="' + this._id + '">';
       
       var totalAmount = 0.
@@ -1338,14 +1420,29 @@ function populateTransactionTable(selectedMonth,selectedYear) {
         totalAmount += parseFloat(this.amount[i].amount);
       }
       tableContent += totalAmount.toFixed(2) + '</a></td>';
-      tableContent += '<td class="transactionTableDateEntered">' + $.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(this.dateEntered))) + '</td>';
+
+      tableContent += '<td class="transactionTableDateEntered"';
+      tableContent += '>' + $.datepicker.formatDate( "yy-mm-dd", new Date(parseInt(this.dateEntered))) + '</td>';
+      keepLastShade = keepLastShade === "light" ? "dark" : "light";
+
       tableContent += '<td class="transactionTableAccount">' + this.account + '</td>';
 
 
       // Insert here booked? button code
       if(this.name != "Correction" && this.name != "Transfer")
       {
-        tableContent += '<td class="transactionTableName">' + this.name + '</td>';
+        if(this.bookingType == "Income")
+        {
+          tableContent += '<td class="transactionTableName">';
+          tableContent += '<div style="font-style:italic">' 
+          tableContent += "Income: ";
+          tableContent += "</div>";
+          tableContent += this.name + "</td>";
+        }
+        else
+        {
+          tableContent += '<td class="transactionTableName">' + this.name + '</td>';
+        }
         tableContent += '<td>'
         if(this.dateBooked == null)
         {
