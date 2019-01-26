@@ -143,6 +143,8 @@ html
               | Add Transaction
             button(type="button",class="btn btn-primary",id="DisplayCategories")
               | Categories
+            button(type="button",class="btn btn-primary",id="DisplayGraphs")
+              | Graphs
       block content
         #databaseView(style="display:none")
           #transactionList
@@ -287,7 +289,16 @@ html
                | Add
               button(type="button",class="btn btn-dark",id="addCategoryButtonCancel").mx-2
                | Cancel
-
+        #graphsView(style="display:none")
+          #graphselection.my-4
+          div(class="btn-group",role="group")
+            button(type="button",class="btn btn-secondary btn-rendergraph",id="RenderGraphMonth")
+              | Last Month
+            button(type="button",class="btn btn-secondary btn-rendergraph",id="RenderGraphYear")
+              | Last Year
+            button(type="button",class="btn btn-secondary btn-rendergraph",id="RenderGraphAll")
+              | Total
+          #chart_div(style="width: 100%; height: 500px;")
 
     script(src='https://code.jquery.com/jquery-3.3.1.js') 
     // Dont use the slim version here, this will cause calls to fail.
@@ -295,5 +306,6 @@ html
     script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js')
     script(src='https://code.jquery.com/ui/1.12.0/jquery-ui.min.js')
     script(src='https://unpkg.com/mathjs@5.2.2/dist/math.min.js')
+    script(src='https://www.gstatic.com/charts/loader.js')
     script(src='http://drb.sexy:61063/javascripts/global.js')
   

@@ -159,6 +159,7 @@ $(document).ready(function() {
       $('#databaseView').css("display", "block");
       $('#addTransactionView').css("display", "none");
       $('#categoriesView').css("display", "none");
+      $('#graphsView').css("display", "none");
     });
   
     // ADD TRANSACTION button functionality
@@ -171,7 +172,182 @@ $(document).ready(function() {
       $('#databaseView').css("display", "none");
       $('#addTransactionView').css("display", "block");
       $('#categoriesView').css("display", "none");
+      $('#graphsView').css("display", "none");
   
+    });
+
+    // GRAPH VIEW
+    $('#navigation').on('click', 'div.btn-class > button ,#DisplayGraphs', function()
+    {
+      onNavigationChange()
+      resetPaymentAmountView();
+
+      $('#databaseView').css("display", "none");
+      $('#addTransactionView').css("display", "none");
+      $('#categoriesView').css("display", "none");
+      $('#graphsView').css("display", "block");
+
+      $(".btn-rendergraph").off("click");
+      $(".btn-rendergraph").on("click", function() {
+        if ($(this) === $("#RenderGraphMonth"))
+        {
+          // Compare Dates
+        }
+        else if  ($(this) === $("#RenderGraphYear"))
+        {
+
+        }
+        else
+        {
+
+        }
+      });
+
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+      function drawChart(lastDayToRender) {
+        lastDay = new Date(lastDayToRender);
+
+        // Create the data table.
+        //var data = new google.visualization.DataTable();
+        //data.addColumn('datetime', 'day');
+        // pro category eine row
+        
+        var monthsBack = 0;
+        var dataArray = [];
+        dataArray.push(["Date"]);
+
+        for (var i = 0; i < categoryData.length; i++)
+        {
+          if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
+          {
+            dataArray[0].push(categoryData[i].name);
+          }      
+        }
+        while(monthsBack <= 6)
+        {
+          emptyRow = [];
+
+          curYear = selectedYear;
+          curMonth = selectedMonth - monthsBack - 1;
+          if (curMonth < 0)
+          {
+            curMonth = 12 + curMonth;
+            curYear -= 1;
+          }
+          emptyRow.push(new Date(curYear,curMonth,1,0,0,0,))
+          var tempRow = [];
+          for (var i = 0; i < categoryData.length; i++)
+          {
+            // not hidden
+            if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
+            {
+              //data.addColumn('number', categoryData[i].name);
+
+              var categorySumm = getCategorySummary(transactionsData,categoryData[i],new Date(curYear,curMonth,0));
+              //categorySumm.currentNetWorthPerCategory
+
+              tempRow.push(parseFloat(categorySumm.currentNetWorthPerCategory));
+            }
+          }
+
+          emptyRow.push.apply(emptyRow,tempRow);
+          dataArray.push(emptyRow);
+          monthsBack += 1;
+        }
+        //https://stackoverflow.com/questions/17428587/transposing-a-2d-array-in-javascript
+        function transpose(matrix) {
+          const rows = matrix.length, cols = matrix[0].length;
+          const grid = [];
+          for (let j = 0; j < cols; j++) {
+            grid[j] = Array(rows);
+          }
+          for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+              grid[j][i] = matrix[i][j];
+            }
+          }
+          return grid;
+        }
+        
+
+        function bubbleSort(compare,move) {
+          var swapped;
+          do 
+          {
+            swapped = false;
+            for (var i=0; i < compare.length-1; i++) 
+            {
+              if (compare[i] > compare[i+1]) 
+              {
+                var temp = move[i];
+                var compare_temp = compare[i];
+                move[i] = move[i+1];
+                compare[i] = compare[i+1]
+                move[i+1] = temp;
+                compare[i+1] = compare_temp
+                swapped = true;
+              }
+            }
+          } 
+          while (swapped);
+        }
+        var oldDataArray = dataArray
+        dataArray = transpose(dataArray);
+        var sortArray = transpose(dataArray);
+        var sortArray = transpose(sortArray);
+        sortArray.shift();
+        var compareArray = oldDataArray[1];
+        compareArray.shift();
+
+
+        var otherLine = new Array(sortArray[0].length);
+        otherLine[0] = "Other";
+        for (var j = 1; j < otherLine.length; j++)
+        {
+          otherLine[j] = 0.0;
+        }
+        for (var i = 0; i < sortArray.length; i++)
+        {
+          if(sortArray[i][1] < 40)
+          {
+            for (var j = 1; j < otherLine.length; j++)
+            {
+              otherLine[j] += sortArray[i][j];
+            }
+          }
+        }
+        sortArray = sortArray.filter(function(value, index, arr){
+          return value[1] >= 40;
+        });
+
+        compareArray = compareArray.filter(function(value, index, arr){
+          return value >= 40;
+        });
+        compareArray.push(otherLine[1]);
+        sortArray.push(otherLine);
+
+
+
+
+        bubbleSort(compareArray,sortArray);
+        sortArray.reverse();
+        sortArray.unshift(dataArray[0]);
+        dataArray =  sortArray;
+        dataArray = transpose(dataArray);
+
+        var data = google.visualization.arrayToDataTable(dataArray);
+
+        var options = {
+          title: 'Net Worth',
+          isStacked: true,
+          hAxis: {title: 'Time',  titleTextStyle: {color: '#333'}},
+          vAxis: {minValue: 0}
+        };
+
+        var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
     });
   
     // CATEGORIES
@@ -187,6 +363,7 @@ $(document).ready(function() {
       $('#databaseView').css("display", "none");
       $('#addTransactionView').css("display", "none");
       $('#categoriesView').css("display", "block");
+      $('#graphsView').css("display", "none");
   
       $('#addCategoryButton').off();
       $('#addCategoryButton').on('click', function()
@@ -536,11 +713,39 @@ function getTransactionsOfGivenCategory(input,nameOfDesiredCategory)
 }
 
 // Input: transactionData-Style array and category (not name but full category)
-function getCategorySummary(transactionDataInput,category = null)
+function getCategorySummary(transactionDataInput,category = null, latestDate = null)
 {
+  curMaxMonth = null;
+  curMaxYear = null;
+  curMaxDay = null;
+
   if(category === null)
   {
+    alert("This should never happen!!!");
     category = transactionDataInput[0].amount[0].category;
+  }
+  if (typeof category === 'string' || category instanceof String)
+  {
+    for(var i = 0; i < categoryData; i++)
+    {
+      if(categoryData[i].name === category)
+      {
+        category = categoryData[i];
+        break;
+      }
+    }
+  }
+  if(latestDate === null)
+  {
+    curMaxMonth = selectedMonth;
+    curMaxYear = selectedYear;
+    curMaxDay = 31;
+  }
+  else
+  {
+    curMaxMonth = latestDate.getMonth() + 1;
+    curMaxYear = latestDate.getFullYear();
+    curMaxDay = latestDate.getDate();    
   }
 
 
@@ -562,10 +767,10 @@ function getCategorySummary(transactionDataInput,category = null)
   // Evaluate total allocated amount for all months
   var allocatedInTotal = 0.0;
   var countMonth = oldestDateFound.getMonth() + 1
-  for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
+  for (var countYear = oldestDateFound.getFullYear(); countYear < curMaxYear + 1; countYear++)
   {
     for (;
-    countMonth < 13 && (countMonth <= selectedMonth || countYear != selectedYear);
+    countMonth < 13 && (countMonth <= curMaxMonth || countYear != curMaxYear);
     countMonth++)
     {
       if (getIteratorFromAllocatedSinceReferenceArray(category.allocatedSinceReference,countYear,countMonth) != null)
@@ -595,10 +800,10 @@ function getCategorySummary(transactionDataInput,category = null)
   var virtualAllMonthsPrior = 0.0;
   var actualAllMonthsPrior = 0.0;
   var countMonth = oldestDateFound.getMonth() + 1
-  for (var countYear = oldestDateFound.getFullYear(); countYear < selectedYear + 1; countYear++)
+  for (var countYear = oldestDateFound.getFullYear(); countYear < curMaxYear + 1; countYear++)
   {
     for (;
-    countMonth < 13 && (countMonth < selectedMonth || countYear != selectedYear);
+    countMonth < 13 && (countMonth < curMaxMonth || countYear != curMaxYear);
     countMonth++)
     {
       var virtualSpendingThisMonth = 0.0;
@@ -657,7 +862,7 @@ function getCategorySummary(transactionDataInput,category = null)
   //
   //
   // Hier wird der aktuelle Monat durchgezählt
-  var found = getIteratorFromAllocatedSinceReferenceArray(category.allocatedSinceReference,selectedYear,selectedMonth);
+  var found = getIteratorFromAllocatedSinceReferenceArray(category.allocatedSinceReference,curMaxYear,curMaxMonth);
   var allocatedThisMonth = 0.0;
   if (found != null)
   {
@@ -674,8 +879,10 @@ function getCategorySummary(transactionDataInput,category = null)
     for(var j = 0; j < transactionsData[i].amount.length;j++)
     {
       if(transactionsData[i].amount[j].category === category.name
-        && new Date(transactionsData[i].dateEntered).getMonth() + 1 == selectedMonth
-        && new Date(transactionsData[i].dateEntered).getFullYear() == selectedYear)
+        && new Date(transactionsData[i].dateEntered).getMonth() + 1 == curMaxMonth
+        && new Date(transactionsData[i].dateEntered).getFullYear() == curMaxYear
+        && new Date(transactionsData[i].dateEntered).getDate() <= curMaxDay
+        )
       {
         if (transactionsData[i].bookingType === "Payment")
         {
@@ -733,7 +940,8 @@ function getCategorySummary(transactionDataInput,category = null)
     "allocatedInTotalAllMonths":allocatedInTotalAllMonths.toFixed(2),
     "onlyPaymentsThisMonthVirtual":onlyPaymentsThisMonthVirtual.toFixed(2),
     "onlyIncomeThisMonthVirtual":onlyIncomeThisMonthVirtual.toFixed(2),
-    "numberOfIncomeTransactions":numberOfIncomeTransactions
+    "numberOfIncomeTransactions":numberOfIncomeTransactions,
+    "currentNetWorthPerCategory":actualTotalFloat.toFixed(2)
   };
   return toBeReturned;
 }
@@ -1815,7 +2023,8 @@ function populateCategoryTable() {
 
 
     
-    var virtualTotalFloat =  (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth);
+    var virtualTotalFloat =  (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth); // includes unbooked
+    var actualTotalFloat = (parseFloat(actualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth);// Doesnt include unbooked
     tableContent += '<td id="categoryTotalAmount" val="' + virtualTotalFloat.toFixed(2);
     tableContent += '" valCurrentBalance="' + (parseFloat(actualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth).toFixed(2) + '">';
     if (parseFloat((virtualTotalFloat).toFixed(2)) < 0.0
