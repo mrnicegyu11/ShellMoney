@@ -144,7 +144,7 @@ html
             button(type="button",class="btn btn-primary",id="DisplayCategories")
               | Categories
             button(type="button",class="btn btn-primary",id="DisplayGraphs")
-              | Graphs
+              | Graph
       block content
         #databaseView(style="display:none")
           #transactionList
@@ -291,7 +291,7 @@ html
                | Cancel
         #graphsView(style="display:none")
           #graphselection.my-4
-          div(class="btn-group",role="group")
+          div(class="btn-group",role="group",style="display:none")
             button(type="button",class="btn btn-secondary btn-rendergraph",id="RenderGraphMonth")
               | Last Month
             button(type="button",class="btn btn-secondary btn-rendergraph",id="RenderGraphYear")

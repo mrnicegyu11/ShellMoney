@@ -29,24 +29,17 @@ $.fn.enterKey = function (fnc) {
 };
 
 
-// Stuff we use:
-// ".buttonIsTransactionBooked"
-// -> Has element "rel" which is ID
-// -> Should ID always be rel?
-// ".datepicker"
-
 // Conventions:
 // INCOME has positive numbers
 // PAYMENTS have negative numbers.
 // Therefore amounts of transactions are always simply summed, never subtracted.
 
-// Wechselkurse nur relevant für Zukünftige Transaktionen, 
-// denn es wird immer irgendwann aktuell die Zahlung getätigt.
-
-
 
 // DOM Ready =============================================================
 $(document).ready(function() {
+  google.charts.load('current', {'packages':['corechart']});
+  google.charts.setOnLoadCallback(drawNetWorthChart);
+
   // Set initial month for display as current month
   selectedMonth = new Date().getMonth() + 1;
   selectedYear = new Date().getFullYear();
@@ -59,7 +52,7 @@ $(document).ready(function() {
   // Reload Data from Server
   reloadData().then(function()
   {
-
+    
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
 
 
@@ -79,6 +72,7 @@ $(document).ready(function() {
   
       populateTransactionTable(selectedMonth,selectedYear);
       $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
+      drawNetWorthChart();
     })
     $('#monthDown').on("click",function()
     {
@@ -95,6 +89,7 @@ $(document).ready(function() {
   
       populateTransactionTable(selectedMonth,selectedYear);
       $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
+      drawNetWorthChart();
     })
   
     // ACCOUNTS BUTTON Functionality
@@ -179,9 +174,9 @@ $(document).ready(function() {
     // GRAPH VIEW
     $('#navigation').on('click', 'div.btn-class > button ,#DisplayGraphs', function()
     {
-      onNavigationChange()
+      onNavigationChange();
       resetPaymentAmountView();
-
+      
       $('#databaseView').css("display", "none");
       $('#addTransactionView').css("display", "none");
       $('#categoriesView').css("display", "none");
@@ -202,152 +197,8 @@ $(document).ready(function() {
 
         }
       });
+      drawNetWorthChart();
 
-      google.charts.load('current', {'packages':['corechart']});
-      google.charts.setOnLoadCallback(drawChart);
-      function drawChart(lastDayToRender) {
-        lastDay = new Date(lastDayToRender);
-
-        // Create the data table.
-        //var data = new google.visualization.DataTable();
-        //data.addColumn('datetime', 'day');
-        // pro category eine row
-        
-        var monthsBack = 0;
-        var dataArray = [];
-        dataArray.push(["Date"]);
-
-        for (var i = 0; i < categoryData.length; i++)
-        {
-          if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
-          {
-            dataArray[0].push(categoryData[i].name);
-          }      
-        }
-        while(monthsBack <= 6)
-        {
-          emptyRow = [];
-
-          curYear = selectedYear;
-          curMonth = selectedMonth - monthsBack - 1;
-          if (curMonth < 0)
-          {
-            curMonth = 12 + curMonth;
-            curYear -= 1;
-          }
-          emptyRow.push(new Date(curYear,curMonth,1,0,0,0,))
-          var tempRow = [];
-          for (var i = 0; i < categoryData.length; i++)
-          {
-            // not hidden
-            if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
-            {
-              //data.addColumn('number', categoryData[i].name);
-
-              var categorySumm = getCategorySummary(transactionsData,categoryData[i],new Date(curYear,curMonth,0));
-              //categorySumm.currentNetWorthPerCategory
-
-              tempRow.push(parseFloat(categorySumm.currentNetWorthPerCategory));
-            }
-          }
-
-          emptyRow.push.apply(emptyRow,tempRow);
-          dataArray.push(emptyRow);
-          monthsBack += 1;
-        }
-        //https://stackoverflow.com/questions/17428587/transposing-a-2d-array-in-javascript
-        function transpose(matrix) {
-          const rows = matrix.length, cols = matrix[0].length;
-          const grid = [];
-          for (let j = 0; j < cols; j++) {
-            grid[j] = Array(rows);
-          }
-          for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-              grid[j][i] = matrix[i][j];
-            }
-          }
-          return grid;
-        }
-        
-
-        function bubbleSort(compare,move) {
-          var swapped;
-          do 
-          {
-            swapped = false;
-            for (var i=0; i < compare.length-1; i++) 
-            {
-              if (compare[i] > compare[i+1]) 
-              {
-                var temp = move[i];
-                var compare_temp = compare[i];
-                move[i] = move[i+1];
-                compare[i] = compare[i+1]
-                move[i+1] = temp;
-                compare[i+1] = compare_temp
-                swapped = true;
-              }
-            }
-          } 
-          while (swapped);
-        }
-        var oldDataArray = dataArray
-        dataArray = transpose(dataArray);
-        var sortArray = transpose(dataArray);
-        var sortArray = transpose(sortArray);
-        sortArray.shift();
-        var compareArray = oldDataArray[1];
-        compareArray.shift();
-
-
-        var otherLine = new Array(sortArray[0].length);
-        otherLine[0] = "Other";
-        for (var j = 1; j < otherLine.length; j++)
-        {
-          otherLine[j] = 0.0;
-        }
-        for (var i = 0; i < sortArray.length; i++)
-        {
-          if(sortArray[i][1] < 40)
-          {
-            for (var j = 1; j < otherLine.length; j++)
-            {
-              otherLine[j] += sortArray[i][j];
-            }
-          }
-        }
-        sortArray = sortArray.filter(function(value, index, arr){
-          return value[1] >= 40;
-        });
-
-        compareArray = compareArray.filter(function(value, index, arr){
-          return value >= 40;
-        });
-        compareArray.push(otherLine[1]);
-        sortArray.push(otherLine);
-
-
-
-
-        bubbleSort(compareArray,sortArray);
-        sortArray.reverse();
-        sortArray.unshift(dataArray[0]);
-        dataArray =  sortArray;
-        dataArray = transpose(dataArray);
-
-        var data = google.visualization.arrayToDataTable(dataArray);
-
-        var options = {
-          title: 'Net Worth',
-          isStacked: true,
-          hAxis: {title: 'Time',  titleTextStyle: {color: '#333'}},
-          vAxis: {minValue: 0}
-        };
-
-        var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
-        chart.draw(data, options);
-      }
     });
   
     // CATEGORIES
@@ -3760,6 +3611,8 @@ function onNavigationChange()
 
   $('.accountsTableModifyButton').off();
   $('.accountsTableModifyButton').on("click",modifyAccount);
+
+
 };
 
 function appendCurrentCategoriesToDropdown(dropdown_menu,addNone=false)
@@ -3823,4 +3676,149 @@ function appendCurrentAccountsToDropdown(dropdown_menu)
 
     $(this).parent().parent().find(".dropdown-toggle").html($(this).html());
   })
+}
+
+function drawNetWorthChart() 
+{
+  // Create the data table.
+  //var data = new google.visualization.DataTable();
+  //data.addColumn('datetime', 'day');
+  // pro category eine row
+  
+  var monthsBack = 0;
+  var dataArray = [];
+  dataArray.push(["Date"]);
+
+  for (var i = 0; i < categoryData.length; i++)
+  {
+    if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
+    {
+      dataArray[0].push(categoryData[i].name);
+    }      
+  }
+  while(monthsBack <= 6)
+  {
+    emptyRow = [];
+
+    curYear = selectedYear;
+    curMonth = selectedMonth - monthsBack - 1;
+    if (curMonth < 0)
+    {
+      curMonth = 12 + curMonth;
+      curYear -= 1;
+    }
+    emptyRow.push(new Date(curYear,curMonth,1,0,0,0,))
+    var tempRow = [];
+    for (var i = 0; i < categoryData.length; i++)
+    {
+      // not hidden
+      if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
+      {
+        //data.addColumn('number', categoryData[i].name);
+
+        var categorySumm = getCategorySummary(transactionsData,categoryData[i],new Date(curYear,curMonth,0));
+        //categorySumm.currentNetWorthPerCategory
+
+        tempRow.push(parseFloat(categorySumm.currentNetWorthPerCategory));
+      }
+    }
+
+    emptyRow.push.apply(emptyRow,tempRow);
+    dataArray.push(emptyRow);
+    monthsBack += 1;
+  }
+  //https://stackoverflow.com/questions/17428587/transposing-a-2d-array-in-javascript
+  function transpose(matrix) {
+    const rows = matrix.length, cols = matrix[0].length;
+    const grid = [];
+    for (let j = 0; j < cols; j++) {
+      grid[j] = Array(rows);
+    }
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols; j++) {
+        grid[j][i] = matrix[i][j];
+      }
+    }
+    return grid;
+  }
+  
+
+  function bubbleSort(compare,move) 
+  {
+    var swapped;
+    do 
+    {
+      swapped = false;
+      for (var i=0; i < compare.length-1; i++) 
+      {
+        if (compare[i] > compare[i+1]) 
+        {
+          var temp = move[i];
+          var compare_temp = compare[i];
+          move[i] = move[i+1];
+          compare[i] = compare[i+1]
+          move[i+1] = temp;
+          compare[i+1] = compare_temp
+          swapped = true;
+        }
+      }
+    } 
+    while (swapped);
+  }
+
+  var oldDataArray = dataArray
+  dataArray = transpose(dataArray);
+  var sortArray = transpose(dataArray);
+  sortArray = transpose(sortArray);
+  sortArray.shift();
+  var compareArray = oldDataArray[1];
+  compareArray.shift();
+
+
+  var otherLine = new Array(sortArray[0].length);
+  otherLine[0] = "Other";
+  for (var j = 1; j < otherLine.length; j++)
+  {
+    otherLine[j] = 0.0;
+  }
+  for (var i = 0; i < sortArray.length; i++)
+  {
+    if(sortArray[i][1] < 40)
+    {
+      for (var j = 1; j < otherLine.length; j++)
+      {
+        otherLine[j] += sortArray[i][j];
+      }
+    }
+  }
+  sortArray = sortArray.filter(function(value, index, arr){
+    return value[1] >= 40;
+  });
+
+  compareArray = compareArray.filter(function(value, index, arr){
+    return value >= 40;
+  });
+  compareArray.push(otherLine[1]);
+  sortArray.push(otherLine);
+
+
+
+
+  bubbleSort(compareArray,sortArray);
+  sortArray.reverse();
+  sortArray.unshift(dataArray[0]);
+  dataArray =  sortArray;
+  dataArray = transpose(dataArray);
+
+  var data = google.visualization.arrayToDataTable(dataArray);
+
+  var options = {
+    title: 'Net Worth',
+    isStacked: true,
+    hAxis: {title: 'Time',  titleTextStyle: {color: '#333'}},
+    vAxis: {minValue: 0}
+  };
+
+  var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+  chart.draw(data, options);
 }
