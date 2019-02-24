@@ -3681,9 +3681,10 @@ function appendCurrentAccountsToDropdown(dropdown_menu)
 function drawNetWorthChart() 
 {
   // Create the data table.
-  //var data = new google.visualization.DataTable();
-  //data.addColumn('datetime', 'day');
-  // pro category eine row
+  if (categoryData.length === 0)
+  {
+    return;
+  }
   
   var monthsBack = 0;
   var dataArray = [];

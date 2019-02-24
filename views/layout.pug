@@ -14,9 +14,10 @@ html
       .modal-body { overflow-y: visible; }
     //
     meta(name="shellmoney:userid",content=userID)
+    meta(name="shellmoney:fullurl",content=fullURL)
     link(rel="stylesheet", href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css")
     link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css')
-    link(rel='stylesheet', type='text/css', href='http://drb.sexy:61063/stylesheets/style.css')
+    link(rel='stylesheet', type='text/css', href=fullURL+'/stylesheets/style.css')
   body
     div.container
       #notificationModal.modal(tabindex="-1",role="dialog",aria-labelledby="Notification Modal",aria-hidden="true")
@@ -307,5 +308,5 @@ html
     script(src='https://code.jquery.com/ui/1.12.0/jquery-ui.min.js')
     script(src='https://unpkg.com/mathjs@5.2.2/dist/math.min.js')
     script(src='https://www.gstatic.com/charts/loader.js')
-    script(src='http://drb.sexy:61063/javascripts/global.js')
+    script(src=fullURL+'/javascripts/global.js')
   

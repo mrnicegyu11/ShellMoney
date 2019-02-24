@@ -41,6 +41,7 @@ app.use(function(req,res,next){
   req.dbTransactions = dbTransactions;
   req.dbCategories = dbCategories;
   req.dbAccounts = dbAccounts;
+  req.shellmoneyURL = process.env.SHELLMONEY_URL;
   next();
 });
 app.use('/', indexRouter);

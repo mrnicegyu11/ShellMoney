@@ -12,7 +12,7 @@ var http = require('http');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.SHELLMONEY_PORT);
+var port = normalizePort(process.env.SHELLMONEY_PORT || '12000');
 console.log("Port: " + port);
 app.set('port', port);
 
