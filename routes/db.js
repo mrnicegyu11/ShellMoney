@@ -5,7 +5,6 @@ var router = express.Router();
 router.get('/transactions_list/:userID', function(req, res) {
   var db = req.dbTransactions;
   var collection = db.get('transactions');
-  console.log(collection);
   console.log("GET transactions_list with username: " + req.params.userID);
   collection.find({ userID: { $eq: req.params.userID } },{},function(e,docs){
     res.json(docs);
