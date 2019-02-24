@@ -14,9 +14,9 @@ var mongoDB_accessPath = process.env.SHELLMONEY_MONGODB_ACCESS
 console.log(mongoDB_accessPath)
 //nodejsUser:Toj3jaiHir@localhost:62946
 
-var dbTransactions = monk(mongoDB_accessPath + '/finance');
-var dbCategories = monk(mongoDB_accessPath + '/categories1');
-var dbAccounts = monk(mongoDB_accessPath + '/accounts');
+var dbTransactions = monk(mongoDB_accessPath + '/shellmoney');
+var dbCategories = monk(mongoDB_accessPath + '/shellmoney');
+var dbAccounts = monk(mongoDB_accessPath + '/shellmoney');
 
 var indexRouter = require('./routes/index');
 var dbRouter = require('./routes/db');
