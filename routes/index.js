@@ -3,10 +3,12 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('layout', 
+  res.render('error', 
   { 
     title: '🐚'/*, getThing : function() {return "lol";}*/ ,
-    userID: none,
+    userID: null,
+    message: "ERROR: Please select a username!",
+    error: {status: "If this is the first time you are running ShellMoney, instead of www.URL.domain/shellmoney/ call www.URL.domain/shellmoney/JohnSmith_Or_Whatever."},
     fullURL: process.env.SHELLMONEY_URL
   });
 });
