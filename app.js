@@ -12,7 +12,6 @@ var monk = require('monk');
 // Parse CMD line argument to get MongoDB Path:
 var mongoDB_accessPath = process.env.SHELLMONEY_MONGODB_ACCESS
 console.log(mongoDB_accessPath)
-//nodejsUser:Toj3jaiHir@localhost:62946
 
 var dbTransactions = monk(mongoDB_accessPath + '/shellmoney');
 var dbCategories = monk(mongoDB_accessPath + '/shellmoney');

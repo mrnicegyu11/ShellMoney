@@ -1,23 +1,36 @@
-// Userlist data array for filling in info box
+// SHELLMONEY global.js
+
+// Conventions:
+// INCOME has positive numbers
+// PAYMENTS have negative numbers.
+// Therefore amounts of transactions are always simply summed, never subtracted.
+
+// These global variables will contain all information from the database once loaded.
 var transactionsData = [];
 var categoryData = [];
 var accountData = [];
 var username = null;
 
+// UI Selections which are very fundamental for calculations
 var selectedMonth = new Date().getMonth() + 1;
 var selectedYear = new Date().getFullYear();
 var lastPickedDateInSession = null;
 
-// Extend jQuery:
+/////////////////////////////
+// 
+// J Q U E R Y - Extentions
+// 
+/////////////////////////////
+
 $.fn.exists = function () {
   return this.length !== 0;
   // see: https://stackoverflow.com/questions/920236/how-can-i-detect-if-a-selector-returns-null
   // and: https://stackoverflow.com/questions/4186906/check-if-object-exists-in-javascript
 }
 
-// via https://memorynotfound.com/detect-enter-keypress-javascript-jquery/
-// write small plugin for keypress enter detection
 $.fn.enterKey = function (fnc) {
+  // via https://memorynotfound.com/detect-enter-keypress-javascript-jquery/
+  // write small plugin for keypress enter detection
   return this.each(function () {
       $(this).keypress(function (e) {
           var keycode = (e.keyCode ? e.keyCode : e.which);
@@ -28,393 +41,34 @@ $.fn.enterKey = function (fnc) {
   })
 };
 
-
-// Conventions:
-// INCOME has positive numbers
-// PAYMENTS have negative numbers.
-// Therefore amounts of transactions are always simply summed, never subtracted.
-
-
 // DOM Ready =============================================================
 $(document).ready(function() {
+  // Load googlecharts data
   google.charts.load('current', {'packages':['corechart']});
   google.charts.setOnLoadCallback(drawNetWorthChart);
 
   // Set initial month for display as current month
   selectedMonth = new Date().getMonth() + 1;
   selectedYear = new Date().getFullYear();
+  $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
 
+  //Get username from URL
   username = $('meta[name="shellmoney:userid"]').attr("content");
 
-  // Write Month/Date to div
 
+  // Initialize the buttons
+  initializeButtonFunctionality();
 
   // Reload Data from Server
   reloadData().then(function()
   {
-    
-    $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
-
-
-    // Add functionality for month selection Buttons
-    $('#monthUp').on("click",function()
-    {
-      if(selectedMonth === 12)
-      {
-        selectedYear += 1;
-        selectedMonth = 1;
-      }
-      else
-      {
-        selectedMonth += 1;
-      }
-      populateCategoryTable();
-  
-      populateTransactionTable(selectedMonth,selectedYear);
-      $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
-      drawNetWorthChart();
-    })
-    $('#monthDown').on("click",function()
-    {
-      if(selectedMonth === 1)
-      {
-        selectedYear -= 1;
-        selectedMonth = 12;
-      }
-      else
-      {
-        selectedMonth -= 1;
-      }
-      populateCategoryTable();
-  
-      populateTransactionTable(selectedMonth,selectedYear);
-      $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
-      drawNetWorthChart();
-    })
-  
-    // ACCOUNTS BUTTON Functionality
-    $('#buttonShowAccounts').off();
-    $('#buttonShowAccounts').on('click', function()
-    {
-      if(transactionsData.length === 0)
-      {
-        //alert("This should not have happened, performing unnecessary reload.");
-        reloadData();
-      }
-      populateAccountInformation();
-      if($('#accountOverview').css("display") === "none")
-      {
-        // Check for shitty siutation, this should never happen.
-        $('#accountOverview').css("display","block");
-      }
-      else
-      {
-        $('#accountOverview').css("display","none");
-      }
-
-      $('#buttonAddAccount').off();
-      $('#buttonAddAccount').on('click',function()
-      {
-        $('#accountsAdd').css("display","block");
-      });
-      $('#buttonCancelAddAccount').off();
-      $('#buttonCancelAddAccount').on('click',function()
-      {
-        $('#accountsAdd').css("display","none");
-      });
-      $('#buttonSaveAddAccount').off();
-      $('#buttonSaveAddAccount').on("click",function()
-      {
-        var newAccount = {
-          name : $("#accountsAdd input").val(),
-          totalCurrent : 0.0,
-          totalVirtual : 0.0,
-          userID: username
-        };
-        var curAjaxPromise = ajaxPOST_Account(newAccount);
-
-      
-        $.when(curAjaxPromise).then(function()
-        {
-          reloadDataAndRefreshDisplay();
-          $("#accountsAdd input").val("");
-          $("#accountsAdd").css("display","none");
-        });
-
-      });
-    });
-  
-    // DB Navigation Button (LANDING PAGE) functionality
-    $('#navigation').off();
-    $('#navigation').on('click', 'div.btn-class > button, #DisplayDB', function()
-    {
-      onNavigationChange();
-      populateTransactionTable(selectedMonth,selectedYear);
-  
-      $('#databaseView').css("display", "block");
-      $('#addTransactionView').css("display", "none");
-      $('#categoriesView').css("display", "none");
-      $('#graphsView').css("display", "none");
-    });
-  
-    // ADD TRANSACTION button functionality
-    $('#navigation').on('click', 'div.btn-class > button ,#DisplayAdd', function()
-    {
-      onNavigationChange()
-
-      populateAddTransactionView();
-      resetPaymentAmountView();
-      $('#databaseView').css("display", "none");
-      $('#addTransactionView').css("display", "block");
-      $('#categoriesView').css("display", "none");
-      $('#graphsView').css("display", "none");
-  
-    });
-
-    // GRAPH VIEW
-    $('#navigation').on('click', 'div.btn-class > button ,#DisplayGraphs', function()
-    {
-      onNavigationChange();
-      resetPaymentAmountView();
-      
-      $('#databaseView').css("display", "none");
-      $('#addTransactionView').css("display", "none");
-      $('#categoriesView').css("display", "none");
-      $('#graphsView').css("display", "block");
-
-      $(".btn-rendergraph").off("click");
-      $(".btn-rendergraph").on("click", function() {
-        if ($(this) === $("#RenderGraphMonth"))
-        {
-          // Compare Dates
-        }
-        else if  ($(this) === $("#RenderGraphYear"))
-        {
-
-        }
-        else
-        {
-
-        }
-      });
-      drawNetWorthChart();
-
-    });
-  
-    // CATEGORIES
-    $('#navigation').on('click', 'div.btn-class > button ,#DisplayCategories', function()
-    {
-      $('#addCategoryButton').off("click");
-      $('#addCategoryButtonAdd').off("click");
-      $('#addCategoryButtonCancel').off("click");
-  
-      onNavigationChange()
-  
-      populateCategoryTable();
-      $('#databaseView').css("display", "none");
-      $('#addTransactionView').css("display", "none");
-      $('#categoriesView').css("display", "block");
-      $('#graphsView').css("display", "none");
-  
-      $('#addCategoryButton').off();
-      $('#addCategoryButton').on('click', function()
-      {
-        $('#addCategory').css("display", "block");
-        $('#addCategoryButton').css("display", "none");
-        // Click on Add Category
-        $('#addCategoryButtonAdd').on('click', function()
-        {
-          event.preventDefault();
-          var ajaxPromise = null;
-          
-          // Check for empty submission
-          if($('#addCategory input#inputCategoryName').val() != '') 
-          {
-          
-            var errorSubmission = false;
-            for (var i = 0; i < categoryData.length; i++)
-            {
-              if($('#addCategory input#inputCategoryName').val() == categoryData[i].name)
-              {
-                errorSubmission = true;
-
-                if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
-                {
-                  alert("A category with this name already exists. ERROR.");
-                  return;
-                }
-                else
-                {
-                  var confirmation = confirm("A category with this name already exists but is hidden. Should we unhide it?");
-                  if(confirmation)
-                  {
-                    categoryData[i].hideDate = null;
-                    ajaxPromise = ajaxPUT_Category(categoryData[i]);
-                  }
-                  else
-                  {
-                    return;
-                  }
-                }
-              }
-            }
-            var newCategory = {
-              'name': $('#addCategory input#inputCategoryName').val().trim(),
-              "referenceDate" : Date.now(),
-              "hideDate": null,
-              "referenceAmount" : 0.0,
-              "associatedTransactions" : null,
-              "allocatedSinceReference" : 0.0,
-              "userID": username
-            }
-  
-            if (!errorSubmission)
-            {
-              ajaxPromise = ajaxPOST_Category(newCategory)
-            }
-            ajaxPromise.then(function() {
-          
-                // Clear the form inputs
-                $('#addCategory input').val('');
-                $('#addCategory').css("display", "none");
-                $('#addCategoryButton').css("display", "");
-  
-                reloadDataAndRefreshDisplay();
-  
-  
-              },function()
-              {
-              
-                // If something goes wrong, alert the error message that our service returned
-                alert('Error: ' + response.msg);
-              
-              }
-            );
-          }
-          else {
-            // If errorCount is more than 0, error out
-            alert('Please fill in the name');
-            return false;
-          }
-  
-          $('#addCategoryButtonAdd').off("click");
-        });
-      });
-  
-      $('#addCategoryButtonCancel').off();
-      $('#addCategoryButtonCancel').on('click', function()
-      {
-        $('#addCategory').css("display", "none");
-        $('#addCategoryButton').css("display", "");
-        $('#addCategory input').val('');
-        $('#addCategoryButtonAdd').off("click");
-      });
-  
-      
-  
-       
-      $('#categoryDatabaseView table tbody').on('click', 'td a.linkdeletecategory', deleteCategory);
-  
-      $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
-      $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
-  
-      $("#categoryTableResetAllocations").off("click");
-      $("#categoryTableResetAllocations").on('click', function()
-      {
-        var confirmationResult = confirm("Are you sure you want to reset all allocations for this month?");
-        if (confirmationResult == true)
-        {
-          promisesArray = [];
-          for (var i = 0; i < categoryData.length; i++)
-          {
-            var thisUserObject = categoryData[i];
-            var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
-            if (found != null)
-            {
-              categoryData[i].allocatedSinceReference.splice(found, 1);
-  
-              var category = {
-                'name': thisUserObject.name,
-                'systems': thisUserObject.systems,
-                "referenceDate" : thisUserObject.referenceDate,
-                "referenceAmount" : thisUserObject.referenceAmount,
-                "associatedTransactions" : thisUserObject.associatedTransactions,
-                "allocatedSinceReference" : categoryData[i].allocatedSinceReference,
-                "userID" : username
-              }
-            
-              var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
-              promisesArray.push(curPromise);
-            }
-          }
-          Promise.all(promisesArray).then(function()
-          {
-            reloadDataAndRefreshDisplay();    
-          });
-        }
-      })
-  
-      $("#autofillAllocationButton").off("click");
-      $("#autofillAllocationButton").on('click', function() 
-      {
-        var confirmationResult = confirm("Are you sure you want to auto-fill all allocations for this month?");
-        if (confirmationResult == true)
-        {
-          var promisesArray = [];
-          for (var i = 0; i < categoryData.length; i++)
-          {
-            var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
-            var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
-            if (lastMonthIter != null)
-            {
-              if(curMonthIter != null)
-              {
-                categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
-              }
-              else
-              {
-                categoryData[i].allocatedSinceReference.push(
-                { 
-                  "amount":categoryData[i].allocatedSinceReference[lastMonthIter].amount,
-                  "year": selectedYear,
-                  "month": selectedMonth
-                });
-              }
-  
-              var category = {
-                'name': categoryData[i].name,
-                'systems': categoryData[i].systems,
-                "referenceDate" : categoryData[i].referenceDate,
-                "referenceAmount" : categoryData[i].referenceAmount,
-                "associatedTransactions" : categoryData[i].associatedTransactions,
-                "allocatedSinceReference" : categoryData[i].allocatedSinceReference,
-                "userID" : username
-              }
-  
-              var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
-              promisesArray.push(curPromise);
-            }
-          }
-          Promise.all(promisesArray).then(function()
-          {
-            reloadDataAndRefreshDisplay();
-          });
-        }
-      });
-    });
-  
+    //Housekeeping performed on navigation change.
     onNavigationChange()
-  
     // initialize Datepicker
     $( "" ).datepicker();
-
   });
   
-
-  
 });
-
-
 
 
 /////////////////////////////
@@ -490,9 +144,10 @@ function downloadObjectAsJson(exportObj, exportName){
 
 ///////////////////////////////////////
 //
-// H E L P E R   F U N C T I O N S
+// H E L P E R   F U N C T I O N S --- ACCOUNTING
 //
 ///////////////////////////////////////
+
 // Helper Function: getTotalCostsFromTransaction
 function getTotalCostsFromTransaction(transaction)
 {
@@ -797,6 +452,7 @@ function getCategorySummary(transactionDataInput,category = null, latestDate = n
   return toBeReturned;
 }
 
+// Returns most recent transaction according to "dateEntered" from Array
 function getMostRecentTransaction(input)
 {
   var mostRecentTransaction = input[0];
@@ -843,55 +499,16 @@ function getMostRecentAllocation(category)
   return [mostRecentMonth,mostRecentYear];
 }
 
-// Called once toggleBookedStatusButton are renderd to set the button action
-function setButton_toggleTransactionListBookedStatus(event)
-{
-  event.preventDefault()
 
-  var ID = $(this).attr('rel');
-  var foundIterator = null;
 
-  // Check if we habe the ID in the database
-  for(var i = 0; i < transactionsData.length; i++)
-  {
-    if(transactionsData[i]._id === ID)
-    {
-      foundIterator = i;
-      break;
-    }
-  }
-
-  // If we have found the ID
-  if(foundIterator != null)
-  {
-    if(transactionsData[foundIterator].dateBooked != null)
-    {
-      transactionsData[foundIterator].dateBooked = null;
-    }
-    else
-    {
-      transactionsData[foundIterator].dateBooked = Date.now();
-    }
-
-    ajaxPUT_Transaction(transactionsData[foundIterator], $(this).attr('rel')).then(function()
-    {
-      reloadDataAndRefreshDisplay();
-    }).then(function() 
-    {
-      $('#DisplayDB').click();
-    });
-  }
-  else
-  {
-    alert('Error: In function setButton_toggleTransactionListBookedStatus: ' + 'Did not find ID of button element in Database of Transactions.');
-  }
-}
 
 ///////////////////////////////////////
 //
 // A J A X
 //
 ///////////////////////////////////////
+// Don't call these explicitly from UI code. ALways take care that the global arrays of transactions, accounts etc.
+// are in sync with the server-side.
 
 function ajaxPOST_Transaction(newTransactionObject)
 {
@@ -1201,17 +818,6 @@ function ajaxDELETE_Account(item)
 // F U N C T I O N A L I T Y
 //
 ///////////////////////////////////////
-
-// Deletes a category, event musst have attribute "rel" with ID in it.
-function deleteCategory(event)
-{
-  event.preventDefault();
-  ajaxDELETE_Category($(this).attr('rel')).then(function()
-  {
-    // Update the table
-    reloadDataAndRefreshDisplay();
-  });
-}
 
 function reloadDataAndRefreshDisplay()
 {
@@ -2655,23 +2261,6 @@ function populateAddTransactionView() {
   });
 };
 
-function resetPaymentAmountView()
-{
-  $("#paymentDiv1 #addAnotherAmountPaymentTransactionButton").css("display","");
-  for (var i = 2; i < 5; i++)
-  {
-    if($('#inputAmount' + i.toString()).exists())
-    {
-      $('#inputAmount' + i.toString()).css('display',"none");
-      $('#paymentDiv' + i.toString()).css("display","none");
-      $('#inputAmount' + i.toString()).css('display',"none");
-      $('#inputCommentPayment' + i.toString()).css('display',"none");
-      $('#inputCategoryPayment'+ i.toString() +'Button').parent().css('display','none');
-      $('#paymentDiv' + (i).toString() + ' #addAnotherAmountPaymentTransactionButton').css('display','')
-    }
-  }
-}
-
 // Show User Info
 function showTransactionInfo(event) {
 
@@ -3037,21 +2626,6 @@ function showTransactionInfo(event) {
 
 };
 
-function updateCategoryComment()
-{
-  var curCategoryID = $('#categoryInfoModalContent .form-group .form-control').attr("id");
-  var targetCategory = null;
-  for (var i = 0; i < categoryData.length; i++)
-  {
-    if (categoryData[i]._id === curCategoryID)
-    {
-      targetCategory = categoryData[i];
-      break;
-    }
-  }
-  targetCategory.comment = $("#categoryInfoModalContent .form-group .form-control").val();
-  ajaxPUT_Category(targetCategory);
-}
 
 function showCategoryInfoModal(event) {
 
@@ -3360,6 +2934,100 @@ function showCategoryInfoModal(event) {
   }
 };
 
+
+///////////////////////////////////////
+//
+// H E L P E R   F U N C T I O N S --- UserInterface
+//
+///////////////////////////////////////
+
+// Called once toggleBookedStatusButton are renderd to set the button action
+function setButton_toggleTransactionListBookedStatus(event)
+{
+  event.preventDefault()
+
+  var ID = $(this).attr('rel');
+  var foundIterator = null;
+
+  // Check if we habe the ID in the database
+  for(var i = 0; i < transactionsData.length; i++)
+  {
+    if(transactionsData[i]._id === ID)
+    {
+      foundIterator = i;
+      break;
+    }
+  }
+
+  // If we have found the ID
+  if(foundIterator != null)
+  {
+    if(transactionsData[foundIterator].dateBooked != null)
+    {
+      transactionsData[foundIterator].dateBooked = null;
+    }
+    else
+    {
+      transactionsData[foundIterator].dateBooked = Date.now();
+    }
+
+    ajaxPUT_Transaction(transactionsData[foundIterator], $(this).attr('rel')).then(function()
+    {
+      reloadDataAndRefreshDisplay();
+    }).then(function() 
+    {
+      $('#DisplayDB').click();
+    });
+  }
+  else
+  {
+    alert('Error: In function setButton_toggleTransactionListBookedStatus: ' + 'Did not find ID of button element in Database of Transactions.');
+  }
+}
+
+function resetPaymentAmountView()
+{
+  $("#paymentDiv1 #addAnotherAmountPaymentTransactionButton").css("display","");
+  for (var i = 2; i < 5; i++)
+  {
+    if($('#inputAmount' + i.toString()).exists())
+    {
+      $('#inputAmount' + i.toString()).css('display',"none");
+      $('#paymentDiv' + i.toString()).css("display","none");
+      $('#inputAmount' + i.toString()).css('display',"none");
+      $('#inputCommentPayment' + i.toString()).css('display',"none");
+      $('#inputCategoryPayment'+ i.toString() +'Button').parent().css('display','none');
+      $('#paymentDiv' + (i).toString() + ' #addAnotherAmountPaymentTransactionButton').css('display','')
+    }
+  }
+}
+
+function updateCategoryComment()
+{
+  var curCategoryID = $('#categoryInfoModalContent .form-group .form-control').attr("id");
+  var targetCategory = null;
+  for (var i = 0; i < categoryData.length; i++)
+  {
+    if (categoryData[i]._id === curCategoryID)
+    {
+      targetCategory = categoryData[i];
+      break;
+    }
+  }
+  targetCategory.comment = $("#categoryInfoModalContent .form-group .form-control").val();
+  ajaxPUT_Category(targetCategory);
+}
+
+function onNavigationChange()
+{
+  $("#addRedemptionPaymentForm").css("display","none");
+  $('#modifyDatabaseEntryCategory').attr("style","display:none");
+  $('#categoriesInfo').attr("style","display:none");
+
+  $('.accountsTableModifyButton').off();
+  $('.accountsTableModifyButton').on("click",modifyAccount);
+};
+
 function modifyCategory(event)
 {
   // Prevent Link from Firing
@@ -3579,7 +3247,17 @@ function modifyAccount(event)
   }
 };
 
-// Delete transaction
+// Deletes a category, event musst have attribute "rel" with ID in it.
+function deleteCategory(event)
+{
+  event.preventDefault();
+  ajaxDELETE_Category($(this).attr('rel')).then(function()
+  {
+    // Update the table
+    reloadDataAndRefreshDisplay();
+  });
+}
+
 function deleteTransaction(event) {
 
   event.preventDefault();
@@ -3601,18 +3279,6 @@ function deleteTransaction(event) {
 
     // If they said no to the confirm, do nothing
   }
-};
-
-function onNavigationChange()
-{
-  $("#addRedemptionPaymentForm").css("display","none");
-  $('#modifyDatabaseEntryCategory').attr("style","display:none");
-  $('#categoriesInfo').attr("style","display:none");
-
-  $('.accountsTableModifyButton').off();
-  $('.accountsTableModifyButton').on("click",modifyAccount);
-
-
 };
 
 function appendCurrentCategoriesToDropdown(dropdown_menu,addNone=false)
@@ -3822,4 +3488,346 @@ function drawNetWorthChart()
 
   var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
   chart.draw(data, options);
+}
+
+function initializeButtonFunctionality()
+{
+  // Add functionality for month selection Buttons
+  $('#monthUp').off();
+  $('#monthUp').on("click",function()
+  {
+    if(selectedMonth === 12)
+    {
+      selectedYear += 1;
+      selectedMonth = 1;
+    }
+    else
+    {
+      selectedMonth += 1;
+    }
+    populateCategoryTable();
+  
+    populateTransactionTable(selectedMonth,selectedYear);
+    $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
+    drawNetWorthChart();
+  })
+  $('#monthDown').off();
+  $('#monthDown').on("click",function()
+  {
+    if(selectedMonth === 1)
+    {
+      selectedYear -= 1;
+      selectedMonth = 12;
+    }
+    else
+    {
+      selectedMonth -= 1;
+    }
+    populateCategoryTable();
+  
+    populateTransactionTable(selectedMonth,selectedYear);
+    $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
+    drawNetWorthChart();
+  })
+  
+  // ACCOUNTS BUTTON Functionality
+  $('#buttonShowAccounts').off();
+  $('#buttonShowAccounts').on('click', function()
+  {
+    if(transactionsData.length === 0)
+    {
+      //alert("This should not have happened, performing unnecessary reload.");
+      reloadData();
+    }
+    populateAccountInformation();
+    if($('#accountOverview').css("display") === "none")
+    {
+      // Check for shitty siutation, this should never happen.
+      $('#accountOverview').css("display","block");
+    }
+    else
+    {
+      $('#accountOverview').css("display","none");
+    }
+      $('#buttonAddAccount').off();
+    $('#buttonAddAccount').on('click',function()
+    {
+      $('#accountsAdd').css("display","block");
+    });
+    $('#buttonCancelAddAccount').off();
+    $('#buttonCancelAddAccount').on('click',function()
+    {
+      $('#accountsAdd').css("display","none");
+    });
+    $('#buttonSaveAddAccount').off();
+    $('#buttonSaveAddAccount').on("click",function()
+    {
+      var newAccount = {
+        name : $("#accountsAdd input").val(),
+        totalCurrent : 0.0,
+        totalVirtual : 0.0,
+        userID: username
+      };
+      var curAjaxPromise = ajaxPOST_Account(newAccount);
+      
+      $.when(curAjaxPromise).then(function()
+      {
+        reloadDataAndRefreshDisplay();
+        $("#accountsAdd input").val("");
+        $("#accountsAdd").css("display","none");
+      });
+      });
+  });
+  
+  // DB Navigation Button (LANDING PAGE) functionality
+  $('#navigation').off();
+  $('#navigation').on('click', 'div.btn-class > button, #DisplayDB', function()
+  {
+    onNavigationChange();
+    populateTransactionTable(selectedMonth,selectedYear);
+  
+    $('#databaseView').css("display", "block");
+    $('#addTransactionView').css("display", "none");
+    $('#categoriesView').css("display", "none");
+    $('#graphsView').css("display", "none");
+  });
+  
+  // ADD TRANSACTION button functionality
+  $('#navigation').on('click', 'div.btn-class > button ,#DisplayAdd', function()
+  {
+    onNavigationChange()
+      populateAddTransactionView();
+    resetPaymentAmountView();
+    $('#databaseView').css("display", "none");
+    $('#addTransactionView').css("display", "block");
+    $('#categoriesView').css("display", "none");
+    $('#graphsView').css("display", "none");
+  
+  });
+    // GRAPH VIEW
+  $('#navigation').on('click', 'div.btn-class > button ,#DisplayGraphs', function()
+  {
+    onNavigationChange();
+    resetPaymentAmountView();
+    
+    $('#databaseView').css("display", "none");
+    $('#addTransactionView').css("display", "none");
+    $('#categoriesView').css("display", "none");
+    $('#graphsView').css("display", "block");
+      $(".btn-rendergraph").off("click");
+    $(".btn-rendergraph").on("click", function() {
+      if ($(this) === $("#RenderGraphMonth"))
+      {
+        // Compare Dates
+      }
+      else if  ($(this) === $("#RenderGraphYear"))
+      {
+        }
+      else
+      {
+        }
+    });
+    drawNetWorthChart();
+    });
+  
+  // CATEGORIES
+  $('#navigation').on('click', 'div.btn-class > button ,#DisplayCategories', function()
+  {
+    $('#addCategoryButton').off("click");
+    $('#addCategoryButtonAdd').off("click");
+    $('#addCategoryButtonCancel').off("click");
+  
+    onNavigationChange()
+  
+    populateCategoryTable();
+    $('#databaseView').css("display", "none");
+    $('#addTransactionView').css("display", "none");
+    $('#categoriesView').css("display", "block");
+    $('#graphsView').css("display", "none");
+  
+    $('#addCategoryButton').off();
+    $('#addCategoryButton').on('click', function()
+    {
+      $('#addCategory').css("display", "block");
+      $('#addCategoryButton').css("display", "none");
+      // Click on Add Category
+      $('#addCategoryButtonAdd').on('click', function()
+      {
+        event.preventDefault();
+        var ajaxPromise = null;
+        
+        // Check for empty submission
+        if($('#addCategory input#inputCategoryName').val() != '') 
+        {
+        
+          var errorSubmission = false;
+          for (var i = 0; i < categoryData.length; i++)
+          {
+            if($('#addCategory input#inputCategoryName').val() == categoryData[i].name)
+            {
+              errorSubmission = true;
+                if (categoryData[i].hideDate === null || (typeof categoryData[i].hideDate  === "undefined") )
+              {
+                alert("A category with this name already exists. ERROR.");
+                return;
+              }
+              else
+              {
+                var confirmation = confirm("A category with this name already exists but is hidden. Should we unhide it?");
+                if(confirmation)
+                {
+                  categoryData[i].hideDate = null;
+                  ajaxPromise = ajaxPUT_Category(categoryData[i]);
+                }
+                else
+                {
+                  return;
+                }
+              }
+            }
+          }
+          var newCategory = {
+            'name': $('#addCategory input#inputCategoryName').val().trim(),
+            "referenceDate" : Date.now(),
+            "hideDate": null,
+            "referenceAmount" : 0.0,
+            "associatedTransactions" : null,
+            "allocatedSinceReference" : 0.0,
+            "userID": username
+          }
+  
+          if (!errorSubmission)
+          {
+            ajaxPromise = ajaxPOST_Category(newCategory)
+          }
+          ajaxPromise.then(function() {
+        
+              // Clear the form inputs
+              $('#addCategory input').val('');
+              $('#addCategory').css("display", "none");
+              $('#addCategoryButton').css("display", "");
+  
+              reloadDataAndRefreshDisplay();
+  
+  
+            },function()
+            {
+            
+              // If something goes wrong, alert the error message that our service returned
+              alert('Error: ' + response.msg);
+            
+            }
+          );
+        }
+        else {
+          // If errorCount is more than 0, error out
+          alert('Please fill in the name');
+          return false;
+        }
+  
+        $('#addCategoryButtonAdd').off("click");
+      });
+    });
+  
+    $('#addCategoryButtonCancel').off();
+    $('#addCategoryButtonCancel').on('click', function()
+    {
+      $('#addCategory').css("display", "none");
+      $('#addCategoryButton').css("display", "");
+      $('#addCategory input').val('');
+      $('#addCategoryButtonAdd').off("click");
+    });
+  
+    
+  
+     
+    $('#categoryDatabaseView table tbody').on('click', 'td a.linkdeletecategory', deleteCategory);
+  
+    $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
+    $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
+  
+    $("#categoryTableResetAllocations").off("click");
+    $("#categoryTableResetAllocations").on('click', function()
+    {
+      var confirmationResult = confirm("Are you sure you want to reset all allocations for this month?");
+      if (confirmationResult == true)
+      {
+        promisesArray = [];
+        for (var i = 0; i < categoryData.length; i++)
+        {
+          var thisUserObject = categoryData[i];
+          var found = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+          if (found != null)
+          {
+            categoryData[i].allocatedSinceReference.splice(found, 1);
+  
+            var category = {
+              'name': thisUserObject.name,
+              'systems': thisUserObject.systems,
+              "referenceDate" : thisUserObject.referenceDate,
+              "referenceAmount" : thisUserObject.referenceAmount,
+              "associatedTransactions" : thisUserObject.associatedTransactions,
+              "allocatedSinceReference" : categoryData[i].allocatedSinceReference,
+              "userID" : username
+            }
+          
+            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+            promisesArray.push(curPromise);
+          }
+        }
+        Promise.all(promisesArray).then(function()
+        {
+          reloadDataAndRefreshDisplay();    
+        });
+      }
+    })
+  
+    $("#autofillAllocationButton").off("click");
+    $("#autofillAllocationButton").on('click', function() 
+    {
+      var confirmationResult = confirm("Are you sure you want to auto-fill all allocations for this month?");
+      if (confirmationResult == true)
+      {
+        var promisesArray = [];
+        for (var i = 0; i < categoryData.length; i++)
+        {
+          var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
+          var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
+          if (lastMonthIter != null)
+          {
+            if(curMonthIter != null)
+            {
+              categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
+            }
+            else
+            {
+              categoryData[i].allocatedSinceReference.push(
+              { 
+                "amount":categoryData[i].allocatedSinceReference[lastMonthIter].amount,
+                "year": selectedYear,
+                "month": selectedMonth
+              });
+            }
+  
+            var category = {
+              'name': categoryData[i].name,
+              'systems': categoryData[i].systems,
+              "referenceDate" : categoryData[i].referenceDate,
+              "referenceAmount" : categoryData[i].referenceAmount,
+              "associatedTransactions" : categoryData[i].associatedTransactions,
+              "allocatedSinceReference" : categoryData[i].allocatedSinceReference,
+              "userID" : username
+            }
+  
+            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+            promisesArray.push(curPromise);
+          }
+        }
+        Promise.all(promisesArray).then(function()
+        {
+          reloadDataAndRefreshDisplay();
+        });
+      }
+    });
+  });
 }
