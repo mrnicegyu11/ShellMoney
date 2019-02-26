@@ -3653,7 +3653,6 @@ function initializeButtonFunctionality()
       // Click on Add Category
       $('#addCategoryButtonAdd').on('click', function()
       {
-        event.preventDefault();
         var ajaxPromise = null;
         
         // Check for empty submission
