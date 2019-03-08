@@ -3759,18 +3759,7 @@ function initializeButtonFunctionality()
           if (found != null)
           {
             categoryData[i].allocatedSinceReference.splice(found, 1);
-  
-            var category = {
-              'name': thisUserObject.name,
-              'systems': thisUserObject.systems,
-              "referenceDate" : thisUserObject.referenceDate,
-              "referenceAmount" : thisUserObject.referenceAmount,
-              "associatedTransactions" : thisUserObject.associatedTransactions,
-              "allocatedSinceReference" : categoryData[i].allocatedSinceReference,
-              "userID" : username
-            }
-          
-            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+            var curPromise = ajaxPUT_Category(categoryData[i],categoryData[i]._id);
             promisesArray.push(curPromise);
           }
         }
