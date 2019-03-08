@@ -1,4 +1,4 @@
-// SHELLMONEY global.js
+/*  */// SHELLMONEY global.js
 
 // Conventions:
 // INCOME has positive numbers
@@ -2069,7 +2069,7 @@ function populateAddTransactionView() {
       }
       else if (currentTransactionKind == "Payment")
       {
-        for (var i = 0; i < 2; ++i)
+        for (var i = 0; i < 3; ++i)
         {
           if($('#addTransaction ' + currentTransactionDivName + ' #inputCategoryPayment' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() && $('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val() != "")
           {
