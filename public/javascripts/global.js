@@ -3790,6 +3790,12 @@ function initializeButtonFunctionality()
         var promisesArray = [];
         for (var i = 0; i < categoryData.length; i++)
         {
+          if(this.hideDate != null)
+          {
+              return true;
+              // means "continue" in this context
+              // see https://stackoverflow.com/questions/481601/how-to-skip-to-next-iteration-in-jquery-each-util
+          }
           var lastMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth - 1);
           var curMonthIter = getIteratorFromAllocatedSinceReferenceArray(categoryData[i].allocatedSinceReference,selectedYear,selectedMonth);
           if (lastMonthIter != null)
@@ -3808,17 +3814,7 @@ function initializeButtonFunctionality()
               });
             }
   
-            var category = {
-              'name': categoryData[i].name,
-              'systems': categoryData[i].systems,
-              "referenceDate" : categoryData[i].referenceDate,
-              "referenceAmount" : categoryData[i].referenceAmount,
-              "associatedTransactions" : categoryData[i].associatedTransactions,
-              "allocatedSinceReference" : categoryData[i].allocatedSinceReference,
-              "userID" : username
-            }
-  
-            var curPromise = ajaxPUT_Category(category,categoryData[i]._id);
+            var curPromise = ajaxPUT_Category(categoryData[i],categoryData[i]._id);
             promisesArray.push(curPromise);
           }
         }
