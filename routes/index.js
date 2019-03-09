@@ -19,6 +19,8 @@ router.get('/:userID/', function(req, res, next) {
   //console.log(req.params);
   //via https://stackoverflow.com/questions/10183291/how-to-get-the-full-url-in-express
   //var fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+  
+  connect_ensure_login.ensureLoggedIn('/')
   res.render('layout', 
   { 
     title: '🐚',
@@ -27,5 +29,10 @@ router.get('/:userID/', function(req, res, next) {
     /*, getThing : function() {return "lol";}*/ 
   });
 });
+
+router.post('/', function(req, res, next) {
+  passport.authenticate('local', { failureRedirect: '/', successReturnToOrRedirect: '/' });
+});
+
 
 module.exports = router;

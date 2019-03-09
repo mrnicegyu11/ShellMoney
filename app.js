@@ -5,7 +5,6 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
 // Database
-var mongo = require('mongodb');
 var monk = require('monk');
 
 
@@ -16,10 +15,30 @@ console.log(mongoDB_accessPath)
 var dbTransactions = monk(mongoDB_accessPath + '/shellmoney');
 var dbCategories = monk(mongoDB_accessPath + '/shellmoney');
 var dbAccounts = monk(mongoDB_accessPath + '/shellmoney');
+var dbUsers = monk(mongoDB_accessPath + '/shellmoney');
 
 var indexRouter = require('./routes/index');
 var dbRouter = require('./routes/db');
 //var userRouter = require('./routes/users');
+
+var passport = require('passport');
+var ppStrategy = require('passport-local').Strategy;
+var connect_ensure_login = require('connect-ensure-login');
+passport.use(new ppStrategy(
+  function(username, password, cb) {
+    var collection = dbUsers.get('categories');
+
+    collection.find({ userID: { $eq: username } },{},function(err,docs){
+      if (err) { return cb(err); }
+      if (docs.length !== 1) { return cb(null, false); }
+      if (docs[0].password != password) { return cb(null, false); }
+      return cb(null, user);
+    });
+
+  }));
+
+
+
 
 var app = express();
 
@@ -35,12 +54,19 @@ app.use(express.urlencoded({"limit":"16mb", extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Initialize Passport and restore authentication state, if any, from the
+// session.
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Make our db accessible to our router
 app.use(function(req,res,next){
   req.dbTransactions = dbTransactions;
   req.dbCategories = dbCategories;
   req.dbAccounts = dbAccounts;
   req.shellmoneyURL = process.env.SHELLMONEY_URL;
+  req.passport = passport;
+  req.connect_ensure_login = connect_ensure_login;
   next();
 });
 app.use('/', indexRouter);
