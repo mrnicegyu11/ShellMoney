@@ -2,37 +2,55 @@ var express = require('express');
 var router = express.Router();
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('error', 
+router.get('/login', function(req, res, next) {
+  res.render('startup', 
   { 
     title: '🐚'/*, getThing : function() {return "lol";}*/ ,
-    userID: null,
-    message: "ERROR: Please select a username!",
-    error: {status: "If this is the first time you are running ShellMoney, instead of www.URL.domain/shellmoney/ call www.URL.domain/shellmoney/JohnSmith_Or_Whatever."},
+    message: "startup!",
     fullURL: process.env.SHELLMONEY_URL
   });
 });
 
 /* GET home page. */
-router.get('/:userID/', function(req, res, next) {
+router.get('/', function(req, res, next) {
   //console.log(req);
   //console.log(req.params);
   //via https://stackoverflow.com/questions/10183291/how-to-get-the-full-url-in-express
   //var fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
-  
-  connect_ensure_login.ensureLoggedIn('/')
-  res.render('layout', 
-  { 
-    title: '🐚',
-    fullURL: process.env.SHELLMONEY_URL,
-    userID: req.params.userID
-    /*, getThing : function() {return "lol";}*/ 
-  });
+  console.log("Rendering for Username:");
+  console.log(req.session.username);
+
+  if (typeof req.session.username === 'undefined') {
+    res.redirect('/login');
+  }
+  else
+  {
+    res.render('layout', 
+    { 
+      title: '🐚',
+      fullURL: process.env.SHELLMONEY_URL,
+      userID: req.session.username
+    });
+  }
 });
 
-router.post('/', function(req, res, next) {
-  passport.authenticate('local', { failureRedirect: '/', successReturnToOrRedirect: '/' });
+router.post('/login',
+  function(req, res) {
+    req.passport.authenticate('local', { failureRedirect: '/login'});
+    req.session.username = req.body.username;
+    console.log("Logging in Username:");
+    console.log(req.session.username);
+    res.redirect('/');
 });
 
+router.get('/logout', function(req, res){
+  console.log("Logging out Username:");
+  console.log(req.session.username);
+  console.log(req.user);
+  req.logout();
+  res.redirect('/');
+  console.log(req.session.username);
+  console.log(req.user);
+});
 
 module.exports = router;

@@ -3,17 +3,18 @@ var router = express.Router();
 
 /* GET transactions. */
 router.get('/transactions_list/:userID', function(req, res) {
+  //connect_ensure_login.ensureLoggedIn('/');
   var db = req.dbTransactions;
   var collection = db.get('transactions');
   console.log("GET transactions_list with username: " + req.params.userID);
   collection.find({ userID: { $eq: req.params.userID } },{},function(e,docs){
     res.json(docs);
-    console.log("ja");
   });
 });
 
 /* GET categories. */
 router.get('/categories_list/:userID', function(req, res) {
+  //connect_ensure_login.ensureLoggedIn('/');
   var db = req.dbCategories;
   var collection = db.get('categories');
   console.log("GET categories_list with username: " + req.params.userID);
@@ -24,6 +25,7 @@ router.get('/categories_list/:userID', function(req, res) {
 
 /* GET accounts. */
 router.get('/accounts_list/:userID', function(req, res) {
+  //connect_ensure_login.ensureLoggedIn('/');
   var db = req.dbAccounts;
   var collection = db.get('accounts');
   console.log("GET accounts_list with username: " + req.params.userID);
@@ -36,6 +38,7 @@ router.get('/accounts_list/:userID', function(req, res) {
 
 /* POST to transactions. */
 router.post('/transactions_add', function(req, res) {
+  //connect_ensure_login.ensureLoggedIn();
   var db = req.dbTransactions;
   var collection = db.get('transactions');
   collection.insert(JSON.parse(req.body.data), function(err, result){
@@ -218,5 +221,7 @@ router.delete('/accounts_delete/:id', function(req, res) {
     res.send((err === null) ? { msg: '' } : { msg:'error: ' + err });
   });
 });
+
+
 
 module.exports = router;
