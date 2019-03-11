@@ -1,61 +1,7 @@
 var express = require('express');
 var router = express.Router();
-
-var monk = require('monk');
-var mongoDB_accessPath = process.env.SHELLMONEY_MONGODB_ACCESS
-var dbUsers = monk(mongoDB_accessPath + '/shellmoney');
-
-// For now we buffer the userDB as mongo-access is async and it seems like passportjs
-// likes to have a decision on wether a user is valid like DIRECTLY!!11
-// -.-'
-var currentUsersBuffered = {};
-dbUsers.get('users').find({},{},function(err,docs){
-  currentUsersBuffered = docs;
-});
-//
-
-///////////////////////////////
-var passport = require('passport');
-var Strategy = require('passport-local').Strategy;
-passport.use(new Strategy(
-  function(username, password, cb) {
-    var found = false;
-    for (var i = 0; i < currentUsersBuffered.length; i++)
-    {
-      if(currentUsersBuffered[i].username === username
-        && currentUsersBuffered[i].password === password)
-        {
-          found = true;
-          return cb(null, currentUsersBuffered[i]);
-        }
-
-    }
-    if (found === false)
-    { 
-      return cb(null, false); 
-    }
-
-}));
-passport.serializeUser(function(user, cb) {
-  cb(null, user._id);
-});
-passport.deserializeUser(function(id, cb) {
-  var found = false;
-  for (var i = 0; i < currentUsersBuffered.length; i++)
-  {
-    if(currentUsersBuffered[i]._id.toString() === id.toString()) // dirty hack...
-    {
-      found = true;
-      return cb(null, currentUsersBuffered[i]);
-    }
-  }
-  if (found === false)
-  { 
-    return cb(null, false); 
-  }
-});
-///////////////////////////////
-
+var passport = require('./passport').passport;
+var isUserLoggedIn = require('./passport').isUserLoggedIn;
 
 /* GET home page. */
 router.get('/login', function(req, res, next) {
@@ -87,13 +33,45 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/login', 
-    passport.authenticate('local',{failureRedirect: '/login'}),
-    function(req, res) {
-      req.session.username = req.body.username;
-      console.log("Logging in Username:");
-      console.log(req.session.username);
-      res.redirect('/');
+  passport.authenticate('local',{failureRedirect: '/login'}),
+  function(req, res) {
+    req.session.username = req.body.username;
+    console.log("Logging in Username:");
+    console.log(req.session.username);
+    res.redirect('/');
+});
+
+router.post('/deleteUser', 
+  passport.authenticate('local',{failureRedirect: '/login'}),
+  function(req, res) {
+    
+    console.log("Deleting Username:");
+    console.log(req.session.username);
+
+
+    var collection = dbUsers.get('users');
+    var currentUser = req.session.username;
+    collection.remove({"username":{$eq: currentUser}},{},function(err,docs)
+    {
+      currentUsersBuffered = docs;
     });
+
+    var username = currentUser;
+    var db = req.dbAccounts;
+    var collection = db.get('accounts');
+    collection.remove({ 'userID' : username });
+    db = req.dbCategories;
+    collection = db.get('categories');
+    collection.remove({ 'userID' : username });
+    db = req.dbTransactions;
+    collection = db.get('transactions');
+    collection.remove({ 'userID' : username });
+  
+    console.log("DELETED all data of user: " + username);
+
+    req.session.username = null;
+    res.redirect('/login');
+});
 
 
 router.post('/createUser',
@@ -130,8 +108,6 @@ router.post('/createUser',
           // Add user to MongoDB and update local duplicate object.
           dbUsers.get('users').find({},{},function(err,docs){
             currentUsersBuffered = docs;
-            console.log("DEBUG11");
-            console.log(currentUsersBuffered);
           });
         }
       });
