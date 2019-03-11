@@ -9,7 +9,6 @@
 var transactionsData = [];
 var categoryData = [];
 var accountData = [];
-var username = null;
 
 // UI Selections which are very fundamental for calculations
 var selectedMonth = new Date().getMonth() + 1;
@@ -52,8 +51,6 @@ $(document).ready(function() {
   selectedYear = new Date().getFullYear();
   $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
 
-  //Get username from URL
-  username = $('meta[name="shellmoney:userid"]').attr("content");
 
 
   // Initialize the buttons
@@ -597,7 +594,7 @@ function ajaxPOST_Import(newObject)
 {
   var ajaxPromise = $.ajax({
     type: 'POST',
-    data: {data : newObject === null ? JSON.stringify([username.toString()]) : JSON.stringify(newObject) },
+    data: {data : newObject === null ? JSON.stringify(["error".toString()]) : JSON.stringify(newObject) },
     url: '/db/import',
     dataType: 'JSON'
   }).then(function( response ) {
@@ -845,7 +842,7 @@ function reloadDataAndRefreshDisplay()
 // Reloads data from mongoDB and populates tables accordingly.
 function reloadData()
 {
-  var ajaxPromise1 = $.getJSON('db/transactions_list/' + (username === null ? "" : username)).then(function( data ) 
+  var ajaxPromise1 = $.getJSON('db/transactions_list/').then(function( data ) 
   {
     transactionsData = data;
 
@@ -863,7 +860,7 @@ function reloadData()
 
   });
 
-  var ajaxPromise2 = $.getJSON('db/categories_list/' + (username === null ? "" : username)).then(function( data ) 
+  var ajaxPromise2 = $.getJSON('db/categories_list/').then(function( data ) 
   {
     categoryData = data;
 
@@ -881,7 +878,7 @@ function reloadData()
 
   });
 
-  var ajaxPromise3 = $.getJSON('db/accounts_list/' + (username === null ? "" : username)).then(function( data ) 
+  var ajaxPromise3 = $.getJSON('db/accounts_list/').then(function( data ) 
   {
     accountData = data;
 
@@ -1167,7 +1164,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
   $("#ExportDatabaseButton").off();
   $("#ExportDatabaseButton").on("click", function()
   {
-    var exportObj = [username,transactionsData,categoryData,accountData];
+    var exportObj = ["deprecatedEntry",transactionsData,categoryData,accountData];
     downloadObjectAsJson(exportObj, "ShellMoney_Database_" + (new Date(Date.now()).toDateString()));
   })
 
@@ -1197,7 +1194,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
         transactionsData = jsonFromFile[1];
         categoryData = jsonFromFile[2];
         accountData = jsonFromFile[3];
-        username = jsonFromFile[0];
+        //username = jsonFromFile[0]; DEPRECATED
         $('input[type=file]').off();
         $('#notificationModal').modal('hide');
       };
@@ -1676,7 +1673,6 @@ function populateCategoryTable() {
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
         "allocatedSinceReference" : allocatedSinceReferenceArray,
-        "userID" : username,
         "comment" : thisUserObject.comment
       }
 
@@ -1997,7 +1993,6 @@ function populateAddTransactionView() {
         'bookingType': currentTransactionKind,
         'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getTime(),
         'dateBooked': $.trim($('#addTransaction ' + currentTransactionDivName + ' .insertTransactionButtonToggleBooked').html()) === "Booked" ? Date.now() : null,
-        'userID' : username,
         'amount' : [
           {
             "category" : $('#addTransaction ' + currentTransactionDivName + ' .category1Button').html(),
@@ -2059,7 +2054,6 @@ function populateAddTransactionView() {
 
         var correctionAmount = (parseFloat($('#addTransaction #correction .inputAmount').val()) - parseFloat(accountData[foundMatchingAccount].totalCurrent))
         newTransaction.dateBooked = new Date().getTime();
-        newTransaction.userID = username;
         newTransaction.name = "Correction";
         if (($("#inputCategoryCorrectionButton").html() == "None" || $("#inputCategoryCorrectionButton").html() == "Pick Category (optional)"))
         {
@@ -2127,7 +2121,6 @@ function populateAddTransactionView() {
     // Prevent Link from Firing
     event.preventDefault();
 
-    // Retrieve username from link rel ibute
     var thisID = $(this).html();
     $("#addTransaction #general").attr("style","display:block");
 	  if (thisID === "Payment")
@@ -2268,7 +2261,6 @@ function showTransactionInfo(event) {
   // Prevent Link from Firing
   //event.preventDefault();
 
-  // Retrieve username from link rel ibute
   var thisID = -1;
   if(typeof event === 'string')
   {
@@ -3035,7 +3027,6 @@ function modifyCategory(event)
 
   $('#addCategoryButton').css("display", "none");
 
-  // Retrieve username from link rel ibute
   var thisID = $(this).attr('rel');
   $('#modifyCategoryID').val(thisID);
   
@@ -3066,7 +3057,6 @@ function modifyCategory(event)
   $('#modifyDatabaseEntryCategory #changeCategoryButton').off("click");
   $('#modifyDatabaseEntryCategory #changeCategoryButton').on("click",function(event)
   {
-    // Retrieve username from link rel ibute
     var thisID = $('#modifyCategoryID').val();
     
     // Get our User Object
@@ -3092,7 +3082,6 @@ function modifyCategory(event)
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
         "allocatedSinceReference" : thisUserObject.allocatedSinceReference,
-        "userID" : username
       }
 
       var errorSubmission = false;
@@ -3149,7 +3138,6 @@ function modifyAccount(event)
   // Prevent Link from Firing
   event.preventDefault();
 
-  // Retrieve username from link rel ibute
   var thisID = $(this).attr('rel');
   
   // Get our User Object
@@ -3566,7 +3554,6 @@ function initializeButtonFunctionality()
         name : $("#accountsAdd input").val(),
         totalCurrent : 0.0,
         totalVirtual : 0.0,
-        userID: username
       };
       var curAjaxPromise = ajaxPOST_Account(newAccount);
       
@@ -3692,7 +3679,6 @@ function initializeButtonFunctionality()
             "referenceAmount" : 0.0,
             "associatedTransactions" : null,
             "allocatedSinceReference" : 0.0,
-            "userID": username
           }
   
           if (!errorSubmission)
