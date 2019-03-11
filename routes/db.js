@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var passport = require('./passport').passport;
+var passport = require('./passport').passportmodule;
 var isUserLoggedIn = require('./passport').isUserLoggedIn;
 
 /* GET transactions. */

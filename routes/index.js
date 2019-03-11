@@ -1,7 +1,29 @@
 var express = require('express');
 var router = express.Router();
-var passport = require('./passport').passport;
-var isUserLoggedIn = require('./passport').isUserLoggedIn;
+var passport = require('./passport');
+//var isUserLoggedIn = passport.isUserLoggedIn;
+var passportModule = passport.passportmodule;
+var currentUsersBuffered = passport.currentUsersBuffered;
+
+
+// Snippets:
+//via https://gist.github.com/aslamdoctor/6620085 , modified
+function validateUsername(str) {
+  var error = "";
+  var illegalChars = /\W/; // allow letters, numbers, and underscores
+
+  if (str == "") {
+      error = "Please enter Username and Password";
+  } else if ((str.length < 5) || (str.length > 15)) {
+      error = "Username and Password must have 5-15 characters";
+  } else if (illegalChars.test(str)) {
+  error = "Please enter valid Username and Password. Use only numbers and alphabets";
+  } else {
+      error = "";
+  }
+  return error;
+}
+//
 
 /* GET home page. */
 router.get('/login', function(req, res, next) {
@@ -33,7 +55,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/login', 
-  passport.authenticate('local',{failureRedirect: '/login'}),
+  passportModule.authenticate('local',{failureRedirect: '/login'}),
   function(req, res) {
     req.session.username = req.body.username;
     console.log("Logging in Username:");
@@ -42,7 +64,7 @@ router.post('/login',
 });
 
 router.post('/deleteUser', 
-  passport.authenticate('local',{failureRedirect: '/login'}),
+  passportModule.authenticate('local',{failureRedirect: '/login'}),
   function(req, res) {
     
     console.log("Deleting Username:");
@@ -53,7 +75,7 @@ router.post('/deleteUser',
     var currentUser = req.session.username;
     collection.remove({"username":{$eq: currentUser}},{},function(err,docs)
     {
-      currentUsersBuffered = docs;
+      currentUsersBuffered();
     });
 
     var username = currentUser;
@@ -75,17 +97,30 @@ router.post('/deleteUser',
 
 
 router.post('/createUser',
-  function(req, res) {
+  function(req, res,next) {
     console.log("Trying to create user:");
     console.log(req.body.username);
     var found = false;
-    for (var i = 0; i < currentUsersBuffered.length; i++)
+    var userList = currentUsersBuffered();
+    var validationResultUsername = validateUsername(req.body.username.toString())
+    var validationResultPassword = validateUsername(req.body.password.toString())
+    if(validationResultUsername != "")
     {
-      if(currentUsersBuffered[i].username.toString() === req.body.username.toString()) // dirty hack...
+      console.log("Error in username validation.");
+      next(new Error(validationResultUsername));
+    }
+    else if (validationResultPassword != "")
+    {
+      console.log("Error in password validation.");
+      next(new Error(validationResultPassword));
+    }
+    for (var i = 0; i < userList.length; i++)
+    {
+      if(userList[i].username.toString() === req.body.username.toString()) // dirty hack...
       {
         found = true;
         console.log("Requested user already exists! ERROR!");
-        res.redirect('/login');
+        next(new Error("A User with this name already exists."));
       }
     }
     if (found === false)
@@ -93,24 +128,7 @@ router.post('/createUser',
       console.log("OK, creating user...");
       // Check if is within requirements
       // not done for now
-      var collection = dbUsers.get('users');
-      collection.insert({username: req.body.username, password: req.body.password}, function(err, result)
-      {
-        if (err !== null)
-        {
-          res.send(
-            (err === null) ? { msg: '' } : { msg: err }
-          );
-          return;
-        }
-        else
-        {
-          // Add user to MongoDB and update local duplicate object.
-          dbUsers.get('users').find({},{},function(err,docs){
-            currentUsersBuffered = docs;
-          });
-        }
-      });
+      passport.insertNewUser(req.body.username, req.body.password);
       
       req.session.username = req.body.username;
       console.log("Logging in Username:");

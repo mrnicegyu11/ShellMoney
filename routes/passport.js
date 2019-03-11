@@ -18,6 +18,10 @@ var passport = require('passport');
 var Strategy = require('passport-local').Strategy;
 passport.use(new Strategy(
   function(username, password, cb) {
+    console.log("Refreshing user-list from mongoDB...")
+    dbUsers.get('users').find({},{},function(err,docs){
+      currentUsersBuffered = docs;
+    });
     console.log("Passport is auth-ing...")
     var found = false;
     for (var i = 0; i < currentUsersBuffered.length; i++)
@@ -77,4 +81,29 @@ exports.isUserLoggedIn = function isUserLoggedIn(req)
   }
 }
 
-exports.passport = passport;
+exports.passportmodule = passport;
+exports.currentUsersBuffered = function()
+{
+  dbUsers.get('users').find({},{},function(err,docs){
+    currentUsersBuffered = docs;
+  });
+  return currentUsersBuffered;
+};
+
+exports.insertNewUser = function(user,pass)
+{
+  var collection = dbUsers.get('users');
+  collection.insert({username: user, password: pass}, function(err, result)
+  {
+    if (err !== null)
+    {
+      console.log("Error in creating new user:")
+      console.log(err);
+      return;
+    }
+    else
+    {
+      exports.currentUsersBuffered();
+    }
+  });
+}
