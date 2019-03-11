@@ -30,7 +30,7 @@ router.get('/login', function(req, res, next) {
   res.render('startup', 
   { 
     title: '🐚'/*, getThing : function() {return "lol";}*/ ,
-    message: "Welcome to shellmoney!",
+    message: '🐚',
     fullURL: process.env.SHELLMONEY_URL
   });
 });
