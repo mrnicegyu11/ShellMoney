@@ -6,6 +6,7 @@ var logger = require('morgan');
 
 var session = require('express-session');
 const uuidv4 = require('uuid/v4');
+var passport = require('passport');
 
 // Database
 var monk = require('monk');
@@ -18,37 +19,11 @@ var mongoDB_accessPath = process.env.SHELLMONEY_MONGODB_ACCESS
 var dbTransactions = monk(mongoDB_accessPath + '/shellmoney');
 var dbCategories = monk(mongoDB_accessPath + '/shellmoney');
 var dbAccounts = monk(mongoDB_accessPath + '/shellmoney');
-var dbUsers = monk(mongoDB_accessPath + '/shellmoney');
+//var dbUsers = monk(mongoDB_accessPath + '/shellmoney');
 var dbSessions = monk(mongoDB_accessPath + '/shellmoney');
 // Clear all sessions on startup
 dbSessions.get('sessions').remove({});
 
-
-var passport = require('passport');
-var ppStrategy = require('passport-local').Strategy;
-passport.use(new ppStrategy(
-  function(username, password, cb) {
-    var collection = dbUsers.get('users');
-    collection.find({ username: { $eq: username } },{},function(err,docs){
-      if (err) { return cb(err); }
-      if (docs.length !== 1) { return cb(null, false); }
-      if (docs[0].password != password) { return cb(null, false); }
-      return cb(null, user);
-    });
-}));
-passport.serializeUser(function(user, cb) {
-  cb(null, user._id);
-});
-
-passport.deserializeUser(function(id, cb) {
-  var collection = dbUsers.get('users');
-  collection.find({ _id: { $eq: id } },{},function(err,docs){
-    if (err) { return cb(err); }
-    if (docs.length !== 1) { return cb(new Error("More than one matching user found")); }
-    return cb(null, docs[0]);
-  });
-
-});
 
 
 
@@ -68,7 +43,7 @@ storeSessions.on('error', function(error) {
 });
  
 app.use(session({
-  'cookie': { path: '/', httpOnly: true, secure: false, maxAge: 1000 * 60 * 60 * 24 * 7 * 2 /*two weeks */},
+  'cookie': { path: '/', httpOnly: true, secure: false },//, maxAge: 1000 * 60 * 60 * 24 * 7 * 2 /*two weeks */},
   'secret': uuidv4(),
   'saveUninitialized' : false,
   'store': storeSessions,
@@ -100,7 +75,6 @@ app.use(function(req,res,next){
   req.dbCategories = dbCategories;
   req.dbAccounts = dbAccounts;
   req.shellmoneyURL = process.env.SHELLMONEY_URL;
-  req.passport = passport;
   next();
 });
 
