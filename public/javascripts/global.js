@@ -1174,6 +1174,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
     //ajaxDELETE_DeleteAll();
     // via https://abandon.ie/notebook/simple-file-uploads-using-jquery-ajax
 
+    $("#notificationModalContent").html('');
     var inputElement = $(document.createElement('input'));
 
     inputElement.attr("type","file");
@@ -1197,8 +1198,10 @@ function populateTransactionTable(selectedMonth,selectedYear) {
         //username = jsonFromFile[0]; DEPRECATED
         $('input[type=file]').off();
         $('#notificationModal').modal('hide');
+        
       };
       reader.readAsText(input);
+
     });
     $("#notificationModalContent").css("display","");
     $("#transactionInfoModalContent").css("display","none");

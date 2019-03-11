@@ -1,4 +1,8 @@
 console.log("Starting Shellmoney...");
+console.log("Shellmoney is running with the following options:")
+console.log("SHELLMONEY_MONGODB_ACCESS: " + process.env.SHELLMONEY_MONGODB_ACCESS.toString());
+console.log("SHELLMONEY_URL: " + process.env.SHELLMONEY_URL.toString());
+console.log("SHELLMONEY_PORT: " + process.env.SHELLMONEY_PORT.toString());
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -25,7 +29,7 @@ var dbSessions = monk(mongoDB_accessPath + '/shellmoney');
 dbSessions.get('sessions').remove({});
 
 
-
+//var uglify = require("uglify-js");
 
 
 

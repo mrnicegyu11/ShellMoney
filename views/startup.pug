@@ -11,26 +11,27 @@ html
     link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css')
     link(rel='stylesheet', type='text/css', href=fullURL+'/stylesheets/style.css')
   body
-    //canvas#vantawaves(width="500",height="500").vanta-canvas
-    div.container-fluid
-    .row.justify-content-md-center.align-items-center
-      .col-
-      .col-sm-(align="center",margin="10px")#vantawaves
-        h1.p-2.m-2.display-1= message
-        form(method='post',width="500px")#form
-          div.p-2.m-2
-            label
-              | Username: 
-            input(type="text" name="username").form-control
-          div.p-2.m-2
-            label
-              | Password: 
-            input(type="text" name="password").form-control
-          div.p-2.m-2
-            input(type="submit" value="Login")#login.btn-primary
-          div.p-2.m-2
-            input(type="submit" value="Create new user")#create.btn-secondary
-      .col-
+    div.container(style="min-height: 100vh;")
+      .row.justify-content-sm-center.align-items-center(style="min-height: 100vh;")
+        .col-sm
+        .col-sm(align="center",margin="10px")#vantawaves
+          h1.p-2.m-2.display-1= message
+          form(method='post')#form
+            div.p-2.m-2
+              label
+                b
+                  | Username: 
+              input(type="text" name="username").form-control
+            div.p-2.m-2
+              label
+                b
+                  | Password: 
+              input(type="text" name="password").form-control
+            div.p-2.m-2
+              input(type="submit" value="Login")#login.btn-primary
+            div.p-2.m-2
+              input(type="submit" value="Create new user")#create.btn-secondary
+        .col-sm
     script(src='https://code.jquery.com/jquery-3.3.1.js')
     script(src=fullURL+'/javascripts/login.js')
     // Dont use the slim version of jquery here, this will cause calls to fail..
