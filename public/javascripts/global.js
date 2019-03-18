@@ -1175,6 +1175,11 @@ function populateTransactionTable(selectedMonth,selectedYear) {
     // via https://abandon.ie/notebook/simple-file-uploads-using-jquery-ajax
 
     $("#notificationModalContent").html('');
+    $("#notificationModalContent").css("display","");
+    $("#notificationModalBottomText").html('');
+    $('#transactionInfoModalContent').css("display","none");
+    $('#categoryInfoModalContent').css("display","none");
+    $("#notificationModalTitle").html('Import Database');
     var inputElement = $(document.createElement('input'));
 
     inputElement.attr("type","file");
@@ -1192,9 +1197,9 @@ function populateTransactionTable(selectedMonth,selectedYear) {
       reader.onload = function() {
         jsonFromFile = JSON.parse(reader.result);
         ajaxPOST_Import(jsonFromFile).then(function(){reloadDataAndRefreshDisplay();});
-        transactionsData = jsonFromFile[1];
-        categoryData = jsonFromFile[2];
-        accountData = jsonFromFile[3];
+        //transactionsData = jsonFromFile[1];
+        //categoryData = jsonFromFile[2];
+        //accountData = jsonFromFile[3];
         //username = jsonFromFile[0]; DEPRECATED
         $('input[type=file]').off();
         $('#notificationModal').modal('hide');
