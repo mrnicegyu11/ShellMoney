@@ -49,7 +49,8 @@ router.get('/', function(req, res, next) {
     { 
       title: '🐚',
       fullURL: process.env.SHELLMONEY_URL,
-      userID: req.session.username
+      userID: req.session.username,
+      debugMode: process.env.SHELLMONEY_MODE.toString() === "DEBUG" ? true : false
     });
   }
 });

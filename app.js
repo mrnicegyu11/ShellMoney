@@ -1,8 +1,16 @@
+console.log("######################################################");
 console.log("Starting Shellmoney...");
+console.log("Shellmoney is runnin in the directory " + __dirname.toString() +".");
 console.log("Shellmoney is running with the following options:")
 console.log("SHELLMONEY_MONGODB_ACCESS: " + process.env.SHELLMONEY_MONGODB_ACCESS.toString());
 console.log("SHELLMONEY_URL: " + process.env.SHELLMONEY_URL.toString());
 console.log("SHELLMONEY_PORT: " + process.env.SHELLMONEY_PORT.toString());
+console.log("SHELLMONEY_MODE: " + process.env.SHELLMONEY_MODE.toString());
+console.log("######################################################");
+console.log("");
+
+var fs = require("fs");
+
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -18,7 +26,6 @@ var MongoDBStore = require('connect-mongodb-session')(session);
 
 // Parse CMD line argument to get MongoDB Path:
 var mongoDB_accessPath = process.env.SHELLMONEY_MONGODB_ACCESS
-//console.log(mongoDB_accessPath)
 
 var dbTransactions = monk(mongoDB_accessPath + '/shellmoney');
 var dbCategories = monk(mongoDB_accessPath + '/shellmoney');
@@ -29,7 +36,60 @@ var dbSessions = monk(mongoDB_accessPath + '/shellmoney');
 dbSessions.get('sessions').remove({});
 
 
-//var uglify = require("uglify-js");
+// Compress global.js to global.min.js
+var uglify = require("uglify-js");
+fs.readFile(__dirname.toString() + "/public/javascripts/global.js", "utf8", function (err, data) {
+  if (err) 
+  {
+    console.log("An error occured:");
+    console.log(err.toString());
+  }
+  else
+  {
+    //console.log(data);
+    console.log("The file 'global.js' was minified with the following errors:");
+    var minifiedCode = uglify.minify(data);
+    if (typeof minifiedCode.error !== 'undefined')
+    {
+      console.log(minifiedCode.error);
+    }
+    else
+    {
+      console.log("No errors.");
+    }
+    fs.readFile(__dirname.toString() + "/public/javascripts/global.min.js", "utf8", function (err, data) 
+    {
+      if(err) 
+      {
+        if (err.errno.toString() === "-2")
+        {
+          console.log("Creating new file and writing to file...");
+          fs.writeFile(__dirname.toString() + "/public/javascripts/global.min.js", minifiedCode.code, function(errn) {
+            if(errn) {
+                return console.log(errn);
+            }
+        });}
+      }
+      else
+      {
+        if(data !== minifiedCode.code.toString())
+        {
+          console.log("Writing to file...");
+          fs.writeFile(__dirname.toString() + "/public/javascripts/global.min.js", minifiedCode.code, function(err) {
+            if(err) {
+                return console.log(err);
+            }
+          }); 
+        }
+        else
+        {
+          console.log("'global.min.js' is already up-to-date.");
+        }
+      }
+    });
+  }
+});
+
 
 
 

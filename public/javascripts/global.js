@@ -216,13 +216,13 @@ function getTransactionsOfGivenCategory(input,nameOfDesiredCategory)
 }
 
 // Input: transactionData-Style array and category (not name but full category)
-function getCategorySummary(transactionDataInput,category = null, latestDate = null)
+function getCategorySummary(transactionDataInput,category,latestDate)
 {
   curMaxMonth = null;
   curMaxYear = null;
   curMaxDay = null;
 
-  if(category === null)
+  if(typeof category === 'undefined')
   {
     alert("This should never happen!!!");
     category = transactionDataInput[0].amount[0].category;
@@ -238,7 +238,7 @@ function getCategorySummary(transactionDataInput,category = null, latestDate = n
       }
     }
   }
-  if(latestDate === null)
+  if(typeof latestDate === 'undefined')
   {
     curMaxMonth = selectedMonth;
     curMaxYear = selectedYear;
@@ -617,12 +617,12 @@ function ajaxPOST_Import(newObject)
   return ajaxPromise;
 };
 
-function ajaxPUT_Transaction(item,optionalID = null)
+function ajaxPUT_Transaction(item,optionalID)
 {
   var ajaxPromise = $.ajax({
     type: 'PUT',
     data: { "data" : JSON.stringify(item) },
-    url: '/db/transactions_modify/' + (optionalID === null ? item._id : optionalID).toString(),
+    url: '/db/transactions_modify/' + (typeof optionalID === 'undefined' ? item._id : optionalID).toString(),
     dataType: 'json'
   }).then(function( response ) {
   
@@ -640,12 +640,12 @@ function ajaxPUT_Transaction(item,optionalID = null)
   return ajaxPromise;
 }
 
-function ajaxPUT_Category(item,optionalID = null)
+function ajaxPUT_Category(item,optionalID)
 {
   var ajaxPromise = $.ajax({
     type: 'PUT',
     data: { "data" : JSON.stringify(item) },
-    url: '/db/categories_modify/' + (optionalID === null ? item._id : optionalID).toString(),
+    url: '/db/categories_modify/' + (typeof optionalID === 'undefined' ? item._id : optionalID).toString(),
     dataType: 'json'
   }).then(function( response ) {
 
@@ -669,12 +669,12 @@ function ajaxPUT_Category(item,optionalID = null)
   return ajaxPromise.promise();
 }
 
-function ajaxPUT_Account(item,optionalID = null)
+function ajaxPUT_Account(item,optionalID)
 {
   var ajaxPromise = $.ajax({
     type: 'PUT',
     data: { "data" : JSON.stringify(item) },
-    url: '/db/accounts_modify/' + (optionalID === null ? item._id : optionalID).toString(),
+    url: '/db/accounts_modify/' + (typeof optionalID === 'undefined' ? item._id : optionalID).toString(),
     dataType: 'json'
   }).then(function( response ) {
 
@@ -3303,7 +3303,7 @@ function deleteTransaction(event) {
   }
 };
 
-function appendCurrentCategoriesToDropdown(dropdown_menu,addNone=false)
+function appendCurrentCategoriesToDropdown(dropdown_menu,addNone)
 {
   if ($(dropdown_menu).children().length != 0)
   {
@@ -3324,7 +3324,7 @@ function appendCurrentCategoriesToDropdown(dropdown_menu,addNone=false)
     dropdownEntry.html(categoryData[j].name);
     dropdownEntry.appendTo($(dropdown_menu));
   }
-  if(addNone)
+  if(typeof addNone !== 'undefined' && addNone)
   {
     var dropdownEntry = $(document.createElement('a'));
     dropdownEntry.attr("class", "dropdown-item");
@@ -3396,7 +3396,7 @@ function drawNetWorthChart()
       curMonth = 12 + curMonth;
       curYear -= 1;
     }
-    emptyRow.push(new Date(curYear,curMonth,1,0,0,0,))
+    emptyRow.push(new Date(curYear,curMonth,1,0,0,0))
     var tempRow = [];
     for (var i = 0; i < categoryData.length; i++)
     {
@@ -3418,18 +3418,18 @@ function drawNetWorthChart()
   }
   //https://stackoverflow.com/questions/17428587/transposing-a-2d-array-in-javascript
   function transpose(matrix) {
-    const rows = matrix.length, cols = matrix[0].length;
-    const grid = [];
-    for (let j = 0; j < cols; j++) {
+    var rows = matrix.length, cols = matrix[0].length;
+    var grid = [];
+    for (var j = 0; j < cols; j++) {
       grid[j] = Array(rows);
     }
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
+    for (var i = 0; i < rows; i++) {
+      for (var j = 0; j < cols; j++) {
         grid[j][i] = matrix[i][j];
       }
     }
     return grid;
-  }
+  } 
   
 
   function bubbleSort(compare,move) 
