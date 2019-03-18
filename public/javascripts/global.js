@@ -2140,6 +2140,12 @@ function populateAddTransactionView() {
       }
       else
       {
+        if($("#addTransaction #income").css("display") !== "none")
+        {
+          $("#addTransaction #payment #inputNamePayment").val($("#addTransaction #income #inputNameIncome").val());
+          $("#addTransaction #payment #paymentDiv1 #inputAmount1").val($("#addTransaction #income #inputAmount1").val());
+        }
+
         $("#addTransaction #general #inputAmount1").attr("placeholder","Amount 1");
 	      $("#addTransaction #payment").attr("style","display:block");
 	      $("#addTransaction #income").attr("style","display:none");
@@ -2157,6 +2163,21 @@ function populateAddTransactionView() {
       else
       {
         $("#addTransaction #general #inputAmount1").attr("placeholder","Amount");
+
+        if($("#addTransaction #payment").css("display") !== "none")
+        {
+          if($("#addTransaction #payment #paymentDiv1 #inputCommentPayment").val() !== "")
+          {
+            var curString = $("#addTransaction #payment #inputNamePayment").val();
+            curString += " - " + $("#addTransaction #payment #paymentDiv1 #inputCommentPayment").val();
+            $("#addTransaction #income #inputNameIncome").val(curString);
+          }
+          else
+          {
+            $("#addTransaction #income #inputNameIncome").val($("#addTransaction #payment #inputNamePayment").val());
+          }
+          $("#addTransaction #income #inputAmount1").val($("#addTransaction #payment #paymentDiv1 #inputAmount1").val());
+        }
 	      $("#addTransaction #income").attr("style","display:block");
 	      $("#addTransaction #payment").attr("style","display:none");
 	      $("#addTransaction #transfer").attr("style","display:none");
