@@ -35,7 +35,6 @@ var dbSessions = monk(mongoDB_accessPath + '/shellmoney');
 // Clear all sessions on startup
 dbSessions.get('sessions').remove({});
 
-
 // Compress global.js to global.min.js
 var uglify = require("uglify-js");
 fs.readFile(__dirname.toString() + "/public/javascripts/global.js", "utf8", function (err, data) {
@@ -89,9 +88,6 @@ fs.readFile(__dirname.toString() + "/public/javascripts/global.js", "utf8", func
     });
   }
 });
-
-
-
 
 var app = express();
 var indexRouter = require('./routes/index');

@@ -1487,7 +1487,7 @@ function populateCategoryTable() {
     
     var virtualTotalFloat =  (parseFloat(virtualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + virtualSpendingThisMonth); // includes unbooked
     var actualTotalFloat = (parseFloat(actualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth);// Doesnt include unbooked
-    tableContent += '<td id="categoryTotalAmount" val="' + virtualTotalFloat.toFixed(2);
+    tableContent += '<td class="categoryTotalAmount" id="categoryTotalAmount" val="' + virtualTotalFloat.toFixed(2);
     tableContent += '" valCurrentBalance="' + (parseFloat(actualCurrentMonthTotal) + parseFloat(allocatedThisMonth) + actualSpendingThisMonth).toFixed(2) + '">';
     if (parseFloat((virtualTotalFloat).toFixed(2)) < 0.0
       &&(virtualTotalFloat).toFixed(2) != "0.00")
@@ -1520,24 +1520,39 @@ function populateCategoryTable() {
   // Inject the whole content string into our existing HTML table
   $('#categoryDatabaseView table tbody').html(tableContent);
 
-  $('#categoryDatabaseView table .clickable-row').off("click");
-  $('#categoryDatabaseView table .clickable-row').on('click', function(event) 
+  $('#categoryDatabaseView table #summaryRow').click(function(){
+    $.each($('#categoryDatabaseView table .clickable-row .categoryTotalAmount'), function()
+    {
+      if($(this).parent().hasClass('table-info'))
+      {
+        $(this).parent().removeClass('table-info');
+      }
+    });
+    $('#categoryDatabaseView table #summaryRow').css("display","none");
+    $("#categoryDatabaseView table #summaryRow #0").html("");
+    $("#categoryDatabaseView table #summaryRow #1").html("");
+    $("#categoryDatabaseView table #summaryRow #2").html("");
+    $("#categoryDatabaseView table #summaryRow #3").html("");
+  });
+
+  $('#categoryDatabaseView table .clickable-row .categoryTotalAmount').off("click");
+  $('#categoryDatabaseView table .clickable-row .categoryTotalAmount').on('click', function(event) 
   {
     event.preventDefault();
     
-    if($(this).hasClass('table-info'))
+    if($(this).parent().hasClass('table-info'))
     {
-      $(this).removeClass('table-info');
+      $(this).parent().removeClass('table-info');
     }
     else
     {
-      $(this).addClass('table-info');
+      $(this).parent().addClass('table-info');
     }
 
     var numberOfActiveElements = 0;
-    $.each($('#categoryDatabaseView table .clickable-row'), function()
+    $.each($('#categoryDatabaseView table .clickable-row .categoryTotalAmount'), function()
     {
-      if($(this).hasClass('table-info'))
+      if($(this).parent().hasClass('table-info'))
       {
         numberOfActiveElements = numberOfActiveElements + 1;
       }
@@ -1550,7 +1565,7 @@ function populateCategoryTable() {
       var allocated = 0.0;
       var spentThisMonth= 0.0;
       var totalAmount = 0.0;
-      $.each($('#categoryDatabaseView table .table-info'), function()
+      $.each($('#categoryDatabaseView table .clickable-row.table-info'), function()
       {
         if($(this).hasClass('table-info'))
         {
@@ -1594,6 +1609,8 @@ function populateCategoryTable() {
     }
 
   });
+
+
 
 
   $('#categoryDatabaseView table tbody input').each(function()
