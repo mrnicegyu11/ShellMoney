@@ -27,6 +27,7 @@ html
               h5.modal-title
                 #notificationModalTitle.m-2(style="display:inline")
                 button(type="button",style="display:none")#hideUnhideDeleteCategoryButton.m-2.btn-warning.btn
+                button(type="button",style="display:none")#changeCategoryNameButton.m-2.btn-info.btn
               button.close(type="button",data-dismiss="modal",aria-label="Close")
                 span(aria-hiden="true")
                  | &times;
@@ -267,16 +268,6 @@ html
               tbody
           #categoryUnallocatedMoney.m-2
           #categoryToBeAllocatedMoney.m-2
-          #modifyDatabaseEntryCategory.my-4(style="display:none")
-            #modifyCategoryID(style="display:none")
-            h4 Change Category
-            p 
-              | Name: 
-              input(type="text",id="changeCategoryName").m-2   
-              button(type="button",class="btn btn-dark",id="changeCategoryButton").m-2
-                | Save Changes
-              button(type="button",class="btn btn-dark",id="cancelChangeCategoryButton").m-2
-                | Cancel
           button(type="button",class="btn btn-dark",id="addCategoryButton").m-2
             | Add Category
           button(type="button",class="btn btn-info",id="autofillAllocationButton").m-2

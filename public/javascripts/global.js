@@ -2290,7 +2290,7 @@ function showTransactionInfo(event) {
   }
 
   $("#hideUnhideDeleteCategoryButton").css("display","none");
-  
+  $("#changeCategoryNameButton").css("display","none");
 
   $("#notificationModalTitle").html(thisUserObject.name);
 
@@ -2769,6 +2769,48 @@ function showCategoryInfoModal(event) {
       $("#hideUnhideDeleteCategoryButton").css("display","");
     }
 
+    $("#changeCategoryNameButton").css("display","");
+    $("#changeCategoryNameButton").html("Rename");
+    $("#changeCategoryNameButton").off("click");
+    $("#changeCategoryNameButton").on("click",function()
+    {
+      var cleanup = function(error){
+        if(error.is)
+        {
+          $("#notificationModalTitle").html(error.previousName.toString());
+        }
+        else
+        {
+          $("#notificationModalTitle").html($("#categoryNameChangeInput").val());
+        }
+
+      };
+
+      if($("#categoryNameChangeInput").exists())
+      {
+        modifyCategory(thisUserObject._id,$("#categoryNameChangeInput").val().toString(),cleanup)
+      }
+      else
+      { 
+        var oldName= $("#notificationModalTitle").html().toString();
+        $("#notificationModalTitle").html("");
+
+        var inputField = $(document.createElement('input'));
+        inputField.attr("type","text");
+        inputField.attr("class","m.1");
+        inputField.attr("autocomplete","off");
+        inputField.attr("id","categoryNameChangeInput");
+        inputField.attr("rel",thisUserObject._id);
+        inputField.attr("value",oldName.toString());
+
+
+        $("#notificationModalTitle").append(inputField);
+
+        //inputField.on("blur",modifyCategory(thisUserObject._id,inputField.attr("value").toString(),cleanup));
+        //$("#categoryNameChangeInput").enterKey(modifyCategory(thisUserObject._id,inputField.attr("value").toString(),cleanup));
+      }
+    });
+
     if(!$("#buttonShowMoreTransactions").exists())
     {
       var div1 = $(document.createElement('div'));
@@ -3028,15 +3070,9 @@ function onNavigationChange()
   $('.accountsTableModifyButton').on("click",modifyAccount);
 };
 
-function modifyCategory(event)
+function modifyCategory(inputID,newName,callback)
 {
-  // Prevent Link from Firing
-  event.preventDefault();
-
-  $('#addCategoryButton').css("display", "none");
-
-  var thisID = $(this).attr('rel');
-  $('#modifyCategoryID').val(thisID);
+  var thisID = inputID;
   
   // Get our User Object
   var thisUserObject = null;
@@ -3053,92 +3089,71 @@ function modifyCategory(event)
 
   if(thisUserObject != null)
   {
-    //Populate Info Box
-    $('#modifyDatabaseEntryCategory #changeCategoryName').val(thisUserObject.name);
+    event.preventDefault();
+
+
+    // If it is, compile all user info into one object
+    var newCategory = {
+      'name': newName,
+      "referenceDate" : thisUserObject.referenceDate,
+      "referenceAmount" : thisUserObject.referenceAmount,
+      "associatedTransactions" : thisUserObject.associatedTransactions,
+      "allocatedSinceReference" : thisUserObject.allocatedSinceReference,
+    }
+
+    var errorSubmission = false;
+    // Check if a category with this name already exists:
+    for (var i=0; i < categoryData.length; ++i)
+    {
+      if(categoryData[i].name === newName)
+      {
+        alert("A category with this name already exists. Error.");
+        errorSubmission = true;
+      }
+    }
+
+    var promisesArray = [];
+    // Use AJAX to post the object to our adduser service
+    if(!errorSubmission)
+    {
+      var curPromise = ajaxPUT_Category(newCategory,thisUserObject._id);
+      promisesArray.push(curPromise);
+    }
+
+    for (var i=0; i < transactionsData.length; ++i)
+    {
+      for(var j = 0; j < transactionsData[i].amount.length; j++)
+      {
+        if(transactionsData[i].amount[j].category === thisUserObject.name)
+        {
+          transactionsData[i].amount[j].category = newName;
+          var curPromise= ajaxPUT_Transaction(transactionsData[i]);
+          promisesArray.push(curPromise);
+        }
+      }
+    }
+    Promise.all(promisesArray).then(function()
+    {
+      reloadDataAndRefreshDisplay().done(function()
+      {
+        if (callback) {
+          if(errorSubmission)
+          {
+            callback({'is':true,'previousName':thisUserObject.name});
+          }
+          else
+          {
+            callback({'is':false,'previousName':thisUserObject.name});
+          }
+        }
+      }); 
+    });
   }
   else
   {
-    alert("Something went deeply wrong.")
+    alert("Something went deeply wrong. Category goes not exists.")
   }
-  $('#modifyDatabaseEntryCategory').attr("style","display:block");
 
-  $('#modifyDatabaseEntryCategory #changeCategoryButton').off("click");
-  $('#modifyDatabaseEntryCategory #changeCategoryButton').on("click",function(event)
-  {
-    var thisID = $('#modifyCategoryID').val();
-    
-    // Get our User Object
-    var thisUserObject = null;
-    for (var i=0; i < categoryData.length; ++i)
-    {
-      if(categoryData[i]._id == thisID)
-      {
-        thisUserObject = categoryData[i];
-        break;
-      }
-    }
-  
-    if(thisUserObject != null)
-    {
-      event.preventDefault();
-
-
-      // If it is, compile all user info into one object
-      var newCategory = {
-        'name': $('#modifyDatabaseEntryCategory input#changeCategoryName').val(),
-        "referenceDate" : thisUserObject.referenceDate,
-        "referenceAmount" : thisUserObject.referenceAmount,
-        "associatedTransactions" : thisUserObject.associatedTransactions,
-        "allocatedSinceReference" : thisUserObject.allocatedSinceReference,
-      }
-
-      var errorSubmission = false;
-      // Check if a category with this name already exists:
-      for (var i=0; i < categoryData.length; ++i)
-      {
-        if(categoryData[i].name == $('#modifyDatabaseEntryCategory input#changeCategoryName').val())
-        {
-          alert("A category with this name already exists. Error.");
-          errorSubmission =true;
-        }
-      }
-
-      // Use AJAX to post the object to our adduser service
-      if(!errorSubmission)
-      {
-        ajaxPUT_Category(newCategory,thisUserObject._id).done(function()
-        {
-          $('#modifyDatabaseEntryCategory input').val('');
-          reloadDataAndRefreshDisplay();
-        });
-      }
-
-      for (var i=0; i < transactionsData.length; ++i)
-      {
-        for(var j = 0; j < transactionsData[i].amount.length; j++)
-        {
-          if(transactionsData[i].amount[j].category === thisUserObject.name)
-          {
-            transactionsData[i].amount[j].category = $('#modifyDatabaseEntryCategory input#changeCategoryName').val();
-            ajaxPUT_Transaction(transactionsData[i]);
-          }
-        }
-      }
-    }
-
-    // Update the table
-    
-    populateCategoryTable();
-    $('#modifyDatabaseEntryCategory').attr("style","display:none");
-    $('#addCategoryButton').css("display", "block");
-  });
-  $('#modifyDatabaseEntryCategory #cancelChangeCategoryButton').off("click");
-  $('#modifyDatabaseEntryCategory #cancelChangeCategoryButton').on("click",function(event)
-  {
-    $('#addCategoryButton').css("display", "block");
-    $('#modifyDatabaseEntryCategory input').val('');
-    $('#modifyDatabaseEntryCategory').attr("style","display:none");
-  });
 };
 
 function modifyAccount(event)
@@ -3242,17 +3257,6 @@ function modifyAccount(event)
     alert("Something went terribly wrong...");
   }
 };
-
-// Deletes a category, event musst have attribute "rel" with ID in it.
-function deleteCategory(event)
-{
-  event.preventDefault();
-  ajaxDELETE_Category($(this).attr('rel')).then(function()
-  {
-    // Update the table
-    reloadDataAndRefreshDisplay();
-  });
-}
 
 function deleteTransaction(event) {
 
@@ -3731,14 +3735,10 @@ function initializeButtonFunctionality()
       $('#addCategoryButtonAdd').off("click");
     });
   
-    
-  
-     
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkdeletecategory', deleteCategory);
   
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
   
+
     $("#categoryTableResetAllocations").off("click");
     $("#categoryTableResetAllocations").on('click', function()
     {
