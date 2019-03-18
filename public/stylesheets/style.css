@@ -1,92 +1,9 @@
 
-/*body {
-  padding: 30px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
-}
+.vertical-center {
+	min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+	min-height: 100vh; /* These two lines are counted as one :-)       */
+	min-width: 100%;
 
-h2 {
-	margin:0 0 .5em 0;
-}
-
-a {
-  color: #00B7FF;
-}
-
-#wrapper {
-	padding-left:312px;
-	position:relative;
-}
-
-#transactionList {
-	margin:0 0 30px 0;
-}
-
-#transactionList table {
-	border-collapse:separate;
-	border-spacing:1px;
-	background:#CCC;
-}
-
-#transactionList table th {
-	background:#EEE;
-	font-weight:600;
-	padding:10px 20px;
-	text-align:center;
-}
-
-#transactionList table tbody {
-	padding:0; margin:0;
-	border-collapse:collapse;
-	border-spacing:0px;
-}
-#transactionList table td {
-	background:#FFF;
-	padding:5px 10px;
-	text-align:center;
-}
-
-#transactionInfo {
-	width:250px;
-	position:absolute;
-	top:0; left:0;
-}
-
-#transactionInfo p {
-	padding:15px;
-	border:1px solid #CCC;
-	background:rgba(80,120,255,0.05);
-}
-
-fieldset {
-	border:0;
-	padding:0; margin:0;
-}
-
-.monday-style {
-	background-color: hsl(172, 59%, 88%) !important;
-}
-
-.tuesday-style {
-	background-color: hsl(182, 59%, 88%) !important;
-}
-
-.wednesday-style {
-	background-color: hsl(192, 59%, 88%) !important;
-}
-
-.thursday-style {
-	background-color: hsl(122, 59%, 88%) !important;
-}
-
-.friday-style {
-	background-color: hsl(112, 59%, 88%) !important;
-}
-
-.saturday-style {
-	background-color: hsl(102, 59%, 88%) !important;
-}
-
-.sunday-style {
-	background-color: hsl(92, 59%, 88%) !important;
-}
-*/
+	display: flex;
+	align-items: center;
+  }

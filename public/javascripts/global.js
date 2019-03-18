@@ -9,7 +9,6 @@
 var transactionsData = [];
 var categoryData = [];
 var accountData = [];
-var username = null;
 
 // UI Selections which are very fundamental for calculations
 var selectedMonth = new Date().getMonth() + 1;
@@ -52,8 +51,6 @@ $(document).ready(function() {
   selectedYear = new Date().getFullYear();
   $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
 
-  //Get username from URL
-  username = $('meta[name="shellmoney:userid"]').attr("content");
 
 
   // Initialize the buttons
@@ -597,7 +594,7 @@ function ajaxPOST_Import(newObject)
 {
   var ajaxPromise = $.ajax({
     type: 'POST',
-    data: {data : newObject === null ? JSON.stringify([username.toString()]) : JSON.stringify(newObject) },
+    data: {data : newObject === null ? JSON.stringify(["error".toString()]) : JSON.stringify(newObject) },
     url: '/db/import',
     dataType: 'JSON'
   }).then(function( response ) {
@@ -845,7 +842,7 @@ function reloadDataAndRefreshDisplay()
 // Reloads data from mongoDB and populates tables accordingly.
 function reloadData()
 {
-  var ajaxPromise1 = $.getJSON('db/transactions_list/' + (username === null ? "" : username)).then(function( data ) 
+  var ajaxPromise1 = $.getJSON('db/transactions_list/').then(function( data ) 
   {
     transactionsData = data;
 
@@ -863,7 +860,7 @@ function reloadData()
 
   });
 
-  var ajaxPromise2 = $.getJSON('db/categories_list/' + (username === null ? "" : username)).then(function( data ) 
+  var ajaxPromise2 = $.getJSON('db/categories_list/').then(function( data ) 
   {
     categoryData = data;
 
@@ -881,7 +878,7 @@ function reloadData()
 
   });
 
-  var ajaxPromise3 = $.getJSON('db/accounts_list/' + (username === null ? "" : username)).then(function( data ) 
+  var ajaxPromise3 = $.getJSON('db/accounts_list/').then(function( data ) 
   {
     accountData = data;
 
@@ -1167,7 +1164,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
   $("#ExportDatabaseButton").off();
   $("#ExportDatabaseButton").on("click", function()
   {
-    var exportObj = [username,transactionsData,categoryData,accountData];
+    var exportObj = ["deprecatedEntry",transactionsData,categoryData,accountData];
     downloadObjectAsJson(exportObj, "ShellMoney_Database_" + (new Date(Date.now()).toDateString()));
   })
 
@@ -1176,7 +1173,13 @@ function populateTransactionTable(selectedMonth,selectedYear) {
   {
     //ajaxDELETE_DeleteAll();
     // via https://abandon.ie/notebook/simple-file-uploads-using-jquery-ajax
-
+    $("#changeCategoryNameButton").css("display","none");
+    $("#notificationModalContent").html('');
+    $("#notificationModalContent").css("display","");
+    $("#notificationModalBottomText").html('');
+    $('#transactionInfoModalContent').css("display","none");
+    $('#categoryInfoModalContent').css("display","none");
+    $("#notificationModalTitle").html('Import Database');
     var inputElement = $(document.createElement('input'));
 
     inputElement.attr("type","file");
@@ -1194,14 +1197,16 @@ function populateTransactionTable(selectedMonth,selectedYear) {
       reader.onload = function() {
         jsonFromFile = JSON.parse(reader.result);
         ajaxPOST_Import(jsonFromFile).then(function(){reloadDataAndRefreshDisplay();});
-        transactionsData = jsonFromFile[1];
-        categoryData = jsonFromFile[2];
-        accountData = jsonFromFile[3];
-        username = jsonFromFile[0];
+        //transactionsData = jsonFromFile[1];
+        //categoryData = jsonFromFile[2];
+        //accountData = jsonFromFile[3];
+        //username = jsonFromFile[0]; DEPRECATED
         $('input[type=file]').off();
         $('#notificationModal').modal('hide');
+        
       };
       reader.readAsText(input);
+
     });
     $("#notificationModalContent").css("display","");
     $("#transactionInfoModalContent").css("display","none");
@@ -1416,7 +1421,7 @@ function populateCategoryTable() {
 
     var amountSavedDisplayText = parseFloat(virtualCurrentMonthTotal).toFixed(2);
 
-    tableContent += '<td id="categoryAmountSaved" val="' + amountSavedDisplayText + '" valActualSavings="' + virtualCurrentMonthTotal.toFixed(2) + '">' + amountSavedDisplayText + '</td>';
+    tableContent += '<td id="categoryAmountSaved" val="' + amountSavedDisplayText + '" valActualSavings="' + virtualCurrentMonthTotal.toFixed(2) + '">' + parseFloat(amountSavedDisplayText).toFixed(2) + '</td>';
 
 
 
@@ -1676,7 +1681,6 @@ function populateCategoryTable() {
         "referenceAmount" : thisUserObject.referenceAmount,
         "associatedTransactions" : thisUserObject.associatedTransactions,
         "allocatedSinceReference" : allocatedSinceReferenceArray,
-        "userID" : username,
         "comment" : thisUserObject.comment
       }
 
@@ -1997,7 +2001,6 @@ function populateAddTransactionView() {
         'bookingType': currentTransactionKind,
         'dateEntered': new Date($.datepicker.parseDate( "yy-mm-dd",$('#general #datepicker').val())).getTime(),
         'dateBooked': $.trim($('#addTransaction ' + currentTransactionDivName + ' .insertTransactionButtonToggleBooked').html()) === "Booked" ? Date.now() : null,
-        'userID' : username,
         'amount' : [
           {
             "category" : $('#addTransaction ' + currentTransactionDivName + ' .category1Button').html(),
@@ -2059,7 +2062,6 @@ function populateAddTransactionView() {
 
         var correctionAmount = (parseFloat($('#addTransaction #correction .inputAmount').val()) - parseFloat(accountData[foundMatchingAccount].totalCurrent))
         newTransaction.dateBooked = new Date().getTime();
-        newTransaction.userID = username;
         newTransaction.name = "Correction";
         if (($("#inputCategoryCorrectionButton").html() == "None" || $("#inputCategoryCorrectionButton").html() == "Pick Category (optional)"))
         {
@@ -2127,7 +2129,6 @@ function populateAddTransactionView() {
     // Prevent Link from Firing
     event.preventDefault();
 
-    // Retrieve username from link rel ibute
     var thisID = $(this).html();
     $("#addTransaction #general").attr("style","display:block");
 	  if (thisID === "Payment")
@@ -2139,6 +2140,12 @@ function populateAddTransactionView() {
       }
       else
       {
+        if($("#addTransaction #income").css("display") !== "none")
+        {
+          $("#addTransaction #payment #inputNamePayment").val($("#addTransaction #income #inputNameIncome").val());
+          $("#addTransaction #payment #paymentDiv1 #inputAmount1").val($("#addTransaction #income #inputAmount1").val());
+        }
+
         $("#addTransaction #general #inputAmount1").attr("placeholder","Amount 1");
 	      $("#addTransaction #payment").attr("style","display:block");
 	      $("#addTransaction #income").attr("style","display:none");
@@ -2156,6 +2163,21 @@ function populateAddTransactionView() {
       else
       {
         $("#addTransaction #general #inputAmount1").attr("placeholder","Amount");
+
+        if($("#addTransaction #payment").css("display") !== "none")
+        {
+          if($("#addTransaction #payment #paymentDiv1 #inputCommentPayment").val() !== "")
+          {
+            var curString = $("#addTransaction #payment #inputNamePayment").val();
+            curString += " - " + $("#addTransaction #payment #paymentDiv1 #inputCommentPayment").val();
+            $("#addTransaction #income #inputNameIncome").val(curString);
+          }
+          else
+          {
+            $("#addTransaction #income #inputNameIncome").val($("#addTransaction #payment #inputNamePayment").val());
+          }
+          $("#addTransaction #income #inputAmount1").val($("#addTransaction #payment #paymentDiv1 #inputAmount1").val());
+        }
 	      $("#addTransaction #income").attr("style","display:block");
 	      $("#addTransaction #payment").attr("style","display:none");
 	      $("#addTransaction #transfer").attr("style","display:none");
@@ -2268,7 +2290,6 @@ function showTransactionInfo(event) {
   // Prevent Link from Firing
   //event.preventDefault();
 
-  // Retrieve username from link rel ibute
   var thisID = -1;
   if(typeof event === 'string')
   {
@@ -2290,7 +2311,7 @@ function showTransactionInfo(event) {
   }
 
   $("#hideUnhideDeleteCategoryButton").css("display","none");
-  
+  $("#changeCategoryNameButton").css("display","none");
 
   $("#notificationModalTitle").html(thisUserObject.name);
 
@@ -2652,6 +2673,7 @@ function showCategoryInfoModal(event) {
     $("#transactionInfoModalContent").css("display","none");
     $("#notificationModalTitle").html(thisUserObject.name);
 
+    $("#notificationModalContent").css("display","none");
     $("#categoryInfoModalContent .form-group .form-control").val("");
     $("#categoryInfoModalContent .form-group .form-control").attr("id",thisUserObject._id);
     $("#categoryInfoModalContent .form-group .form-control").html("");
@@ -2768,6 +2790,48 @@ function showCategoryInfoModal(event) {
       $("#hideUnhideDeleteCategoryButton").html("Hide Category");
       $("#hideUnhideDeleteCategoryButton").css("display","");
     }
+
+    $("#changeCategoryNameButton").css("display","");
+    $("#changeCategoryNameButton").html("Rename");
+    $("#changeCategoryNameButton").off("click");
+    $("#changeCategoryNameButton").on("click",function()
+    {
+      var cleanup = function(error){
+        if(error.is)
+        {
+          $("#notificationModalTitle").html(error.previousName.toString());
+        }
+        else
+        {
+          $("#notificationModalTitle").html($("#categoryNameChangeInput").val());
+        }
+
+      };
+
+      if($("#categoryNameChangeInput").exists())
+      {
+        modifyCategory(thisUserObject._id,$("#categoryNameChangeInput").val().toString(),cleanup)
+      }
+      else
+      { 
+        var oldName= $("#notificationModalTitle").html().toString();
+        $("#notificationModalTitle").html("");
+
+        var inputField = $(document.createElement('input'));
+        inputField.attr("type","text");
+        inputField.attr("class","m.1");
+        inputField.attr("autocomplete","off");
+        inputField.attr("id","categoryNameChangeInput");
+        inputField.attr("rel",thisUserObject._id);
+        inputField.attr("value",oldName.toString());
+
+
+        $("#notificationModalTitle").append(inputField);
+
+        //inputField.on("blur",modifyCategory(thisUserObject._id,inputField.attr("value").toString(),cleanup));
+        //$("#categoryNameChangeInput").enterKey(modifyCategory(thisUserObject._id,inputField.attr("value").toString(),cleanup));
+      }
+    });
 
     if(!$("#buttonShowMoreTransactions").exists())
     {
@@ -3028,16 +3092,9 @@ function onNavigationChange()
   $('.accountsTableModifyButton').on("click",modifyAccount);
 };
 
-function modifyCategory(event)
+function modifyCategory(inputID,newName,callback)
 {
-  // Prevent Link from Firing
-  event.preventDefault();
-
-  $('#addCategoryButton').css("display", "none");
-
-  // Retrieve username from link rel ibute
-  var thisID = $(this).attr('rel');
-  $('#modifyCategoryID').val(thisID);
+  var thisID = inputID;
   
   // Get our User Object
   var thisUserObject = null;
@@ -3054,94 +3111,71 @@ function modifyCategory(event)
 
   if(thisUserObject != null)
   {
-    //Populate Info Box
-    $('#modifyDatabaseEntryCategory #changeCategoryName').val(thisUserObject.name);
+    event.preventDefault();
+
+
+    // If it is, compile all user info into one object
+    var newCategory = {
+      'name': newName,
+      "referenceDate" : thisUserObject.referenceDate,
+      "referenceAmount" : thisUserObject.referenceAmount,
+      "associatedTransactions" : thisUserObject.associatedTransactions,
+      "allocatedSinceReference" : thisUserObject.allocatedSinceReference,
+    }
+
+    var errorSubmission = false;
+    // Check if a category with this name already exists:
+    for (var i=0; i < categoryData.length; ++i)
+    {
+      if(categoryData[i].name === newName)
+      {
+        alert("A category with this name already exists. Error.");
+        errorSubmission = true;
+      }
+    }
+
+    var promisesArray = [];
+    // Use AJAX to post the object to our adduser service
+    if(!errorSubmission)
+    {
+      var curPromise = ajaxPUT_Category(newCategory,thisUserObject._id);
+      promisesArray.push(curPromise);
+    }
+
+    for (var i=0; i < transactionsData.length; ++i)
+    {
+      for(var j = 0; j < transactionsData[i].amount.length; j++)
+      {
+        if(transactionsData[i].amount[j].category === thisUserObject.name)
+        {
+          transactionsData[i].amount[j].category = newName;
+          var curPromise= ajaxPUT_Transaction(transactionsData[i]);
+          promisesArray.push(curPromise);
+        }
+      }
+    }
+    Promise.all(promisesArray).then(function()
+    {
+      reloadDataAndRefreshDisplay().done(function()
+      {
+        if (callback) {
+          if(errorSubmission)
+          {
+            callback({'is':true,'previousName':thisUserObject.name});
+          }
+          else
+          {
+            callback({'is':false,'previousName':thisUserObject.name});
+          }
+        }
+      }); 
+    });
   }
   else
   {
-    alert("Something went deeply wrong.")
+    alert("Something went deeply wrong. Category goes not exists.")
   }
-  $('#modifyDatabaseEntryCategory').attr("style","display:block");
 
-  $('#modifyDatabaseEntryCategory #changeCategoryButton').off("click");
-  $('#modifyDatabaseEntryCategory #changeCategoryButton').on("click",function(event)
-  {
-    // Retrieve username from link rel ibute
-    var thisID = $('#modifyCategoryID').val();
-    
-    // Get our User Object
-    var thisUserObject = null;
-    for (var i=0; i < categoryData.length; ++i)
-    {
-      if(categoryData[i]._id == thisID)
-      {
-        thisUserObject = categoryData[i];
-        break;
-      }
-    }
-  
-    if(thisUserObject != null)
-    {
-      event.preventDefault();
-
-
-      // If it is, compile all user info into one object
-      var newCategory = {
-        'name': $('#modifyDatabaseEntryCategory input#changeCategoryName').val(),
-        "referenceDate" : thisUserObject.referenceDate,
-        "referenceAmount" : thisUserObject.referenceAmount,
-        "associatedTransactions" : thisUserObject.associatedTransactions,
-        "allocatedSinceReference" : thisUserObject.allocatedSinceReference,
-        "userID" : username
-      }
-
-      var errorSubmission = false;
-      // Check if a category with this name already exists:
-      for (var i=0; i < categoryData.length; ++i)
-      {
-        if(categoryData[i].name == $('#modifyDatabaseEntryCategory input#changeCategoryName').val())
-        {
-          alert("A category with this name already exists. Error.");
-          errorSubmission =true;
-        }
-      }
-
-      // Use AJAX to post the object to our adduser service
-      if(!errorSubmission)
-      {
-        ajaxPUT_Category(newCategory,thisUserObject._id).done(function()
-        {
-          $('#modifyDatabaseEntryCategory input').val('');
-          reloadDataAndRefreshDisplay();
-        });
-      }
-
-      for (var i=0; i < transactionsData.length; ++i)
-      {
-        for(var j = 0; j < transactionsData[i].amount.length; j++)
-        {
-          if(transactionsData[i].amount[j].category === thisUserObject.name)
-          {
-            transactionsData[i].amount[j].category = $('#modifyDatabaseEntryCategory input#changeCategoryName').val();
-            ajaxPUT_Transaction(transactionsData[i]);
-          }
-        }
-      }
-    }
-
-    // Update the table
-    
-    populateCategoryTable();
-    $('#modifyDatabaseEntryCategory').attr("style","display:none");
-    $('#addCategoryButton').css("display", "block");
-  });
-  $('#modifyDatabaseEntryCategory #cancelChangeCategoryButton').off("click");
-  $('#modifyDatabaseEntryCategory #cancelChangeCategoryButton').on("click",function(event)
-  {
-    $('#addCategoryButton').css("display", "block");
-    $('#modifyDatabaseEntryCategory input').val('');
-    $('#modifyDatabaseEntryCategory').attr("style","display:none");
-  });
 };
 
 function modifyAccount(event)
@@ -3149,7 +3183,6 @@ function modifyAccount(event)
   // Prevent Link from Firing
   event.preventDefault();
 
-  // Retrieve username from link rel ibute
   var thisID = $(this).attr('rel');
   
   // Get our User Object
@@ -3246,17 +3279,6 @@ function modifyAccount(event)
     alert("Something went terribly wrong...");
   }
 };
-
-// Deletes a category, event musst have attribute "rel" with ID in it.
-function deleteCategory(event)
-{
-  event.preventDefault();
-  ajaxDELETE_Category($(this).attr('rel')).then(function()
-  {
-    // Update the table
-    reloadDataAndRefreshDisplay();
-  });
-}
 
 function deleteTransaction(event) {
 
@@ -3566,7 +3588,6 @@ function initializeButtonFunctionality()
         name : $("#accountsAdd input").val(),
         totalCurrent : 0.0,
         totalVirtual : 0.0,
-        userID: username
       };
       var curAjaxPromise = ajaxPOST_Account(newAccount);
       
@@ -3692,7 +3713,6 @@ function initializeButtonFunctionality()
             "referenceAmount" : 0.0,
             "associatedTransactions" : null,
             "allocatedSinceReference" : 0.0,
-            "userID": username
           }
   
           if (!errorSubmission)
@@ -3737,14 +3757,10 @@ function initializeButtonFunctionality()
       $('#addCategoryButtonAdd').off("click");
     });
   
-    
-  
-     
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkdeletecategory', deleteCategory);
   
     $('#categoryDatabaseView table tbody').on('click', 'td a.linkshowcategory', showCategoryInfoModal);
-    $('#categoryDatabaseView table tbody').on('click', 'td a.linkmodcategory', modifyCategory);
   
+
     $("#categoryTableResetAllocations").off("click");
     $("#categoryTableResetAllocations").on('click', function()
     {
