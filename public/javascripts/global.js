@@ -1173,7 +1173,7 @@ function populateTransactionTable(selectedMonth,selectedYear) {
   {
     //ajaxDELETE_DeleteAll();
     // via https://abandon.ie/notebook/simple-file-uploads-using-jquery-ajax
-
+    $("#changeCategoryNameButton").css("display","none");
     $("#notificationModalContent").html('');
     $("#notificationModalContent").css("display","");
     $("#notificationModalBottomText").html('');
@@ -1421,7 +1421,7 @@ function populateCategoryTable() {
 
     var amountSavedDisplayText = parseFloat(virtualCurrentMonthTotal).toFixed(2);
 
-    tableContent += '<td id="categoryAmountSaved" val="' + amountSavedDisplayText + '" valActualSavings="' + virtualCurrentMonthTotal.toFixed(2) + '">' + amountSavedDisplayText + '</td>';
+    tableContent += '<td id="categoryAmountSaved" val="' + amountSavedDisplayText + '" valActualSavings="' + virtualCurrentMonthTotal.toFixed(2) + '">' + parseFloat(amountSavedDisplayText).toFixed(2) + '</td>';
 
 
 
@@ -2652,6 +2652,7 @@ function showCategoryInfoModal(event) {
     $("#transactionInfoModalContent").css("display","none");
     $("#notificationModalTitle").html(thisUserObject.name);
 
+    $("#notificationModalContent").css("display","none");
     $("#categoryInfoModalContent .form-group .form-control").val("");
     $("#categoryInfoModalContent .form-group .form-control").attr("id",thisUserObject._id);
     $("#categoryInfoModalContent .form-group .form-control").html("");
