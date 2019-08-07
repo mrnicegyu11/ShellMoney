@@ -1994,11 +1994,28 @@ function populateAddTransactionView() {
     {
       if (
         isNaN(parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val()))
+        &&
+        $("#paymentDiv" + i.toString()).css("display") != "none"
+        && 
+        (i === 1 || currentTransactionKind === "Payment")
         && (
-           $('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val() === ""
-           && (i === 1 || currentTransactionKind === "Payment")
-           && $("#paymentDiv" + i.toString()).css("display") != "none"
+           $('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val() != ""
+           ||
+           $('#addTransaction ' + currentTransactionDivName + ' #inputCommentPayment' + (i).toString()).val() != ""
         )
+      )
+      {
+        errorSubmission = true;
+      }
+      else if
+      (
+        parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount' + (i).toString()).val()) === 0.0
+        &&
+        $("#paymentDiv" + i.toString()).css("display") != "none"
+        && 
+        (i === 1 || currentTransactionKind === "Payment")
+        &&
+        $('#addTransaction ' + currentTransactionDivName +  ' #inputCommentPayment' + (i).toString()).val() != ""
       )
       {
         errorSubmission = true;
@@ -2090,7 +2107,14 @@ function populateAddTransactionView() {
       {
         for (var i = 0; i < 3; ++i)
         {
-          if($('#addTransaction ' + currentTransactionDivName + ' #inputCategoryPayment' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() && $('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val() != "")
+          if(
+            $('#addTransaction ' + currentTransactionDivName + ' #inputCategoryPayment' + (i+2).toString() + "Button").html()  != "Pick Category " + (i+2).toString() 
+            && 
+            $('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val() != ""
+            &&
+            parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount'+ (i+2).toString()).val()) != 0.0
+            )
+
           {
             newTransaction.amount.push(
               {
