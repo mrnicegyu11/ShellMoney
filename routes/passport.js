@@ -2,6 +2,7 @@ var monk = require('monk');
 var mongoDB_accessPath = process.env.SHELLMONEY_MONGODB_ACCESS
 var dbUsers = monk(mongoDB_accessPath + '/shellmoney');
 const uuidv4 = require('uuid/v4');
+const bcrypt = require('bcrypt');
 const sessionID = uuidv4().toString().substring(0,24);
 
 // For now we buffer the userDB as mongo-access is async and it seems like passportjs
@@ -26,19 +27,25 @@ passport.use(new Strategy(
     var found = false;
     for (var i = 0; i < currentUsersBuffered.length; i++)
     {
-      if(currentUsersBuffered[i].username === username
-        && currentUsersBuffered[i].password === password)
+      if(currentUsersBuffered[i].username === username)
+      {
+        bcrypt.compare(password, currentUsersBuffered[i].password, function(err, res) 
         {
-          found = true;
-          return cb(null, currentUsersBuffered[i]);
-        }
-
+          if(res === false)
+          {
+            return cb(null, false); 
+          }
+          else if (res === true)
+          {
+            return cb(null, currentUsersBuffered[i]);
+          }
+        });
+      }
     }
     if (found === false)
     { 
       return cb(null, false); 
     }
-
 }));
 passport.serializeUser(function(user, cb) {
   cb(null, user._id.toString() + sessionID);
@@ -92,18 +99,33 @@ exports.currentUsersBuffered = function()
 
 exports.insertNewUser = function(user,pass)
 {
-  var collection = dbUsers.get('users');
-  collection.insert({username: user, password: pass}, function(err, result)
+
+  // Check if username already exists:
+  // [This should have been caught before!!]
+  for (var i = 0; i < currentUsersBuffered.length; i++)
   {
-    if (err !== null)
+    if(currentUsersBuffered[i].username === user)
     {
-      console.log("Error in creating new user:")
-      console.log(err);
+      console.log("Error in creating new user: Username already exists.")
       return;
     }
-    else
+  }
+
+  var collection = dbUsers.get('users');
+  bcrypt.hash(pass, 10, function(err, hash) {
+    collection.insert({username: user, password: hash}, function(err, result)
     {
-      exports.currentUsersBuffered();
-    }
+      if (err !== null)
+      {
+        console.log("Error in creating new user:")
+        console.log(err);
+        return;
+      }
+      else
+      {
+        exports.currentUsersBuffered();
+      }
+    });
   });
+
 }
