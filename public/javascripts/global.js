@@ -901,6 +901,10 @@ function reloadData()
     {
       this.totalCurrent = 0.0;
       this.totalVirtual = 0.0;
+      if (typeof this.hideDate == "undefined") 
+      {
+        this.hideDate = null;
+      }
     });
 
 
@@ -1717,7 +1721,7 @@ function populateCategoryTable() {
   $('#categoryDatabaseView table tbody input').enterKey(blurFunction);
 };
 
-function populateAccountInformation() 
+function populateAccountInformation(selectedMonth_,selectedYear_) 
 {
   var tableContent = '';
   
@@ -1725,14 +1729,49 @@ function populateAccountInformation()
   var sumVirtual = 0.0;
   for (var i = 0; i < accountData.length; ++i)
   {
+    if(accountData[i].hideDate != null)
+    {
+      var compareDate = new Date();
+      //if(compareDate.getMonth() === selectedMonth_ - 1
+      //&& compareDate.getFullYear() === selectedYear_)
+      //{
+      //  compareDate.setMonth(selectedMonth_ - 1);
+      //  compareDate.setYear(selectedYear_);
+      //}
+      //else
+      //{
+        compareDate.setMonth(selectedMonth_ - 1);
+        compareDate.setYear(selectedYear_);
+        compareDate.setDate(0);
+        compareDate.setHours(0);
+        compareDate.setMinutes(0);
+        compareDate.setSeconds(0);
+        compareDate.setMilliseconds(1);
+      //}
+
+      var compval = dates.compare(new Date(accountData[i].hideDate),compareDate);
+      if(compval === -1)
+      {
+        continue;
+      }
+    }
     tableContent += '<tr class="w-auto pauto">';
     tableContent += '<td>' + accountData[i].name + '</td>';
     tableContent += '<td>' + accountData[i].totalCurrent.toFixed(2) + '</td>';
     sumCurrent += accountData[i].totalCurrent;
     tableContent += '<td>' + accountData[i].totalVirtual.toFixed(2) + '</td>';
     sumVirtual += accountData[i].totalVirtual;
-    tableContent += '<td>' + '<a href="#" rel="' + accountData[i]._id + '" class="accountsTableModifyButton">Modify</a>' + '</td>';
-    tableContent += '<td>' + '<a href="#" rel="' + accountData[i]._id + '" class="accountsTableDeleteButton">Delete</a>' + '</td>';
+    if(accountData[i].hideDate === null)
+    {
+      tableContent += '<td>' + '<a href="#" rel="' + accountData[i]._id + '" class="accountsTableModifyButton">Rename</a>' + '</td>';
+      tableContent += '<td>' + '<a href="#" rel="' + accountData[i]._id + '" class="accountsTableHideButton">Hide</a>' + '</td>';
+    }
+    else
+    {
+      tableContent += '<td>' + '<a href="#" rel="' + accountData[i]._id + '" class="accountsTableUnhideButton">Unhide</a>' + '</td>';
+      if(accountData[i])
+      tableContent += '<td></td>'
+    }
   }
   tableContent += '<tr class="w-auto pauto">';
   tableContent += '<td>' + "Summed" + '</td>';
@@ -1760,8 +1799,8 @@ function populateAccountInformation()
 
   
   // Functionality for deleting accounts
-  $('.accountsTableDeleteButton').off('click');
-  $('.accountsTableDeleteButton').on('click', function(event)
+  $('.accountsTableHideButton').off('click');
+  $('.accountsTableHideButton').on('click', function(event)
   {
     event.preventDefault();
     var curAccountIdent = $(this).attr('rel');
@@ -1777,46 +1816,27 @@ function populateAccountInformation()
       }
     }
 
-    if(i === -1 )
+    if(foundID === -1 )
     {
       alert("ERROR!");
     }
     else if (parseFloat(Math.abs(accountData[foundID].totalCurrent).toFixed(2)) != 0.00 
               || parseFloat(Math.abs(accountData[foundID].totalVirtual).toFixed(2)) != 0.0)
     {
-      alert("Only Accounts with a balance of exactly 0.00 can be deleted.")
+      alert("Only Accounts with a balance of exactly 0.00 can be hidden. Balance the account first.")
     }
     else
     {
-      var confirmation = confirm('Are you sure you want to delete this account? Transactions connected to it will lack information! This cannot be undone!');
+      var confirmation = confirm('Are you sure you want to hide this account?');
       if (confirmation == true)
       {
-        var promisesArray = [];
-        for (var i=0; i < transactionsData.length; ++i)
+        accountData[foundID].hideDate = new Date();
+        var promise = ajaxPUT_Account(accountData[foundID]);
+        promise.then(function()
         {
-          if(transactionsData[i].account == accountData[foundID].name)
-          {
-            var item = transactionsData[i];
-            item.account = "Deleted Account";
-            var currentPromise = ajaxPUT_Transaction(item);
-            promisesArray.push(currentPromise);
-          }
-          else if(transactionsData[i].bookingType == "Transfer")
-          {
-            if(transactionsData[i].targetAccount == accountData[foundID].name)
-            {
-              var item = transactionsData[i];
-              item.targetAccount = "Deleted Account";
-              var currentPromise = ajaxPUT_Transaction(item);
-              promisesArray.push(currentPromise);
-            }
-          }
-        }
-
-        Promise.all(promisesArray).then(function()
-        {
-          ajaxDELETE_Account(curAccountIdent).then(function() {reloadDataAndRefreshDisplay();});
+          reloadDataAndRefreshDisplay();
         });
+        
       }
     }
   });
@@ -3125,12 +3145,13 @@ function updateCategoryComment()
 
 function onNavigationChange()
 {
-  $("#addRedemptionPaymentForm").css("display","none");
   $('#modifyDatabaseEntryCategory').attr("style","display:none");
   $('#categoriesInfo').attr("style","display:none");
 
   $('.accountsTableModifyButton').off();
   $('.accountsTableModifyButton').on("click",modifyAccount);
+  $('.accountsTableUnhideButton').off();
+  $('.accountsTableUnhideButton').on("click",unhideAccount);
 };
 
 function modifyCategory(inputID,newName,callback)
@@ -3217,6 +3238,43 @@ function modifyCategory(inputID,newName,callback)
     alert("Something went deeply wrong. Category goes not exists.")
   }
 
+};
+
+function unhideAccount(event)
+{
+  // Prevent Link from Firing
+  event.preventDefault();
+
+  var thisID = $(this).attr('rel');
+  
+  // Get our User Object
+  var thisUserObject = null;
+  for (var i=0; i < accountData.length; ++i)
+  {
+    if(accountData[i]._id == thisID)
+    {
+      thisUserObject = accountData[i];
+      break;
+    }
+  }
+
+  
+  if(thisUserObject != null)
+  {
+    var newAccount = thisUserObject;
+    newAccount.hideDate = null;
+
+    var ajaxPromise1 = ajaxPUT_Account(newAccount,thisID);
+
+    $.when(ajaxPromise1).then(function()
+    {
+      reloadDataAndRefreshDisplay();
+    });
+  }
+  else
+  {
+    alert("Something went terribly wrong...");
+  }
 };
 
 function modifyAccount(event)
@@ -3571,6 +3629,7 @@ function initializeButtonFunctionality()
     populateCategoryTable();
   
     populateTransactionTable(selectedMonth,selectedYear);
+    populateAccountInformation(selectedMonth,selectedYear);
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
     drawNetWorthChart();
   })
@@ -3587,7 +3646,7 @@ function initializeButtonFunctionality()
       selectedMonth -= 1;
     }
     populateCategoryTable();
-  
+    populateAccountInformation(selectedMonth,selectedYear);
     populateTransactionTable(selectedMonth,selectedYear);
     $('#selectedMonthYear').html(selectedMonth + " / " + selectedYear);
     drawNetWorthChart();
@@ -3602,7 +3661,7 @@ function initializeButtonFunctionality()
       //alert("This should not have happened, performing unnecessary reload.");
       reloadData();
     }
-    populateAccountInformation();
+    populateAccountInformation(selectedMonth,selectedYear);
     if($('#accountOverview').css("display") === "none")
     {
       // Check for shitty siutation, this should never happen.
@@ -3647,6 +3706,7 @@ function initializeButtonFunctionality()
   {
     onNavigationChange();
     populateTransactionTable(selectedMonth,selectedYear);
+    populateAccountInformation(selectedMonth,selectedYear);
   
     $('#databaseView').css("display", "block");
     $('#addTransactionView').css("display", "none");
