@@ -16,6 +16,6 @@ Licence is GPL where permissible.
   * ``export SHELLMONEY_MODE=RELEASE``
     * ``DEBUG`` mode will not use minified js to facilitate development
   * ``export SHELLMONEY_URL=http://mywebsite.org:12000``
-    * For ``SHELLMONEY_URL``, make sure that there are no additional trailing slash-signs ('/') at the end of the URL after the port (this will break everything). Put the full URL where Shellmoney will be running here. This will usueally be something like ``//server:port``.
+    * For ``SHELLMONEY_URL``, make sure that there are no additional trailing slash-signs ('/') at the end of the URL after the port (this will break everything). Put the full URL where Shellmoney will be running here. This will usually be something like ``//server:port``.
 5. Run the shellmoney app: ``./npm start``.
 6. Shellmoney is now reachable using a browser on SHELLMONEY_URL.
