@@ -174,6 +174,7 @@ router.post('/import',
         for (var i = 0; i < jsonFile[1].length; i++)
         {
           jsonFile[1][i].userID = username;
+          delete jsonFile[1][i]._id;
           collection.insert(jsonFile[1][i]);
         }
     
@@ -182,6 +183,7 @@ router.post('/import',
         for (var i = 0; i < jsonFile[2].length; i++)
         {
           jsonFile[2][i].userID = username;
+          delete jsonFile[2][i]._id;
           collection.insert(jsonFile[2][i]);
         }
     
@@ -190,6 +192,7 @@ router.post('/import',
         for (var i = 0; i < jsonFile[3].length; i++)
         {
           jsonFile[3][i].userID = username;
+          delete jsonFile[3][i]._id;
           collection.insert(jsonFile[3][i]);
         }
     

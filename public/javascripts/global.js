@@ -1483,6 +1483,10 @@ function populateCategoryTable() {
 
     var amountSpentDisplayText = "";
     amountSpentDisplayText += parseFloat(virtualSpendingThisMonth).toFixed(2);
+    if(virtualSpendingThisMonth > 0.0001)
+    {
+      amountSpentDisplayText = "+" + amountSpentDisplayText;
+    }
     tableContent += '<td id="categorySpentThisMonth" val="' + parseFloat(virtualSpendingThisMonth).toFixed(2);
     tableContent += '" valClearedThisMonth="' + parseFloat(actualSpendingThisMonth).toFixed(2) + '">' + amountSpentDisplayText + '</td>';
 

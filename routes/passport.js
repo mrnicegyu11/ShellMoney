@@ -29,17 +29,15 @@ passport.use(new Strategy(
     {
       if(currentUsersBuffered[i].username === username)
       {
-        bcrypt.compare(password, currentUsersBuffered[i].password, function(err, res) 
+        res = bcrypt.compareSync(password, currentUsersBuffered[i].password);
+        if(res === false)
         {
-          if(res === false)
-          {
-            return cb(null, false); 
-          }
-          else if (res === true)
-          {
-            return cb(null, currentUsersBuffered[i]);
-          }
-        });
+          return cb(null, false); 
+        }
+        else if (res === true)
+        {
+          return cb(null, currentUsersBuffered[i]);
+        }
       }
     }
     if (found === false)
