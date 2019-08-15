@@ -481,10 +481,7 @@ function getMostRecentAllocation(category)
       if(category.allocatedSinceReference[i].year > mostRecentYear)
       {
         mostRecentYear = category.allocatedSinceReference[i].year
-        if (mostRecentMonth < category.allocatedSinceReference[i].month )
-        {
-          mostRecentMonth = category.allocatedSinceReference[i].month;
-        }
+        mostRecentMonth = category.allocatedSinceReference[i].month;
       }
       else if (mostRecentYear === category.allocatedSinceReference[i].year 
       && mostRecentMonth < category.allocatedSinceReference[i].month )
@@ -2845,7 +2842,7 @@ function showCategoryInfoModal(event) {
       $("#hideUnhideDeleteCategoryButton").html("Restore hidden category");
       $("#hideUnhideDeleteCategoryButton").css("display","");
     }
-    else if(balance.unclearedTransactionsAllMonths != "0.00" || balance.currentDailyTotalBalance != "0.00")
+    else if(parseFloat(balance.unclearedTransactionsAllMonths) != 0.0 || parseFloat(balance.currentDailyTotalBalance) != 0.0)
     {
       // Cant hide cause category is unbalanced
       $("#hideUnhideDeleteCategoryButton").css("display","none");
