@@ -3388,17 +3388,16 @@ function deleteTransaction(event) {
   var confirmation = confirm('Are you sure you want to delete this transaction?');
 
   // Check and make sure the user confirmed
-  if (confirmation === true) {
-
+  if (confirmation === true) 
+  {
     // If they did, do our delete
     ajaxDELETE_Transaction($(this).attr('rel')).done(function()
     {
       reloadDataAndRefreshDisplay();
     });
-
   }
-  else {
-
+  else 
+  {
     // If they said no to the confirm, do nothing
   }
 };
@@ -3450,6 +3449,13 @@ function appendCurrentAccountsToDropdown(dropdown_menu)
   }
   for (var j = 0; j < accountData.length; ++j)
   {
+    if(accountData[j].hasOwnProperty('hideDate'))
+    {
+      if(accountData[j].hideDate != null)
+      {
+        continue;
+      }
+    }
     var dropdownEntry = $(document.createElement('a'));
     dropdownEntry.attr("class", "dropdown-item");
     dropdownEntry.attr("href", "#");
