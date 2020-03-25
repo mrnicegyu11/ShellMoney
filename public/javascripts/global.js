@@ -3915,8 +3915,11 @@ function initializeButtonFunctionality()
           {
             if(curMonthIter != null)
             {
-              categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
-            }
+              if(categoryData[i].allocatedSinceReference[curMonthIter].amount == 0.0)
+              {
+                categoryData[i].allocatedSinceReference[curMonthIter].amount = categoryData[i].allocatedSinceReference[lastMonthIter].amount;
+              }
+             }
             else
             {
               categoryData[i].allocatedSinceReference.push(
