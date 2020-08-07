@@ -5,30 +5,61 @@
  */
 
 var app = require('../app');
-var debug = require('debug')('nodetest2:server');
+var debug = require('debug')('shellmoney:server');
 var http = require('http');
-
+var https = require('https');
+var fs = require("fs");
 /**
  * Get port from environment and store in Express.
  */
 
 var port = normalizePort(process.env.SHELLMONEY_PORT || '12000');
+var https_port = normalizePort(process.env.SHELLMONEY_HTTPS_PORT || '12000');
 console.log("Port: " + port);
 app.set('port', port);
 
 /**
- * Create HTTP server.
+ * Create HTTP & HTTPS server.
  */
 
-var server = http.createServer(app);
+// via https://stackoverflow.com/questions/5998694/how-to-create-an-https-server-in-node-js
+try {
+  //if (0 === 0)
+  //  return Error ('Will not use HTTPS. This isn\'t really an error to be honest...')
+  console.log("Trying to set up HTTPS Shellmoney server.")
+  var key_file = process.env.SHELLMONEY_HTTPS_KEYFILE
+  var cert_file = process.env.SHELLMONEY_HTTPS_CERTFILE
+  var options = {
+    key: fs.readFileSync(key_file.toString()),
+    cert: fs.readFileSync(cert_file.toString())
+  };
+  var secure_server = https.createServer(options, app);
+  secure_server.listen(port);
+  secure_server.on('error', onError);
+  console.log("HTTPS Server started successfully.")
+} catch (error)
+{
+  console.log("ERROR:")
+  console.log(error)
+  console.log("")
+  console.log("Starting HTTPS Shellmoney server failed. Did you provide the env. variables for the key- & cert-file?")
+  console.log("--> Running HTTP Shellmoney server only.")
+  var server = http.createServer(app);
+  server.listen(port);
+  server.on('error', onError);
+  server.on('listening', onListening);
+}
+
+
+
+
+
 
 /**
  * Listen on provided port, on all network interfaces.
  */
 
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+
 
 /**
  * Normalize a port into a number, string, or false.
