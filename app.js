@@ -1,11 +1,16 @@
 console.log("######################################################");
 console.log("Starting Shellmoney...");
 console.log("Shellmoney is runnin in the directory " + __dirname.toString() +".");
+console.log("Hint: ... if Shellmoney fails starting now, you have forgotten to set the necessary environment variables. Please consider the manual in this case!\n")
 console.log("Shellmoney is running with the following options:")
 console.log("SHELLMONEY_MONGODB_ACCESS: " + process.env.SHELLMONEY_MONGODB_ACCESS.toString());
 console.log("SHELLMONEY_URL: " + process.env.SHELLMONEY_URL.toString());
 console.log("SHELLMONEY_PORT: " + process.env.SHELLMONEY_PORT.toString());
 console.log("SHELLMONEY_MODE: " + process.env.SHELLMONEY_MODE.toString());
+try {
+console.log("SHELLMONEY_HTTPS_CERTFILE: " + process.env.SHELLMONEY_HTTPS_CERTFILE.toString());
+console.log("SHELLMONEY_HTTPS_KEYFILE: " + process.env.SHELLMONEY_HTTPS_KEYFILE.toString());
+} catch {}
 console.log("######################################################");
 console.log("");
 
@@ -45,9 +50,9 @@ fs.readFile(__dirname.toString() + "/public/javascripts/global.js", "utf8", func
   }
   else
   {
-    //console.log(data);
-    console.log("The file 'global.js' was minified with the following errors:");
+    console.log("Start minimzing of global.js file.");
     var minifiedCode = uglify.minify(data);
+    console.log("The file 'global.js' was minified with the following errors:");
     if (typeof minifiedCode.error !== 'undefined')
     {
       console.log(minifiedCode.error);
