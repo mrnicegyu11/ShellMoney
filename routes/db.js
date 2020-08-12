@@ -267,7 +267,7 @@ router.put('/transactions_modify/:id',
       JSONfile.userID = username;
 
 
-      collection.update({ '_id' : toModify, 'userID': {$eq: username} }, JSONfile,function(err) 
+      collection.findOneAndUpdate({ '_id' : toModify, 'userID': {$eq: username} }, {"$set": JSONfile},function(err) 
       {
         res.send((err === null) ? { msg: '' } : { msg:'error: ' + err });
         if(err != null)
@@ -304,7 +304,7 @@ router.put('/accounts_modify/:id',
       var JSONfile = JSON.parse(req.body.data);
       JSONfile.userID = username;
 
-      collection.update({ '_id' : toModify, 'userID': {$eq: username} }, JSONfile,function(err) 
+      collection.findOneAndUpdate({ '_id' : toModify, 'userID': {$eq: username} }, {"$set": JSONfile},function(err) 
       {
         res.send((err === null) ? { msg: '' } : { msg:'error: ' + err });
         if(err != null)
