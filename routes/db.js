@@ -220,18 +220,20 @@ router.put('/categories_modify/:id',
       // TODO: Validate correct username
       var username = isUserLoggedIn(req).toString();
       var db = req.dbCategories;
+      db.addMiddleware(require('monk-middleware-wrap-non-dollar-update'))
       var collection = db.get('categories');;
       var toModify = req.params.id;
 
       var JSONfile = JSON.parse(req.body.data);
       JSONfile.userID = username;
 
-      collection.update({ '_id' : toModify, 'userID': {$eq: username} }, JSONfile,function(err) 
+      //collection.update({ '_id' : toModify, 'userID': {$eq: username} }, JSONfile,function(err) 
+      collection.findOneAndUpdate({ '_id' : toModify, 'userID': {$eq: username}}, {"$set": JSONfile},function(err)
       {
         res.send((err === null) ? { msg: '' } : { msg:'error: ' + err });
         if(err != null)
         {
-          console.log("Error");
+          console.log("Error in server backend: Modification of a category.");
           console.log(err);
           
         }
