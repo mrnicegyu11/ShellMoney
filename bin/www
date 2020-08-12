@@ -14,7 +14,6 @@ var fs = require("fs");
  */
 
 var port = normalizePort(process.env.SHELLMONEY_PORT || '12000');
-var https_port = normalizePort(process.env.SHELLMONEY_HTTPS_PORT || '12000');
 console.log("Port: " + port);
 app.set('port', port);
 
@@ -29,6 +28,8 @@ try {
   console.log("Trying to set up HTTPS Shellmoney server.")
   var key_file = process.env.SHELLMONEY_HTTPS_KEYFILE
   var cert_file = process.env.SHELLMONEY_HTTPS_CERTFILE
+  console.log("Assuming KEYFILE at: " + key_file.toString())
+  console.log("Assuming CERTFILE at: " + cert_file.toString())
   var options = {
     key: fs.readFileSync(key_file.toString()),
     cert: fs.readFileSync(cert_file.toString())

@@ -220,7 +220,7 @@ router.put('/categories_modify/:id',
       // TODO: Validate correct username
       var username = isUserLoggedIn(req).toString();
       var db = req.dbCategories;
-      db.addMiddleware(require('monk-middleware-wrap-non-dollar-update'))
+      //db.addMiddleware(require('monk-middleware-wrap-non-dollar-update'))
       var collection = db.get('categories');;
       var toModify = req.params.id;
 
