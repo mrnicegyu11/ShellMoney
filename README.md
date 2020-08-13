@@ -17,7 +17,7 @@ Licence is GPL where permissible.
     * ``DEBUG`` mode will not use minified js to facilitate development
   * ``export SHELLMONEY_URL=http://mywebsite.org:12000``
     * For ``SHELLMONEY_URL``, make sure that there are no additional trailing slash-signs ('/') at the end of the URL after the port (this will break everything). Put the full URL where Shellmoney will be running here. This will usually be something like ``//server:port``.
-  * ``export SHELLMONEY_HTTPS_CERTFILE="/home/doktorb/etc/certificates/doktorb.uber.space.crt" && export SHELLMONEY_HTTPS_KEYFILE="/home/doktorb/etc/certificates/doktorb.uber.space.key"``
+  * ``export SHELLMONEY_HTTPS_CERTFILE="/home/example/file.cert" && export SHELLMONEY_HTTPS_KEYFILE="/home/example/file.key"``
     * Set the paths to the key- and certfile if you want to enable secure HTTPS connections. If these variables are not set properly, shellmoney will run in (unsecured) HTTP-mode. Please don't forget to properly specify ``https://`` oder ``http://`` in ``SHELLMONEY_URL``
 5. Run the shellmoney app: ``./npm start``.
 6. Shellmoney is now reachable using a browser on SHELLMONEY_URL.
