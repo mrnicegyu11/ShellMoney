@@ -20,4 +20,4 @@ Licence is GPL where permissible.
   * ``export SHELLMONEY_HTTPS_CERTFILE="/home/example/file.cert" && export SHELLMONEY_HTTPS_KEYFILE="/home/example/file.key"``
     * Set the paths to the key- and certfile if you want to enable secure HTTPS connections. If these variables are not set properly, shellmoney will run in (unsecured) HTTP-mode. Please don't forget to properly specify ``https://`` oder ``http://`` in ``SHELLMONEY_URL``
 5. Run the shellmoney app: ``./npm start``.
-6. Shellmoney is now reachable using a browser on SHELLMONEY_URL.
+6. Shellmoney is now reachable using a browser on the adress specified in ``SHELLMONEY_URL``.
