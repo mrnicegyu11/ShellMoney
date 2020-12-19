@@ -1902,22 +1902,27 @@ function populateAddTransactionView() {
 
     var currentTransactionKind = null
     var currentTransactionDivName = null
+    var currentTransactionId = null
     if($('#addTransaction #payment').attr("style") != "display:none")
     {
       currentTransactionKind = "Payment";
       currentTransactionDivName = "#payment";
+      currentTransactionId = "#inputAmount1P"
     } else if ($('#addTransaction #income').attr("style") != "display:none") 
     {
       currentTransactionKind = "Income";
       currentTransactionDivName = "#income";
+      currentTransactionId = "#inputAmount1I"
     } else if ($('#addTransaction #transfer').attr("style") != "display:none")
     {
       currentTransactionKind = "Transfer";
       currentTransactionDivName = "#transfer";
+      currentTransactionId = "#inputAmount1T"
     } else if ($('#addTransaction #correction').attr("style") != "display:none")
     {
       currentTransactionKind = "Correction";
       currentTransactionDivName= "#correction";
+      currentTransactionId = "#inputAmount1C"
     }
 
     // Super basic validation
@@ -1927,7 +1932,7 @@ function populateAddTransactionView() {
       if(
         $('#addTransaction '+ currentTransactionDivName +' .inputName').val() == "" 
         || $('#addTransaction '+ "#general" +' .inputAccount').html() == "" 
-        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName + ' ' + currentTransactionId).val() == "" 
         || $('#addTransaction '+ currentTransactionDivName +' .category1Button').html() == "" 
       )
       {
@@ -1951,7 +1956,7 @@ function populateAddTransactionView() {
     {
       if(
           $('#addTransaction '+ "#general" +' .inputAccount').html() == "" 
-        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1T').val() == "" 
         || $('#addTransaction '+ currentTransactionDivName +' .targetAccount').html() == "" 
       )
       {
@@ -1966,7 +1971,7 @@ function populateAddTransactionView() {
     {
       if(
           $('#addTransaction '+ "#general" +' .inputAccount').html() == "" 
-        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1').val() == "" 
+        || $('#addTransaction '+ currentTransactionDivName +' #inputAmount1C').val() == "" 
       )
       {
         errorSubmission = true
@@ -2059,7 +2064,7 @@ function populateAddTransactionView() {
         'amount' : [
           {
             "category" : $('#addTransaction ' + currentTransactionDivName + ' .category1Button').html(),
-            "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' #inputAmount1').val()) * -1.0).toString(),
+            "amount" : (parseFloat($('#addTransaction ' + currentTransactionDivName + ' ' + currentTransactionId).val()) * -1.0).toString(),
             "comment" : $('#addTransaction ' + currentTransactionDivName + ' #paymentDiv1 #inputCommentPayment').val()
           }
         ]
@@ -2205,10 +2210,10 @@ function populateAddTransactionView() {
         if($("#addTransaction #income").css("display") !== "none")
         {
           $("#addTransaction #payment #inputNamePayment").val($("#addTransaction #income #inputNameIncome").val());
-          $("#addTransaction #payment #paymentDiv1 #inputAmount1").val($("#addTransaction #income #inputAmount1").val());
+          $("#addTransaction #payment #paymentDiv1 #inputAmount1P").val($("#addTransaction #income #inputAmount1P").val());
         }
 
-        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount 1");
+        $("#addTransaction #general #inputAmount1P").attr("placeholder","Amount 1");
 	      $("#addTransaction #payment").attr("style","display:block");
 	      $("#addTransaction #income").attr("style","display:none");
 	      $("#addTransaction #transfer").attr("style","display:none");
@@ -2224,7 +2229,7 @@ function populateAddTransactionView() {
       }
       else
       {
-        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount");
+        $("#addTransaction #general #inputAmount1I").attr("placeholder","Amount");
 
         if($("#addTransaction #payment").css("display") !== "none")
         {
@@ -2238,7 +2243,7 @@ function populateAddTransactionView() {
           {
             $("#addTransaction #income #inputNameIncome").val($("#addTransaction #payment #inputNamePayment").val());
           }
-          $("#addTransaction #income #inputAmount1").val($("#addTransaction #payment #paymentDiv1 #inputAmount1").val());
+          $("#addTransaction #income #inputAmount1I").val($("#addTransaction #payment #paymentDiv1 #inputAmount1I").val());
         }
 	      $("#addTransaction #income").attr("style","display:block");
 	      $("#addTransaction #payment").attr("style","display:none");
@@ -2255,7 +2260,7 @@ function populateAddTransactionView() {
       }
       else
       {
-        $("#addTransaction #general #inputAmount1").attr("placeholder","Amount");
+        $("#addTransaction #general #inputAmount1T").attr("placeholder","Amount");
         $("#addTransaction #general #inputAccount").attr("placeholder","From Account");
 	      $("#addTransaction #transfer").attr("style","display:block");
 	      $("#addTransaction #payment").attr("style","display:none");
@@ -2271,7 +2276,7 @@ function populateAddTransactionView() {
       }
       else
       {
-        $("#addTransaction #general #inputAmount1").attr("placeholder","Target Amount");
+        $("#addTransaction #general #inputAmount1C").attr("placeholder","Target Amount");
         $("#addTransaction #general #inputAccount").attr("placeholder","Account");
 	      $("#addTransaction #correction").attr("style","display:block");
 	      $("#addTransaction #payment").attr("style","display:none");
